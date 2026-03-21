@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from ariaflow_web import __version__
 from .webapp import serve
 
 
@@ -12,7 +13,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--version", action="version", version="ariaflow-web 0.1.0")
+    parser.add_argument("--version", action="version", version=f"ariaflow-web {__version__}")
     return parser
 
 
