@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from .webapp import serve
+from aria_queue.webapp import serve
 from . import __version__
 
 
