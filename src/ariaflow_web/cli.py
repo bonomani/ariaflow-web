@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import argparse
 
+from . import __version__
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ariaflow-web",
         description="Local dashboard frontend for ariaflow.",
     )
-    parser.add_argument("--version", action="version", version="ariaflow-web 0.1.0")
+    parser.add_argument("--version", action="version", version=f"ariaflow-web {__version__}")
     return parser
 
 
