@@ -836,6 +836,10 @@ INDEX_HTML = """<!doctype html>
       if (state?.session_id && state?.session_closed_at) return `closed ${String(state.session_id).slice(0, 8)}`;
       return "-";
     }
+    function backendUnavailableLabel(data) {
+      const error = data?.backend?.error || data?.error || 'backend unavailable';
+      return `Backend unavailable · ${error}`;
+    }
     function enrichQueueItems(items, active, state) {
       const liveItems = Array.isArray(active) ? active : (active ? [active] : []);
       return (items || []).map((item) => {
@@ -1139,6 +1143,27 @@ INDEX_HTML = """<!doctype html>
         const r = await fetch('/api/status');
         const data = await r.json();
         lastStatus = data;
+        if (data?.ok === false || data?.backend?.reachable === false) {
+          document.getElementById('queue').innerHTML = `<div class='item'>${backendUnavailableLabel(data)}</div>`;
+          document.getElementById('mode-label').textContent = 'offline';
+          document.getElementById('active-label').textContent = 'none';
+          document.getElementById('sum-speed').textContent = 'idle';
+          document.getElementById('chip-runner').textContent = 'offline';
+          document.getElementById('chip-error').textContent = data?.backend?.error || 'connection refused';
+          document.getElementById('bw-source').textContent = 'offline';
+          document.getElementById('bw-down').textContent = backendUnavailableLabel(data);
+          document.getElementById('bw-cap').textContent = '-';
+          document.getElementById('bw-global').textContent = 'Backend unavailable';
+          document.getElementById('bw-live').textContent = 'offline';
+          document.getElementById('bw-live-detail').textContent = backendUnavailableLabel(data);
+          document.getElementById('bw-probe-mode').textContent = '-';
+          document.getElementById('bw-probe-detail').textContent = backendUnavailableLabel(data);
+          document.getElementById('runner-btn').textContent = 'Start engine';
+          document.getElementById('toggle-btn').textContent = 'Pause';
+          renderQueueSummary({ queued: 0, done: 0, error: 0 });
+          syncRefreshControl();
+          return;
+        }
         backendGlobalOptions = data.aria2_global_options || {};
         const state = data.state || {};
         const active = data.active || {status: 'idle'};
@@ -1182,6 +1207,10 @@ INDEX_HTML = """<!doctype html>
       const r = await fetch('/api/lifecycle');
       const data = await r.json();
       lastLifecycle = data;
+      if (data?.ok === false || data?.backend?.reachable === false) {
+        document.getElementById('lifecycle').innerHTML = `<div class='item'>${backendUnavailableLabel(data)}</div>`;
+        return;
+      }
       document.getElementById('lifecycle').innerHTML = renderLifecycleSummary(data);
     }
     async function pauseQueue() {
@@ -1282,6 +1311,11 @@ INDEX_HTML = """<!doctype html>
     async function loadDeclaration() {
       const r = await fetch('/api/declaration');
       lastDeclaration = await r.json();
+      if (lastDeclaration?.ok === false || lastDeclaration?.backend?.reachable === false) {
+        const options = document.getElementById('options-panel');
+        if (options) options.innerHTML = `<div class='item'>${backendUnavailableLabel(lastDeclaration)}</div>`;
+        return;
+      }
       const declarationBox = document.getElementById('declaration');
       if (declarationBox) declarationBox.value = JSON.stringify(lastDeclaration, null, 2);
       const checkbox = document.getElementById('auto-preflight');
@@ -1306,6 +1340,11 @@ INDEX_HTML = """<!doctype html>
       if (sessionFilter && !sessionFilter.value) sessionFilter.value = 'current';
       const r = await fetch('/api/log?limit=120');
       const data = await r.json();
+      if (data?.ok === false || data?.backend?.reachable === false) {
+        const actionLog = document.getElementById('action-log');
+        if (actionLog) actionLog.innerHTML = `<div class='item'>${backendUnavailableLabel(data)}</div>`;
+        return;
+      }
       const actionLog = document.getElementById('action-log');
       if (actionLog) actionLog.innerHTML = renderActionLog(data.items || []);
     }

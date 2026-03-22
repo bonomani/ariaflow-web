@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -18,8 +19,18 @@ def _request(path: str, method: str = "GET", payload: dict | None = None) -> dic
         data = json.dumps(payload).encode("utf-8")
         headers["Content-Type"] = "application/json"
     req = Request(url, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    try:
+        with urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except URLError as exc:
+        return {
+            "ok": False,
+            "backend": {
+                "reachable": False,
+                "error": str(exc),
+                "url": url,
+            },
+        }
 
 
 def get_status() -> dict:
