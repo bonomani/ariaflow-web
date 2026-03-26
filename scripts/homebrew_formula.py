@@ -51,7 +51,7 @@ def render_formula(*, version: str, url: str, sha256: str) -> str:
 
     (bin/"ariaflow-web").write <<~EOS
       #!/bin/bash
-      exec env PYTHONPATH="#{{libexec}}/src:#{{PYTHONPATH}}" python3 -m ariaflow_web.cli "$@"
+      exec env PYTHONPATH="#{{libexec}}/src:${{PYTHONPATH}}" python3 -m ariaflow_web.cli "$@"
     EOS
     chmod 0755, bin/"ariaflow-web"
   end
