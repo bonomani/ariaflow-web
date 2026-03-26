@@ -4,17 +4,40 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable tag to publish and sync
+        required: true
+        type: string
 
 jobs:
   build-release:
-    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Resolve release tag
+        id: release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+          case "$tag" in
+            *-*)
+              echo "Stable tags only: $tag"
+              exit 1
+              ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release_tag.outputs.tag }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,7 +58,7 @@ jobs:
         run: |
           mkdir -p release
           artifact=$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)
-          cp "$artifact" "release/ariaflow-web-${GITHUB_REF_NAME}.tar.gz"
+          cp "$artifact" "release/ariaflow-web-${{ steps.release_tag.outputs.tag }}.tar.gz"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -43,6 +66,7 @@ jobs:
           files: release/*
           generate_release_notes: true
           prerelease: false
+          tag_name: ${{ steps.release_tag.outputs.tag }}
 
       - name: Checkout tap
         uses: actions/checkout@v4
@@ -53,7 +77,7 @@ jobs:
 
       - name: Update tap formula
         run: |
-          python3 scripts/homebrew_formula.py --tag "${GITHUB_REF_NAME}" --output tap/Formula/ariaflow-web.rb
+          python3 scripts/homebrew_formula.py --tag "${{ steps.release_tag.outputs.tag }}" --output tap/Formula/ariaflow-web.rb
 
       - name: Commit tap update
         working-directory: tap
@@ -65,11 +89,12 @@ jobs:
             echo "Formula already up to date"
             exit 0
           fi
-          git commit -m "Update ariaflow-web formula to ${GITHUB_REF_NAME#v}"
+          git commit -m "Update ariaflow-web formula to ${{ steps.release_tag.outputs.tag }}"
           git push
 
       - name: Verify tap version
         run: |
-          expected="${GITHUB_REF_NAME#v}"
+          expected="${{ steps.release_tag.outputs.tag }}"
+          expected="${expected#v}"
           current=$(python3 -c 'from pathlib import Path; import re; text = Path("tap/Formula/ariaflow-web.rb").read_text(encoding="utf-8"); match = re.search(r"^  version \"([^\"]+)\"$", text, re.MULTILINE); print(match.group(1) if match else "")')
           test "$current" = "$expected"
