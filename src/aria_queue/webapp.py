@@ -157,17 +157,22 @@ INDEX_HTML = """<!doctype html>
     .toolbar { display: grid; gap: 12px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .row > * { flex: 1 1 160px; }
-    .queue-add-row { align-items: flex-start; }
-    .queue-add-row > textarea {
-      flex: 1 1 420px;
-      min-height: 48px;
-      height: 48px;
-      resize: vertical;
+    .queue-add-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) max-content;
+      align-items: start;
     }
-    .queue-add-row > button {
-      flex: 0 0 auto;
-      width: auto;
-      align-self: flex-start;
+    .queue-add-row > textarea {
+      min-height: 0;
+      height: calc(1.45em + 24px);
+      resize: none;
+      overflow-y: auto;
+    }
+    .queue-add-button {
+      width: fit-content;
+      min-width: 0;
+      justify-self: start;
+      align-self: start;
       white-space: nowrap;
     }
     input, textarea, button { font: inherit; }
@@ -391,6 +396,11 @@ INDEX_HTML = """<!doctype html>
       .hero { align-items: start; }
       .span-8, .span-7, .span-5, .span-4, .span-6 { grid-column: span 12; }
     }
+    @media (max-width: 720px) {
+      .queue-add-row {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body data-page="dashboard">
@@ -456,7 +466,7 @@ INDEX_HTML = """<!doctype html>
         <div class="panel toolbar">
           <div class="row queue-add-row">
             <textarea id="url" rows="1" placeholder="Paste one or more URLs, one per line"></textarea>
-            <button onclick="add()">Add to queue</button>
+            <button class="queue-add-button" onclick="add()">Add to queue</button>
           </div>
         </div>
       </div>
