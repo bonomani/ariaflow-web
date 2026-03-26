@@ -147,6 +147,19 @@ INDEX_HTML = """<!doctype html>
     .queue-add-row {
       display: block;
     }
+    .backend-add-row {
+      display: block;
+    }
+    .backend-add-group {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel-2);
+    }
     .queue-add-group {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -169,6 +182,26 @@ INDEX_HTML = """<!doctype html>
       box-shadow: none;
     }
     .queue-add-button {
+      min-width: 84px;
+      height: calc(1.45em + 22px);
+      padding: 0 12px;
+      justify-self: end;
+      align-self: center;
+      white-space: nowrap;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1;
+      box-shadow: none;
+    }
+    .backend-add-group input {
+      border: 0;
+      background: transparent;
+      padding: 10px 8px;
+      border-radius: 10px;
+      box-shadow: none;
+    }
+    .backend-add-button {
       min-width: 84px;
       height: calc(1.45em + 22px);
       padding: 0 12px;
@@ -406,7 +439,16 @@ INDEX_HTML = """<!doctype html>
       .queue-add-group {
         grid-template-columns: 1fr;
       }
+      .backend-add-group {
+        grid-template-columns: 1fr;
+      }
       .queue-add-button {
+        min-width: 0;
+        width: 100%;
+        justify-self: stretch;
+        align-self: stretch;
+      }
+      .backend-add-button {
         min-width: 0;
         width: 100%;
         justify-self: stretch;
@@ -466,9 +508,11 @@ INDEX_HTML = """<!doctype html>
         <h2>Backends</h2>
         <div class="hint">Local default is 127.0.0.1:8000; manual backends stay browser-local</div>
       </div>
-      <div class="row">
-        <input id="backend-input" placeholder="http://127.0.0.1:8000">
-        <button class="secondary" onclick="addBackend()">Add backend</button>
+      <div class="backend-add-row">
+        <div class="backend-add-group">
+          <input id="backend-input" placeholder="http://127.0.0.1:8000">
+          <button class="secondary backend-add-button" onclick="addBackend()">Add</button>
+        </div>
       </div>
       <div id="backend-panel" class="chips" style="margin-top:12px;"></div>
     </div>
