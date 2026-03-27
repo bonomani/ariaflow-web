@@ -154,7 +154,7 @@ INDEX_HTML = """<!doctype html>
     }
     .backend-add-group {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: stretch;
       gap: 8px;
       padding: 8px;
@@ -263,6 +263,34 @@ INDEX_HTML = """<!doctype html>
       border-color: rgba(125, 211, 252, 0.35);
       box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.12);
       background: rgba(8, 17, 31, 0.82);
+    }
+    .control-groups {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .control-group {
+      border: 1px solid var(--line);
+      background: rgba(8, 17, 31, 0.65);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .control-group h3 {
+      margin: 0;
+      font-size: 0.92rem;
+      letter-spacing: -0.01em;
+    }
+    .control-group .meta {
+      font-size: 0.85rem;
+    }
+    .control-actions {
+      display: grid;
+      gap: 8px;
+    }
+    .control-actions button {
+      width: 100%;
     }
     .item-top {
       display: flex;
@@ -436,6 +464,7 @@ INDEX_HTML = """<!doctype html>
       .hero, .summary { grid-template-columns: 1fr; }
       .hero { align-items: start; }
       .span-8, .span-7, .span-5, .span-4, .span-6 { grid-column: span 12; }
+      .control-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
       .queue-add-group {
@@ -455,6 +484,9 @@ INDEX_HTML = """<!doctype html>
         width: 100%;
         justify-self: stretch;
         align-self: stretch;
+      }
+      .control-groups {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -515,7 +547,6 @@ INDEX_HTML = """<!doctype html>
         <div class="backend-add-group">
           <input id="backend-input" placeholder="http://127.0.0.1:8000">
           <button class="secondary backend-add-button" onclick="addBackend()">Add</button>
-          <button class="secondary backend-add-button" onclick="discoverBackends()">Discover</button>
         </div>
       </div>
       <div id="backend-panel" class="chips" style="margin-top:12px;"></div>
@@ -535,18 +566,40 @@ INDEX_HTML = """<!doctype html>
         <div class="panel toolbar">
           <div class="section-title" style="margin-bottom:0;">
             <h2>Controls</h2>
-            <div class="hint">Global engine actions</div>
+            <div class="hint">Separated by function: run, queue, session, and startup policy</div>
           </div>
-          <div class="row">
-            <button class="secondary" onclick="preflightRun()">Preflight</button>
-            <button class="secondary" id="runner-btn" onclick="toggleRunner()">Start engine</button>
-            <button class="secondary" id="toggle-btn" onclick="toggleQueue()">Pause</button>
-            <button class="secondary" onclick="newSession()">Start new run</button>
+          <div class="control-groups">
+            <div class="control-group">
+              <h3>Run</h3>
+              <div class="meta"><span>Readiness check and engine lifecycle.</span></div>
+              <div class="control-actions">
+                <button class="secondary" onclick="preflightRun()">Check readiness</button>
+                <button class="secondary" id="runner-btn" onclick="toggleRunner()">Start engine</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <h3>Queue</h3>
+              <div class="meta"><span>Pause or resume active transfers without stopping the engine.</span></div>
+              <div class="control-actions">
+                <button class="secondary" id="toggle-btn" onclick="toggleQueue()">Pause queue</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <h3>Session</h3>
+              <div class="meta"><span>Start a fresh run boundary for logs and tracking.</span></div>
+              <div class="control-actions">
+                <button class="secondary" onclick="newSession()">New run</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <h3>Startup Policy</h3>
+              <div class="meta"><span>Choose whether readiness checks should run automatically before engine start.</span></div>
+              <label class="refresh-control" style="justify-self:start;">
+                <input type="checkbox" id="auto-preflight" onchange="setAutoPreflightPreference(this.checked)">
+                Auto-check before start
+              </label>
+            </div>
           </div>
-          <label class="refresh-control" style="justify-self:start; margin-top:-2px;">
-            <input type="checkbox" id="auto-preflight" onchange="setAutoPreflightPreference(this.checked)">
-            Run preflight before start
-          </label>
         </div>
       </div>
       <div class="span-12 show-dashboard page-only">
@@ -1381,7 +1434,7 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('bw-probe-mode').textContent = '-';
           document.getElementById('bw-probe-detail').textContent = backendUnavailableLabel(data);
           document.getElementById('runner-btn').textContent = 'Start engine';
-          document.getElementById('toggle-btn').textContent = 'Pause';
+          document.getElementById('toggle-btn').textContent = 'Pause queue';
           renderQueueSummary({ queued: 0, done: 0, error: 0 });
           syncRefreshControl();
           return;
@@ -1399,7 +1452,7 @@ INDEX_HTML = """<!doctype html>
         document.getElementById('chip-runner').textContent = data.state && data.state.running ? 'running' : 'idle';
         document.getElementById('chip-session').textContent = sessionLabel(state);
         const toggleButton = document.getElementById('toggle-btn');
-        if (toggleButton) toggleButton.textContent = data.state && data.state.paused ? 'Resume' : 'Pause';
+        if (toggleButton) toggleButton.textContent = data.state && data.state.paused ? 'Resume queue' : 'Pause queue';
         const runnerButton = document.getElementById('runner-btn');
         if (runnerButton) runnerButton.textContent = data.state && data.state.running ? 'Stop engine' : 'Start engine';
         document.getElementById('mode-label').textContent = activeStateLabel(liveActive, state);
