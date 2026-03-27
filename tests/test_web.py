@@ -29,6 +29,47 @@ def request_json(url: str, method: str = "GET", payload: dict | None = None) -> 
 
 
 class WebSmokeTests(unittest.TestCase):
+    def test_networkquality_timeout_label_is_probe_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["ARIA_QUEUE_DIR"] = tmp
+            lifecycle_payload = {
+                "ariaflow": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "ariaflow", "completion": "complete", "message": "ariaflow installed 1.0.0; current production 1.0.0; updates via Homebrew tap"}},
+                "aria2": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2", "completion": "complete", "message": "aria2 installed 1.0.0; current production 1.0.0; required dependency"}},
+                "networkquality": {"meta": {"contract": "UCC"}, "result": {"outcome": "unchanged", "observation": "warn", "reason": "timeout", "target": "networkquality", "completion": "complete", "message": "networkquality available at /usr/bin/networkquality; probe timed out"}},
+                "aria2-launchd": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2-launchd", "completion": "complete", "message": "aria2 launchd loaded (1.0.0); required dependency"}},
+            }
+            status_payload = {
+                "items": [],
+                "state": {"running": False, "paused": False},
+                "summary": {"queued": 0, "done": 0, "error": 0},
+            }
+            declaration_payload = {"uic": {}, "ucc": {}, "policy": {}}
+            with patch("ariaflow_web.webapp.get_lifecycle_from", return_value=lifecycle_payload), \
+                 patch("ariaflow_web.webapp.get_status_from", return_value=status_payload), \
+                 patch("ariaflow_web.webapp.get_log_from", return_value={"items": []}), \
+                 patch("ariaflow_web.webapp.get_declaration_from", return_value=declaration_payload), \
+                 patch("ariaflow_web.webapp.add_items_from", return_value={"ok": True, "count": 0, "added": []}), \
+                 patch("ariaflow_web.webapp.preflight_from", return_value={"status": "pass"}), \
+                 patch("ariaflow_web.webapp.run_action_from", return_value={"ok": True, "action": "start", "result": {"started": True}}), \
+                 patch("ariaflow_web.webapp.run_ucc_from", return_value={"result": {"outcome": "converged", "observation": "ok"}}), \
+                 patch("ariaflow_web.webapp.save_declaration_from", return_value={"saved": True, "declaration": declaration_payload}), \
+                 patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}), \
+                 patch("ariaflow_web.webapp.set_session_from", return_value={"ok": True, "session": "batch-1"}), \
+                 patch("ariaflow_web.webapp.pause_from", return_value={"paused": True}), \
+                 patch("ariaflow_web.webapp.resume_from", return_value={"resumed": True}), \
+                 patch("ariaflow_web.webapp.lifecycle_action_from", return_value={"ok": True, "lifecycle": lifecycle_payload}):
+                server = serve(host="127.0.0.1", port=8766)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                time.sleep(0.2)
+                try:
+                    lifecycle_page = urllib.request.urlopen("http://127.0.0.1:8766/lifecycle", timeout=5).read().decode("utf-8")
+                    self.assertIn("installed · probe timeout", lifecycle_page)
+                    self.assertNotIn("installed · slow", lifecycle_page)
+                finally:
+                    server.shutdown()
+                    server.server_close()
+
     def test_local_web_server_smoke(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["ARIA_QUEUE_DIR"] = tmp

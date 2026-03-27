@@ -43,11 +43,6 @@ def version_to_tag(version: str) -> str:
     return f"v{major}.{minor}.{patch}"
 
 
-def next_release_version(version: str) -> str:
-    major, minor, patch = parse_version(version)
-    return f"{major}.{minor}.{patch + 1}"
-
-
 def write_version(version: str) -> None:
     pyproject = PYPROJECT.read_text(encoding="utf-8")
     pyproject = re.sub(r'^version = "[^"]+"$', f'version = "{version}"', pyproject, flags=re.MULTILINE)
@@ -95,8 +90,9 @@ def run_py_compile() -> None:
 
 def build_plan(current: str, next_version: str, tag: str, push: bool, run_tests: bool, allow_dirty: bool) -> list[str]:
     return [
+        "manual fallback release helper",
         f"current version: {current}",
-        f"next version: {next_version}",
+        f"requested version: {next_version}",
         f"tag: {tag}",
         f"tests: {'run' if run_tests else 'skip'}",
         f"dirty tree: {'allowed' if allow_dirty else 'not allowed'}",
@@ -110,8 +106,10 @@ def build_plan(current: str, next_version: str, tag: str, push: bool, run_tests:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Bump ariaflow-web, tag a release, and push it.")
-    parser.add_argument("--version", help="Set an explicit stable package version like 0.1.18.")
+    parser = argparse.ArgumentParser(
+        description="Manual fallback release helper for ariaflow-web. Normal releases should come from the CI workflow on main pushes."
+    )
+    parser.add_argument("--version", required=True, help="Set an explicit stable package version like 0.1.18.")
     parser.add_argument("--no-tests", action="store_true", help="Skip local tests before committing.")
     parser.add_argument("--allow-dirty", action="store_true", help="Allow uncommitted changes before releasing.")
     parser.add_argument("--dry-run", action="store_true", help="Print the planned release steps and exit.")
@@ -123,7 +121,7 @@ def main() -> int:
     if current != package_version:
         raise SystemExit(f"Version files disagree: pyproject.toml={current!r}, __init__.py={package_version!r}")
 
-    next_version = args.version or next_release_version(current)
+    next_version = args.version
     parse_version(next_version)
 
     tag = version_to_tag(next_version)
@@ -143,6 +141,8 @@ def main() -> int:
         print("\n".join(plan))
         print("Dry run only; no files changed.")
         return 0
+
+    print("Using manual fallback release path. Normal releases should come from the CI workflow on main pushes.")
 
     if not args.no_tests:
         run_py_compile()
