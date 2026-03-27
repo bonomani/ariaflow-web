@@ -570,19 +570,9 @@ INDEX_HTML = """<!doctype html>
         <p>Headless queue engine with a local dashboard.</p>
       </div>
       <div class="panel">
-        <div class="topline">
-          <span>Mode: <strong id="mode-label">idle</strong></span>
-          <span>Job: <strong id="active-label" class="mono">none</strong></span>
-          <span>Speed: <strong id="sum-speed">-</strong></span>
-        </div>
         <div class="chips">
           <div class="chip">Web UI <strong id="chip-web-version">__ARIAFLOW_WEB_VERSION__</strong></div>
           <div class="chip">PID <strong id="chip-web-pid">__ARIAFLOW_WEB_PID__</strong></div>
-        </div>
-        <div class="summary" style="margin-top:10px;">
-          <div class="metric"><div class="label">Waiting</div><div class="value" id="sum-queued">0</div><div class="sub">queued jobs</div></div>
-          <div class="metric"><div class="label">Done</div><div class="value" id="sum-done">0</div><div class="sub">completed</div></div>
-          <div class="metric"><div class="label">Errors</div><div class="value" id="sum-error">0</div><div class="sub">failed jobs</div></div>
         </div>
       </div>
     </div>
@@ -605,6 +595,11 @@ INDEX_HTML = """<!doctype html>
         <div class="chip">Cap <strong id="backend-cap">-</strong></div>
         <div class="chip">Last issue <strong id="backend-error">none</strong></div>
         <div class="chip">Run <strong id="backend-session">-</strong></div>
+      </div>
+      <div class="topline" style="margin-top:12px;">
+        <span>Mode: <strong id="backend-mode">idle</strong></span>
+        <span>Job: <strong id="backend-job" class="mono">none</strong></span>
+        <span>Speed: <strong id="backend-speed">-</strong></span>
       </div>
       <div id="backend-panel" class="chips" style="margin-top:12px;"></div>
     </div>
@@ -636,6 +631,11 @@ INDEX_HTML = """<!doctype html>
             <div class="hint">Jobs live inside the queue; pause or resume the flow without stopping the engine</div>
           </div>
           <div class="system-card" style="margin-bottom:12px;">
+            <div class="summary" style="margin-bottom:12px;">
+              <div class="metric"><div class="label">Waiting</div><div class="value" id="sum-queued">0</div><div class="sub">queued jobs</div></div>
+              <div class="metric"><div class="label">Done</div><div class="value" id="sum-done">0</div><div class="sub">completed</div></div>
+              <div class="metric"><div class="label">Errors</div><div class="value" id="sum-error">0</div><div class="sub">failed jobs</div></div>
+            </div>
             <div class="system-head">
               <div class="system-copy">
                 <h3>Queue State</h3>
@@ -922,12 +922,12 @@ INDEX_HTML = """<!doctype html>
       if (!panel) return;
       const { backends, selected } = loadBackendState();
       document.getElementById('backend-active').textContent = selected || DEFAULT_BACKEND_URL;
-      const localLabel = `${DEFAULT_BACKEND_URL}${selected === DEFAULT_BACKEND_URL ? ' · active' : ''}`;
+      const localLabel = DEFAULT_BACKEND_URL;
       const renderManual = (backend) => {
         const encoded = encodeURIComponent(backend);
         return `
           <span class="chip">
-            <button class="${backend === selected ? '' : 'secondary'}" onclick="selectBackend(decodeURIComponent('${encoded}'))">${backend}${backend === selected ? ' · active' : ''}</button>
+            <button class="${backend === selected ? '' : 'secondary'}" onclick="selectBackend(decodeURIComponent('${encoded}'))">${backend}</button>
             <button class="secondary icon-btn" onclick="removeBackend(decodeURIComponent('${encoded}'))" title="Remove backend" aria-label="Remove backend">×<span class="sr-only">Remove backend</span></button>
           </span>
         `;
@@ -1524,9 +1524,9 @@ INDEX_HTML = """<!doctype html>
         lastStatus = data;
         if (data?.ok === false || data?.backend?.reachable === false) {
           document.getElementById('queue').innerHTML = `<div class='item'>${backendUnavailableLabel(data)}</div>`;
-          document.getElementById('mode-label').textContent = 'offline';
-          document.getElementById('active-label').textContent = 'none';
-          document.getElementById('sum-speed').textContent = 'idle';
+          document.getElementById('backend-mode').textContent = 'offline';
+          document.getElementById('backend-job').textContent = 'none';
+          document.getElementById('backend-speed').textContent = 'idle';
           document.getElementById('backend-pid').textContent = '-';
           document.getElementById('backend-runner').textContent = 'offline';
           document.getElementById('backend-session').textContent = '-';
@@ -1587,9 +1587,9 @@ INDEX_HTML = """<!doctype html>
         document.getElementById('session-closed').textContent = state.session_closed_at
           ? `${state.session_closed_at}${state.session_closed_reason ? ` · ${state.session_closed_reason}` : ''}`
           : '-';
-        document.getElementById('mode-label').textContent = activeStateLabel(liveActive, state);
-        document.getElementById('active-label').textContent = summarizeActiveItem(liveActive, state, items);
-        document.getElementById('sum-speed').textContent = speed ? formatRate(speed) : "idle";
+        document.getElementById('backend-mode').textContent = activeStateLabel(liveActive, state);
+        document.getElementById('backend-job').textContent = summarizeActiveItem(liveActive, state, items);
+        document.getElementById('backend-speed').textContent = speed ? formatRate(speed) : "idle";
         renderQueueSummary(data.summary);
         document.getElementById('bw-source').textContent = data.bandwidth?.source || '-';
         document.getElementById('bw-down').textContent = data.bandwidth?.source === 'networkquality'

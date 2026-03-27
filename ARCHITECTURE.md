@@ -122,3 +122,5 @@ Browser storage -> remembers selected backend and UI preferences only
 - Use logs for evidence, not as the primary explanation.
 - Keep the selected backend visible.
 - Make backend failure states obvious.
+- Use the light-blue primary button style only for the active selection.
+- Do not add extra active-selection text when the button style already communicates selection.
