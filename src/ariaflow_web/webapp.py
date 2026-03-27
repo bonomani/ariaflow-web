@@ -572,10 +572,9 @@ INDEX_HTML = """<!doctype html>
           </div>
           <div class="control-groups">
             <div class="control-group">
-              <h3>Run</h3>
-              <div class="meta"><span>Readiness check and engine lifecycle.</span></div>
+              <h3>Engine</h3>
+              <div class="meta"><span>Start or stop the queue runner.</span></div>
               <div class="control-actions">
-                <button class="secondary" onclick="preflightRun()">Check readiness</button>
                 <button class="secondary" id="runner-btn" onclick="toggleRunner()">Start engine</button>
               </div>
             </div>
@@ -952,21 +951,21 @@ INDEX_HTML = """<!doctype html>
         ),
         renderOptionCard(
           'Duplicate active transfer',
-          dedup?.value || 'pause',
+          dedup?.value || 'remove',
           'When aria2 exposes duplicate active jobs for the same URL, choose the action.',
           `<select onchange="setDuplicateAction(this.value)">
-            <option value="pause" ${dedup?.value === 'pause' ? 'selected' : ''}>Pause duplicates</option>
             <option value="remove" ${dedup?.value === 'remove' ? 'selected' : ''}>Remove duplicates</option>
+            <option value="pause" ${dedup?.value === 'pause' ? 'selected' : ''}>Pause duplicates</option>
             <option value="ignore" ${dedup?.value === 'ignore' ? 'selected' : ''}>Ignore duplicates</option>
           </select>`
         ),
         renderOptionCard(
           'Simultaneous downloads',
-          Number(concurrency?.value || 0) === 0 ? 'unlimited' : `${concurrency?.value || 0} jobs`,
-          'Limit how many downloads ariaflow may keep active at once. Use 0 for no limit.',
+          `${Number(concurrency?.value || 1)} job${Number(concurrency?.value || 1) === 1 ? '' : 's'}`,
+          'Limit how many downloads ariaflow may keep active at once. Default is 1 for sequential downloads.',
           `<label class="refresh-control" style="justify-content:flex-start;">
             <span>Max</span>
-            <input type="number" min="0" step="1" value="${Number(concurrency?.value || 0)}" oninput="setSimultaneousLimit(this.value)" style="width:110px; padding:0 8px; height:32px;">
+            <input type="number" min="1" step="1" value="${Number(concurrency?.value || 1)}" oninput="setSimultaneousLimit(this.value)" style="width:110px; padding:0 8px; height:32px;">
             <span>jobs</span>
           </label>`
         ),
@@ -980,6 +979,14 @@ INDEX_HTML = """<!doctype html>
         ),
       ].join('');
     }
+    function syncDeclarationUi() {
+      const enabled = !!getDeclarationPreference('auto_preflight_on_run');
+      document.querySelectorAll('input[type="checkbox"][onchange="setAutoPreflightPreference(this.checked)"]').forEach((input) => {
+        input.checked = enabled;
+      });
+      const declarationBox = document.getElementById('declaration');
+      if (declarationBox && lastDeclaration) declarationBox.value = JSON.stringify(lastDeclaration, null, 2);
+    }
     async function setAutoPreflightPreference(enabled) {
       const r = await fetch(apiPath('/api/declaration'));
       const data = await r.json();
@@ -992,39 +999,45 @@ INDEX_HTML = """<!doctype html>
       data.uic.preferences = prefs;
       const save = await fetch(apiPath('/api/declaration'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
       lastDeclaration = await save.json();
+      syncDeclarationUi();
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
+      syncDeclarationUi();
     }
     async function setDuplicateAction(value) {
       const r = await fetch(apiPath('/api/declaration'));
       const data = await r.json();
       const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
       const idx = prefs.findIndex((item) => item.name === 'duplicate_active_transfer_action');
-      const next = { name: 'duplicate_active_transfer_action', value: value, options: ['pause', 'remove', 'ignore'], rationale: 'default dedup policy' };
+      const next = { name: 'duplicate_active_transfer_action', value: value, options: ['remove', 'pause', 'ignore'], rationale: 'remove duplicate live jobs by default' };
       if (idx >= 0) prefs[idx] = next;
       else prefs.push(next);
       data.uic = data.uic || {};
       data.uic.preferences = prefs;
       const save = await fetch(apiPath('/api/declaration'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
       lastDeclaration = await save.json();
+      syncDeclarationUi();
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
+      syncDeclarationUi();
     }
     async function setSimultaneousLimit(value) {
       const r = await fetch(apiPath('/api/declaration'));
       const data = await r.json();
       const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
       const idx = prefs.findIndex((item) => item.name === 'max_simultaneous_downloads');
-      const limit = Math.max(0, parseInt(value, 10) || 0);
-      const next = { name: 'max_simultaneous_downloads', value: limit, options: [0], rationale: '0 means unlimited' };
+      const limit = Math.max(1, parseInt(value, 10) || 1);
+      const next = { name: 'max_simultaneous_downloads', value: limit, options: [1], rationale: '1 preserves the sequential default' };
       if (idx >= 0) prefs[idx] = next;
       else prefs.push(next);
       data.uic = data.uic || {};
       data.uic.preferences = prefs;
       const save = await fetch(apiPath('/api/declaration'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
       lastDeclaration = await save.json();
+      syncDeclarationUi();
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
+      syncDeclarationUi();
     }
     async function setPostActionRule(value) {
       const r = await fetch(apiPath('/api/declaration'));
@@ -1609,14 +1622,11 @@ INDEX_HTML = """<!doctype html>
         if (options) options.innerHTML = `<div class='item'>${backendUnavailableLabel(lastDeclaration)}</div>`;
         return;
       }
-      const declarationBox = document.getElementById('declaration');
-      if (declarationBox) declarationBox.value = JSON.stringify(lastDeclaration, null, 2);
-      const checkbox = document.getElementById('auto-preflight');
-      if (checkbox) checkbox.checked = !!getDeclarationPreference('auto_preflight_on_run');
+      syncDeclarationUi();
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
       const limit = document.querySelector('input[oninput="setSimultaneousLimit(this.value)"]');
-      if (limit) limit.value = String(getDeclarationPreference('max_simultaneous_downloads') ?? 0);
+      if (limit) limit.value = String(getDeclarationPreference('max_simultaneous_downloads') ?? 1);
     }
     async function saveDeclaration() {
       const value = document.getElementById('declaration').value;
