@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -526,6 +527,7 @@ INDEX_HTML = """<!doctype html>
         </div>
         <div class="chips">
           <div class="chip">Web UI <strong id="chip-web-version">__ARIAFLOW_WEB_VERSION__</strong></div>
+          <div class="chip">PID <strong id="chip-web-pid">__ARIAFLOW_WEB_PID__</strong></div>
           <div class="chip">Runner <strong id="chip-runner">idle</strong></div>
           <div class="chip">Cap <strong id="chip-cap">-</strong></div>
           <div class="chip">Last issue <strong id="chip-error">none</strong></div>
@@ -1661,6 +1663,7 @@ INDEX_HTML = """<!doctype html>
 </html>
 """
 INDEX_HTML = INDEX_HTML.replace("__ARIAFLOW_WEB_VERSION__", f"v{__version__}")
+INDEX_HTML = INDEX_HTML.replace("__ARIAFLOW_WEB_PID__", str(os.getpid()))
 
 
 class AriaFlowHandler(BaseHTTPRequestHandler):
