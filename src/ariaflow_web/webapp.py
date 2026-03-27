@@ -579,6 +579,7 @@ INDEX_HTML = """<!doctype html>
           <div class="chip">Web UI <strong id="chip-web-version">__ARIAFLOW_WEB_VERSION__</strong></div>
           <div class="chip">PID <strong id="chip-web-pid">__ARIAFLOW_WEB_PID__</strong></div>
           <div class="chip">Runner <strong id="chip-runner">idle</strong></div>
+          <div class="chip">Startup <strong id="chip-startup">manual</strong></div>
           <div class="chip">Cap <strong id="chip-cap">-</strong></div>
           <div class="chip">Last issue <strong id="chip-error">none</strong></div>
         <div class="chip">Run <strong id="chip-session">-</strong></div>
@@ -617,11 +618,6 @@ INDEX_HTML = """<!doctype html>
       <div class="span-12 show-dashboard page-only">
         <div class="panel toolbar">
           <div class="action-bar">
-            <div class="engine-inline">
-              <span>Engine <strong id="engine-state">idle</strong></span>
-              <span>Mode <strong id="engine-mode">idle</strong></span>
-              <span>Startup <strong id="engine-policy">Manual start</strong></span>
-            </div>
             <div class="action-buttons">
               <button class="secondary" id="runner-btn" onclick="toggleRunner()">Start engine</button>
               <button class="secondary" onclick="newSession()">New run</button>
@@ -647,7 +643,6 @@ INDEX_HTML = """<!doctype html>
               <div class="system-fact"><span>Queue flow</span><strong id="queue-detail">Waiting for state</strong></div>
               <div class="system-fact"><span>Active job</span><strong id="queue-active">none</strong></div>
               <div class="system-fact"><span>Jobs in queue</span><strong id="queue-count">0 queued</strong></div>
-              <div class="system-fact"><span>Runner state</span><strong id="engine-detail">Idle</strong></div>
             </div>
             <div class="system-actions">
               <button class="secondary" id="toggle-btn" onclick="toggleQueue()">Pause queue</button>
@@ -1531,9 +1526,7 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('chip-session').textContent = '-';
           document.getElementById('chip-error').textContent = data?.backend?.error || 'connection refused';
           document.getElementById('engine-state').textContent = 'offline';
-          document.getElementById('engine-detail').textContent = 'Backend unavailable';
-          document.getElementById('engine-policy').textContent = autoPreflight ? 'Auto-check before start' : 'Manual start';
-          document.getElementById('engine-mode').textContent = 'offline';
+          document.getElementById('chip-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
           document.getElementById('queue-state').textContent = 'offline';
           document.getElementById('queue-detail').textContent = 'Backend unavailable';
           document.getElementById('queue-active').textContent = 'none';
@@ -1574,9 +1567,7 @@ INDEX_HTML = """<!doctype html>
         const runnerButton = document.getElementById('runner-btn');
         if (runnerButton) runnerButton.textContent = data.state && data.state.running ? 'Stop engine' : 'Start engine';
         document.getElementById('engine-state').textContent = runnerStateLabel(state);
-        document.getElementById('engine-detail').textContent = state?.running ? 'Runner is processing queue work' : 'Runner is stopped';
-        document.getElementById('engine-policy').textContent = autoPreflight ? 'Auto-check before start' : 'Manual start';
-        document.getElementById('engine-mode').textContent = activeStateLabel(liveActive, state);
+        document.getElementById('chip-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
         document.getElementById('queue-state').textContent = queueStateLabel(state, items, liveActive);
         document.getElementById('queue-detail').textContent = state?.paused ? 'Queue is paused' : (state?.running ? 'Queue can advance' : 'Waiting for engine start');
         document.getElementById('queue-active').textContent = summarizeActiveItem(liveActive, state, items);
