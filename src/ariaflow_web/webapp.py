@@ -1555,6 +1555,52 @@ INDEX_HTML = """<!doctype html>
         </div>
       `;
     }
+    function sanitizeLogValue(value, depth = 0) {
+      if (value == null) return value;
+      if (depth >= 2) return '[trimmed]';
+      if (Array.isArray(value)) {
+        if (!value.length) return [];
+        if (value.length > 4) return [`[${value.length} items]`];
+        return value.map((item) => sanitizeLogValue(item, depth + 1));
+      }
+      if (typeof value !== 'object') return value;
+      const result = {};
+      for (const [key, entry] of Object.entries(value)) {
+        if (key === 'bitfield') {
+          result[key] = '[trimmed]';
+          continue;
+        }
+        if (key === 'files') {
+          const files = Array.isArray(entry) ? entry.length : 0;
+          result[key] = `[${files} file${files === 1 ? '' : 's'}]`;
+          continue;
+        }
+        if (key === 'uris') {
+          const uris = Array.isArray(entry) ? entry.length : 0;
+          result[key] = `[${uris} uri${uris === 1 ? '' : 's'}]`;
+          continue;
+        }
+        result[key] = sanitizeLogValue(entry, depth + 1);
+      }
+      return result;
+    }
+    function summarizePollEntry(entry) {
+      const detail = entry?.detail || {};
+      const status = detail.status || entry?.outcome || 'unknown';
+      const gid = detail.gid || '-';
+      const done = detail.completedLength ? formatBytes(detail.completedLength) : null;
+      const total = detail.totalLength ? formatBytes(detail.totalLength) : null;
+      const speed = detail.downloadSpeed ? formatRate(detail.downloadSpeed) : '0 B/s';
+      const target = shortName(detail.url || gid);
+      const fragments = [
+        `Historical poll snapshot`,
+        `gid ${gid}`,
+        `${status} · ${target}`,
+        done && total ? `${done}/${total}` : null,
+        `speed ${speed}`,
+      ].filter(Boolean);
+      return fragments.join(' · ');
+    }
     function renderActionLog(entries) {
       if (!entries || !entries.length) return "<div class='item'>No action log yet.</div>";
       const currentFilter = document.getElementById('action-filter')?.value || 'all';
@@ -1569,24 +1615,27 @@ INDEX_HTML = """<!doctype html>
         .reverse()
         .map((entry) => {
         const status = entry.outcome || entry.status || "unknown";
-        const lines = [
+        const lines = entry.action === 'poll'
+          ? [summarizePollEntry(entry)]
+          : [
           entry.timestamp ? `At ${entry.timestamp}` : null,
           entry.session_id ? `Session: ${entry.session_id}` : null,
           entry.action ? `Action: ${entry.action}` : null,
           entry.target ? `Target: ${entry.target}` : null,
           entry.reason ? `Reason: ${entry.reason}` : null,
-          entry.detail ? `Detail: ${JSON.stringify(entry.detail)}` : null,
-          entry.observed_before ? `Before: ${JSON.stringify(entry.observed_before)}` : null,
-          entry.observed_after ? `After: ${JSON.stringify(entry.observed_after)}` : null,
+          entry.detail ? `Detail: ${JSON.stringify(sanitizeLogValue(entry.detail))}` : null,
+          entry.observed_before ? `Before: ${JSON.stringify(sanitizeLogValue(entry.observed_before))}` : null,
+          entry.observed_after ? `After: ${JSON.stringify(sanitizeLogValue(entry.observed_after))}` : null,
           entry.message ? `Message: ${entry.message}` : null,
         ].filter(Boolean).join(" · ");
+        const hint = entry.action === 'poll' ? 'Historical event' : 'Historical record';
         return `
           <div class="item">
             <div class="item-top">
               <div class="item-url">${entry.action || "event"}</div>
               <span class="${badgeClass(status)}">${status}</span>
             </div>
-            <div class="meta"><span>${lines || "No details"}</span></div>
+            <div class="meta"><span>${hint} · ${lines || "No details"}</span></div>
           </div>
         `;
       }).join("");
