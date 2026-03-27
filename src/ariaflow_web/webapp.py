@@ -1471,7 +1471,7 @@ INDEX_HTML = """<!doctype html>
           actions: [],
         },
         {
-          name: "aria2 auto-start",
+          name: "aria2 auto-start (advanced)",
           record: data["aria2-launchd"],
           actions: [
             { target: "aria2-launchd", action: "install", label: "Load" },

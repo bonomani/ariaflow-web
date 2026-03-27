@@ -73,9 +73,9 @@ class WebSmokeTests(unittest.TestCase):
             os.environ["ARIA_QUEUE_DIR"] = tmp
             lifecycle_payload = {
                 "ariaflow": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "ariaflow", "completion": "complete", "message": "ariaflow installed 1.0.0; current production 1.0.0; updates via Homebrew tap"}},
-                "aria2": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2", "completion": "complete", "message": "aria2 installed 1.0.0; current production 1.0.0; required dependency"}},
+                "aria2": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2", "completion": "complete", "message": "aria2 installed 1.0.0; current production 1.0.0; runtime engine dependency"}},
                 "networkquality": {"meta": {"contract": "UCC"}, "result": {"outcome": "unchanged", "observation": "warn", "reason": "timeout", "target": "networkquality", "completion": "complete", "message": "networkquality available at /usr/bin/networkquality; probe timed out"}},
-                "aria2-launchd": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2-launchd", "completion": "complete", "message": "aria2 launchd loaded (1.0.0); required dependency"}},
+                "aria2-launchd": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2-launchd", "completion": "complete", "message": "aria2 launchd loaded (1.0.0); optional advanced auto-start integration"}},
             }
             status_payload = {
                 "items": [],
@@ -114,9 +114,9 @@ class WebSmokeTests(unittest.TestCase):
             os.environ["ARIA_QUEUE_DIR"] = tmp
             lifecycle_payload = {
                 "ariaflow": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "ariaflow", "completion": "complete", "message": "ariaflow installed 1.0.0; current production 1.0.0; updates via Homebrew tap"}},
-                "aria2": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2", "completion": "complete", "message": "aria2 installed 1.0.0; current production 1.0.0; required dependency"}},
+                "aria2": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2", "completion": "complete", "message": "aria2 installed 1.0.0; current production 1.0.0; runtime engine dependency"}},
                 "networkquality": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "ready", "target": "networkquality", "completion": "complete", "message": "networkquality available"}},
-                "aria2-launchd": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2-launchd", "completion": "complete", "message": "aria2 launchd loaded (1.0.0); required dependency"}},
+                "aria2-launchd": {"meta": {"contract": "UCC"}, "result": {"outcome": "converged", "observation": "ok", "reason": "match", "target": "aria2-launchd", "completion": "complete", "message": "aria2 launchd loaded (1.0.0); optional advanced auto-start integration"}},
                 "session_id": "batch-1",
                 "session_started_at": "2026-03-21T00:00:00+0100",
                 "session_last_seen_at": "2026-03-21T00:00:00+0100",
