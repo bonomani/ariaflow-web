@@ -24,11 +24,11 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ inputs.version }}"
             python3 - <<'PY' "$version"
-import re, sys
-version = sys.argv[1]
-if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-    raise SystemExit(f"Unsupported version format: {version!r}")
-PY
+            import re, sys
+            version = sys.argv[1]
+            if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+                raise SystemExit(f"Unsupported version format: {version!r}")
+            PY
             tag="v${version}"
             ref="main"
           else
@@ -65,22 +65,22 @@ PY
           RELEASE_TAG: ${{ steps.release_meta.outputs.tag }}
         run: |
           python3 - <<'PY'
-from pathlib import Path
-import os, re
+          from pathlib import Path
+          import os, re
 
-root = Path(".")
-version = os.environ["RELEASE_VERSION"]
-pyproject = root / "pyproject.toml"
-package_init = root / "src" / "ariaflow_web" / "__init__.py"
+          root = Path(".")
+          version = os.environ["RELEASE_VERSION"]
+          pyproject = root / "pyproject.toml"
+          package_init = root / "src" / "ariaflow_web" / "__init__.py"
 
-text = pyproject.read_text(encoding="utf-8")
-text = re.sub(r'^version = "[^"]+"$', f'version = "{version}"', text, flags=re.MULTILINE)
-pyproject.write_text(text, encoding="utf-8")
+          text = pyproject.read_text(encoding="utf-8")
+          text = re.sub(r'^version = "[^"]+"$', f'version = "{version}"', text, flags=re.MULTILINE)
+          pyproject.write_text(text, encoding="utf-8")
 
-text = package_init.read_text(encoding="utf-8")
-text = re.sub(r'^__version__ = "[^"]+"$', f'__version__ = "{version}"', text, flags=re.MULTILINE)
-package_init.write_text(text, encoding="utf-8")
-PY
+          text = package_init.read_text(encoding="utf-8")
+          text = re.sub(r'^__version__ = "[^"]+"$', f'__version__ = "{version}"', text, flags=re.MULTILINE)
+          package_init.write_text(text, encoding="utf-8")
+          PY
           git add pyproject.toml src/ariaflow_web/__init__.py
           git diff --cached --quiet && { echo "Release version already committed"; exit 1; }
           git commit -m "Release ariaflow-web $RELEASE_VERSION"
