@@ -17,8 +17,8 @@ Do not publish alpha tags or prereleases from this repo.
 Run the helper from a clean checkout on `main`:
 
 ```bash
-python3 scripts/publish.py --dry-run
-python3 scripts/publish.py --push
+python3 scripts/publish.py plan
+python3 scripts/publish.py push
 ```
 
 The helper will:
@@ -26,15 +26,15 @@ The helper will:
 - validate that `pyproject.toml` and `src/ariaflow_web/__init__.py` agree
 - refuse to reuse an existing tag
 - run `py_compile` and `python3 -m unittest tests.test_web tests.test_cli -v` unless `--no-tests` is used
-- push `main` with a `pull --rebase` retry when `--push` is given
-- optionally trigger `workflow_dispatch` for an explicit stable version with `--version X.Y.Z`
+- `push`: push `main` with a `pull --rebase` retry
+- `release --version X.Y.Z`: trigger `workflow_dispatch` for an explicit stable version after the same rebase-safe sync
 
 Useful flags:
 
-- `--dry-run`: print the release plan without changing files
-- `--version 0.1.18`: dispatch an explicit stable release on GitHub Actions
+- `plan`: print the release plan without changing files
+- `release --version 0.1.18`: dispatch an explicit stable release on GitHub Actions
 - `--no-tests`: skip local tests
-- `--allow-dirty`: bypass the clean-tree check for dry-run planning only
+- `plan --allow-dirty`: bypass the clean-tree check for preview only
 
 ## After Push
 
@@ -63,7 +63,7 @@ python3 -m py_compile src/aria_queue/webapp.py src/aria_queue/cli.py src/ariaflo
 If you need to force a specific stable version:
 
 ```bash
-python3 scripts/publish.py --version 0.1.18 --push
+python3 scripts/publish.py release --version 0.1.18
 ```
 
 ## Verification

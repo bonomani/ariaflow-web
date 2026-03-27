@@ -43,6 +43,6 @@ The release checklist lives in:
 Prefer the helper:
 
 ```bash
-python3 scripts/publish.py --dry-run
-python3 scripts/publish.py --push
+python3 scripts/publish.py plan
+python3 scripts/publish.py push
 ```
