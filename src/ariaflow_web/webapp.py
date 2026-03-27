@@ -578,11 +578,6 @@ INDEX_HTML = """<!doctype html>
         <div class="chips">
           <div class="chip">Web UI <strong id="chip-web-version">__ARIAFLOW_WEB_VERSION__</strong></div>
           <div class="chip">PID <strong id="chip-web-pid">__ARIAFLOW_WEB_PID__</strong></div>
-          <div class="chip">Runner <strong id="chip-runner">idle</strong></div>
-          <div class="chip">Startup <strong id="chip-startup">manual</strong></div>
-          <div class="chip">Cap <strong id="chip-cap">-</strong></div>
-          <div class="chip">Last issue <strong id="chip-error">none</strong></div>
-        <div class="chip">Run <strong id="chip-session">-</strong></div>
         </div>
         <div class="summary" style="margin-top:10px;">
           <div class="metric"><div class="label">Waiting</div><div class="value" id="sum-queued">0</div><div class="sub">queued jobs</div></div>
@@ -601,6 +596,15 @@ INDEX_HTML = """<!doctype html>
           <input id="backend-input" placeholder="http://127.0.0.1:8000">
           <button class="secondary backend-add-button" onclick="addBackend()">Add</button>
         </div>
+      </div>
+      <div class="chips" style="margin-top:12px;">
+        <div class="chip">Active <strong id="backend-active">http://127.0.0.1:8000</strong></div>
+        <div class="chip">PID <strong id="backend-pid">-</strong></div>
+        <div class="chip">Runner <strong id="backend-runner">idle</strong></div>
+        <div class="chip">Startup <strong id="backend-startup">manual</strong></div>
+        <div class="chip">Cap <strong id="backend-cap">-</strong></div>
+        <div class="chip">Last issue <strong id="backend-error">none</strong></div>
+        <div class="chip">Run <strong id="backend-session">-</strong></div>
       </div>
       <div id="backend-panel" class="chips" style="margin-top:12px;"></div>
     </div>
@@ -917,6 +921,7 @@ INDEX_HTML = """<!doctype html>
       const panel = document.getElementById('backend-panel');
       if (!panel) return;
       const { backends, selected } = loadBackendState();
+      document.getElementById('backend-active').textContent = selected || DEFAULT_BACKEND_URL;
       const localLabel = `${DEFAULT_BACKEND_URL}${selected === DEFAULT_BACKEND_URL ? ' · active' : ''}`;
       const renderManual = (backend) => {
         const encoded = encodeURIComponent(backend);
@@ -1522,11 +1527,13 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('mode-label').textContent = 'offline';
           document.getElementById('active-label').textContent = 'none';
           document.getElementById('sum-speed').textContent = 'idle';
-          document.getElementById('chip-runner').textContent = 'offline';
-          document.getElementById('chip-session').textContent = '-';
-          document.getElementById('chip-error').textContent = data?.backend?.error || 'connection refused';
+          document.getElementById('backend-pid').textContent = '-';
+          document.getElementById('backend-runner').textContent = 'offline';
+          document.getElementById('backend-session').textContent = '-';
+          document.getElementById('backend-error').textContent = data?.backend?.error || 'connection refused';
           document.getElementById('engine-state').textContent = 'offline';
-          document.getElementById('chip-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
+          document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
+          document.getElementById('backend-cap').textContent = '-';
           document.getElementById('queue-state').textContent = 'offline';
           document.getElementById('queue-detail').textContent = 'Backend unavailable';
           document.getElementById('queue-active').textContent = 'none';
@@ -1558,16 +1565,17 @@ INDEX_HTML = """<!doctype html>
         const speed = liveActive?.downloadSpeed || active.downloadSpeed || data.state?.download_speed || null;
         const items = enrichQueueItems(data.items || [], actives, state);
         document.getElementById('queue').innerHTML = items.length ? items.map(renderQueueItem).join("") : "<div class='item'>Queue is empty.</div>";
-        document.getElementById('chip-error').textContent = state.last_error || data.bandwidth?.reason || 'none';
-        document.getElementById('chip-cap').textContent = data.bandwidth?.cap_mbps ? humanCap(formatMbps(data.bandwidth.cap_mbps)) : humanCap(data.bandwidth?.limit || data.bandwidth_global?.limit || '-');
-        document.getElementById('chip-runner').textContent = runnerStateLabel(state);
-        document.getElementById('chip-session').textContent = sessionLabel(state);
+        document.getElementById('backend-pid').textContent = data.backend?.pid || '-';
+        document.getElementById('backend-error').textContent = state.last_error || data.bandwidth?.reason || 'none';
+        document.getElementById('backend-cap').textContent = data.bandwidth?.cap_mbps ? humanCap(formatMbps(data.bandwidth.cap_mbps)) : humanCap(data.bandwidth?.limit || data.bandwidth_global?.limit || '-');
+        document.getElementById('backend-runner').textContent = runnerStateLabel(state);
+        document.getElementById('backend-session').textContent = sessionLabel(state);
         const toggleButton = document.getElementById('toggle-btn');
         if (toggleButton) toggleButton.textContent = data.state && data.state.paused ? 'Resume queue' : 'Pause queue';
         const runnerButton = document.getElementById('runner-btn');
         if (runnerButton) runnerButton.textContent = data.state && data.state.running ? 'Stop engine' : 'Start engine';
         document.getElementById('engine-state').textContent = runnerStateLabel(state);
-        document.getElementById('chip-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
+        document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
         document.getElementById('queue-state').textContent = queueStateLabel(state, items, liveActive);
         document.getElementById('queue-detail').textContent = state?.paused ? 'Queue is paused' : (state?.running ? 'Queue can advance' : 'Waiting for engine start');
         document.getElementById('queue-active').textContent = summarizeActiveItem(liveActive, state, items);
