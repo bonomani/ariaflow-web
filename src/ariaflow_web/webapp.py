@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,6 +29,50 @@ from .client import (
 STATUS_CACHE: dict[str, object] = {"ts": 0.0, "payload": None}
 STATUS_CACHE_TTL = 2.0
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
+
+
+def _is_local_backend(hostname: str | None) -> bool:
+    host = (hostname or "").strip().lower()
+    return host in {"127.0.0.1", "localhost", "::1"}
+
+
+def _local_pid_for_port(port: int) -> int | None:
+    lsof = shutil.which("lsof")
+    if not lsof:
+        return None
+    try:
+        completed = subprocess.run(
+            [lsof, "-tiTCP:%d" % port, "-sTCP:LISTEN", "-n", "-P"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+        )
+    except Exception:
+        return None
+    for line in (completed.stdout or "").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            return int(text)
+        except ValueError:
+            continue
+    return None
+
+
+def _normalize_backend_payload(payload: dict, backend_url: str) -> dict:
+    parsed = urlparse(backend_url)
+    backend = dict(payload.get("backend") or {})
+    backend.setdefault("reachable", payload.get("ok", True) is not False)
+    backend.setdefault("url", backend_url)
+    if not backend.get("pid") and _is_local_backend(parsed.hostname) and parsed.port:
+        pid = _local_pid_for_port(parsed.port)
+        if pid:
+            backend["pid"] = pid
+    payload["backend"] = backend
+    return payload
 
 
 def format_bytes(value: object) -> str:
@@ -134,6 +180,38 @@ INDEX_HTML = """<!doctype html>
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
+    }
+    .queue-overview {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+      gap: 12px;
+      align-items: stretch;
+      margin-bottom: 12px;
+    }
+    .queue-primary {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: var(--panel-2);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .queue-primary .label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .queue-primary .value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .queue-primary .sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
     }
     .metric {
       background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.85));
@@ -601,6 +679,7 @@ INDEX_HTML = """<!doctype html>
         </div>
       </div>
       <div class="chips" style="margin-top:12px;">
+        <div class="chip">Version <strong id="backend-version">-</strong></div>
         <div class="chip">PID <strong id="backend-pid">-</strong></div>
         <div class="chip">Runner <strong id="backend-runner">idle</strong></div>
         <div class="chip">Startup <strong id="backend-startup">manual</strong></div>
@@ -638,23 +717,28 @@ INDEX_HTML = """<!doctype html>
             <div class="hint">Jobs live inside the queue; pause or resume the flow without stopping the engine</div>
           </div>
           <div class="system-card" style="margin-bottom:12px;">
-            <div class="summary" style="margin-bottom:12px;">
-              <div class="metric"><div class="label">Waiting</div><div class="value" id="sum-queued">0</div><div class="sub">queued jobs</div></div>
-              <div class="metric"><div class="label">Done</div><div class="value" id="sum-done">0</div><div class="sub">completed</div></div>
-              <div class="metric"><div class="label">Errors</div><div class="value" id="sum-error">0</div><div class="sub">failed jobs</div></div>
+            <div class="queue-overview">
+              <div class="queue-primary">
+                <div class="label">Queue status</div>
+                <div class="value"><span class="badge" id="queue-state">idle</span></div>
+                <div class="sub" id="queue-detail">Waiting for state</div>
+              </div>
+              <div class="summary">
+                <div class="metric"><div class="label">Queued</div><div class="value" id="sum-queued">0</div><div class="sub">waiting jobs</div></div>
+                <div class="metric"><div class="label">Done</div><div class="value" id="sum-done">0</div><div class="sub">completed</div></div>
+                <div class="metric"><div class="label">Errors</div><div class="value" id="sum-error">0</div><div class="sub">failed jobs</div></div>
+                <div class="metric"><div class="label">Speed</div><div class="value" id="queue-speed">idle</div><div class="sub">current transfer rate</div></div>
+              </div>
             </div>
             <div class="system-head">
               <div class="system-copy">
                 <h3>Queue State</h3>
                 <div class="meta"><span>The shared workflow state. Jobs wait here and advance only when the engine is running.</span></div>
               </div>
-              <span class="badge" id="queue-state">idle</span>
+              <span class="badge" id="queue-state-badge">idle</span>
             </div>
             <div class="system-facts">
-              <div class="system-fact"><span>Queue flow</span><strong id="queue-detail">Waiting for state</strong></div>
               <div class="system-fact"><span>Active job</span><strong id="queue-active">none</strong></div>
-              <div class="system-fact"><span>Speed</span><strong id="queue-speed">idle</strong></div>
-              <div class="system-fact"><span>Jobs in queue</span><strong id="queue-count">0 queued</strong></div>
             </div>
             <div class="system-actions">
               <button class="secondary" id="toggle-btn" onclick="toggleQueue()">Pause queue</button>
@@ -1249,11 +1333,10 @@ INDEX_HTML = """<!doctype html>
     }
     function renderQueueItem(item) {
       const status = item.status || "unknown";
+      const normalizedStatus = status === 'recovered' ? 'paused' : status;
       const detail = [
         item.created_at ? `Created ${item.created_at}` : null,
-        item.post_action_rule ? `Rule ${item.post_action_rule}` : null,
         item.gid ? `GID ${item.gid}` : null,
-        item.error_message ? item.error_message : null,
       ].filter(Boolean).join(" · ");
       const live = item.live || {};
       const shortUrl = shortName(item.output || item.url || live.url || '(no url)');
@@ -1268,45 +1351,38 @@ INDEX_HTML = """<!doctype html>
         : (Number(totalLength || 0) > 0 ? (Number(completedLength || 0) / Number(totalLength || 1)) * 100 : 0);
       const displayUrl = item.url || live.url || "";
       const ariaBadge = liveStatus ? `<span class="badge ${badgeClass(liveStatus)}">aria2: ${liveStatus}</span>` : "";
-      const pauseLabel = status === 'paused' ? 'Resume queue' : 'Pause queue';
-      const pauseButton = activeish
-        ? `<button class="secondary icon-btn" onclick="toggleQueue()" title="${pauseLabel}" aria-label="${pauseLabel}">${status === 'paused' ? '▶' : '⏸'}<span class="sr-only">${pauseLabel}</span></button>`
-        : "";
-      const actionButtons = activeish ? `
-        <div class="action-strip">
-          ${pauseButton}
-          <button class="secondary icon-btn" onclick="preflightRun()" title="Run preflight" aria-label="Run preflight">✓<span class="sr-only">Run preflight</span></button>
-          <button class="secondary icon-btn" onclick="runQueue()" title="Start run" aria-label="Start run">⟳<span class="sr-only">Start run</span></button>
-        </div>
-      ` : "";
-      const activePanel = activeish ? `
+      const showTransferPanel = activeish || totalLength || completedLength || progress != null;
+      const rateLabel = speed
+        ? formatRate(speed)
+        : normalizedStatus === 'paused'
+          ? 'paused'
+          : 'idle';
+      const recoveredMeta = item.recovered_at ? `<span>Recovered ${item.recovered_at}</span>` : "";
+      const activePanel = showTransferPanel ? `
         <div class="meter"><div style="width:${Math.round(Number(computedProgress || 0))}%"></div></div>
         <div class="statusline">
           <span>${Math.round(Number(computedProgress || 0))}% done</span>
-          <span>${speed ? formatRate(speed) : "waiting"}</span>
+          <span>${rateLabel}</span>
         </div>
         <div class="meta">
           ${totalLength ? `<span>Total ${formatBytes(totalLength)}</span>` : ""}
           ${completedLength ? `<span>Done ${formatBytes(completedLength)}</span>` : ""}
-          ${item.gid ? `<span>GID ${item.gid}</span>` : ""}
-          ${item.recovered ? `<span class="badge warn">${item.recovery_session_id ? 'recovered · recovery run' : 'recovered'}</span>` : ""}
-          ${item.recovered_at ? `<span>Recovered ${item.recovered_at}</span>` : ""}
+          ${recoveredMeta}
           ${item.error_message ? `<span class="mono">${item.error_message}</span>` : ""}
         </div>
       ` : "";
-      const stateLabel = liveStatus ? `${status} · aria2:${liveStatus}` : status;
+      const stateLabel = liveStatus ? `${normalizedStatus} · aria2:${liveStatus}` : normalizedStatus;
       return `
         <div class="item compact ${activeish ? 'active-item' : ''}">
         <div class="item-top">
           <div class="item-url">${shortUrl}</div>
-          <span class="${badgeClass(status)}">${stateLabel}</span>
+          <span class="${badgeClass(normalizedStatus)}">${stateLabel}</span>
         </div>
         <div class="meta">
           ${ariaBadge}
           ${displayUrl ? `<span title="${displayUrl}">${displayUrl}</span>` : ""}
           ${detail ? `<span class="mono">${detail}</span>` : ""}
         </div>
-          ${actionButtons}
           ${activePanel}
         </div>
       `;
@@ -1528,6 +1604,7 @@ INDEX_HTML = """<!doctype html>
         lastStatus = data;
         if (data?.ok === false || data?.backend?.reachable === false) {
           document.getElementById('queue').innerHTML = `<div class='item'>${backendUnavailableLabel(data)}</div>`;
+          document.getElementById('backend-version').textContent = '-';
           document.getElementById('backend-pid').textContent = '-';
           document.getElementById('backend-runner').textContent = 'offline';
           document.getElementById('backend-session').textContent = '-';
@@ -1535,10 +1612,10 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
           document.getElementById('backend-cap').textContent = '-';
           document.getElementById('queue-state').textContent = 'offline';
+          document.getElementById('queue-state-badge').textContent = 'offline';
           document.getElementById('queue-detail').textContent = 'Backend unavailable';
           document.getElementById('queue-active').textContent = 'none';
           document.getElementById('queue-speed').textContent = 'idle';
-          document.getElementById('queue-count').textContent = '0 queued';
           document.getElementById('session-state').textContent = 'offline';
           document.getElementById('session-detail').textContent = '-';
           document.getElementById('session-started').textContent = '-';
@@ -1566,6 +1643,7 @@ INDEX_HTML = """<!doctype html>
         const speed = liveActive?.downloadSpeed || active.downloadSpeed || data.state?.download_speed || null;
         const items = enrichQueueItems(data.items || [], actives, state);
         document.getElementById('queue').innerHTML = items.length ? items.map(renderQueueItem).join("") : "<div class='item'>Queue is empty.</div>";
+        document.getElementById('backend-version').textContent = data.backend?.version || 'unreported';
         document.getElementById('backend-pid').textContent = data.backend?.pid || 'unreported';
         document.getElementById('backend-error').textContent = state.last_error || data.bandwidth?.reason || 'none';
         document.getElementById('backend-cap').textContent = data.bandwidth?.cap_mbps ? humanCap(formatMbps(data.bandwidth.cap_mbps)) : humanCap(data.bandwidth?.limit || data.bandwidth_global?.limit || '-');
@@ -1577,10 +1655,10 @@ INDEX_HTML = """<!doctype html>
         if (runnerButton) runnerButton.textContent = data.state && data.state.running ? 'Stop engine' : 'Start engine';
         document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
         document.getElementById('queue-state').textContent = queueStateLabel(state, items, liveActive);
+        document.getElementById('queue-state-badge').textContent = queueStateLabel(state, items, liveActive);
         document.getElementById('queue-detail').textContent = state?.paused ? 'Queue is paused' : (state?.running ? 'Queue can advance' : 'Waiting for engine start');
         document.getElementById('queue-active').textContent = summarizeActiveItem(liveActive, state, items);
         document.getElementById('queue-speed').textContent = speed ? formatRate(speed) : "idle";
-        document.getElementById('queue-count').textContent = `${data.summary?.queued || 0} queued · ${items.length} total`;
         document.getElementById('session-state').textContent = sessionStateLabel(state);
         document.getElementById('session-detail').textContent = sessionLabel(state);
         document.getElementById('session-started').textContent = timestampLabel(state.session_started_at);
@@ -1816,7 +1894,7 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             and now - float(STATUS_CACHE.get("ts", 0.0)) < STATUS_CACHE_TTL
         ):
             return cached  # type: ignore[return-value]
-        payload = get_status_from(backend_url)
+        payload = _normalize_backend_payload(get_status_from(backend_url), backend_url)
         STATUS_CACHE["ts"] = now
         STATUS_CACHE["backend"] = backend_url
         STATUS_CACHE["payload"] = payload

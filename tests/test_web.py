@@ -29,6 +29,45 @@ def request_json(url: str, method: str = "GET", payload: dict | None = None) -> 
 
 
 class WebSmokeTests(unittest.TestCase):
+    def test_status_payload_falls_back_to_local_backend_pid_from_port(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["ARIA_QUEUE_DIR"] = tmp
+            status_payload = {
+                "items": [],
+                "state": {"running": False, "paused": False},
+                "summary": {"queued": 0, "done": 0, "error": 0},
+                "backend": {"reachable": True},
+            }
+            declaration_payload = {"uic": {}, "ucc": {}, "policy": {}}
+            with patch("ariaflow_web.webapp.get_lifecycle_from", return_value={}), \
+                 patch("ariaflow_web.webapp.get_status_from", return_value=status_payload), \
+                 patch("ariaflow_web.webapp.get_log_from", return_value={"items": []}), \
+                 patch("ariaflow_web.webapp.get_declaration_from", return_value=declaration_payload), \
+                 patch("ariaflow_web.webapp.add_items_from", return_value={"ok": True, "count": 0, "added": []}), \
+                 patch("ariaflow_web.webapp.preflight_from", return_value={"status": "pass"}), \
+                 patch("ariaflow_web.webapp.run_action_from", return_value={"ok": True, "action": "start", "result": {"started": True}}), \
+                 patch("ariaflow_web.webapp.run_ucc_from", return_value={"result": {"outcome": "converged", "observation": "ok"}}), \
+                 patch("ariaflow_web.webapp.save_declaration_from", return_value={"saved": True, "declaration": declaration_payload}), \
+                 patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}), \
+                 patch("ariaflow_web.webapp.set_session_from", return_value={"ok": True, "session": "batch-1"}), \
+                 patch("ariaflow_web.webapp.pause_from", return_value={"paused": True}), \
+                 patch("ariaflow_web.webapp.resume_from", return_value={"resumed": True}), \
+                 patch("ariaflow_web.webapp.lifecycle_action_from", return_value={"ok": True, "lifecycle": {}}), \
+                 patch("ariaflow_web.webapp._local_pid_for_port", return_value=4242):
+                server = serve(host="127.0.0.1", port=8767)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                time.sleep(0.2)
+                try:
+                    status = request_json(
+                        "http://127.0.0.1:8767/api/status?" + urllib.parse.urlencode({"backend": "http://127.0.0.1:8000"})
+                    )
+                    self.assertEqual(status["backend"]["pid"], 4242)
+                    self.assertEqual(status["backend"]["url"], "http://127.0.0.1:8000")
+                finally:
+                    server.shutdown()
+                    server.server_close()
+
     def test_networkquality_timeout_label_is_probe_timeout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["ARIA_QUEUE_DIR"] = tmp
