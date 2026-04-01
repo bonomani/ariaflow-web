@@ -615,7 +615,8 @@ INDEX_HTML = """<!doctype html>
     body.page-bandwidth .show-bandwidth,
     body.page-lifecycle .show-lifecycle,
     body.page-options .show-options,
-    body.page-log .show-log { display: block; }
+    body.page-log .show-log,
+    body.page-dev .show-dev { display: block; }
     @media (max-width: 980px) {
       .hero, .summary { grid-template-columns: 1fr; }
       .hero { align-items: start; }
@@ -661,6 +662,7 @@ INDEX_HTML = """<!doctype html>
       <a href="/lifecycle" data-page="lifecycle">Service Status</a>
       <a href="/options" data-page="options">Options</a>
       <a href="/log" data-page="log">Log</a>
+      <a href="/dev" data-page="dev">Developer</a>
       <div class="spacer"></div>
       <label class="refresh-control" for="refresh-interval">
         Refresh
@@ -928,6 +930,51 @@ INDEX_HTML = """<!doctype html>
           </div>
         </div>
       </div>
+      <div class="span-6 show-dev page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>API Documentation</h2>
+            <div class="hint">Interactive Swagger UI and OpenAPI spec</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="openDocs()">Open Swagger UI</button>
+            <button class="secondary" onclick="openSpec()">Download OpenAPI spec</button>
+          </div>
+          <div class="item">
+            <div class="item-top">
+              <div class="item-url">Swagger UI</div>
+              <span class="badge good">GET /api/docs</span>
+            </div>
+            <div class="meta"><span>Browse and try all backend API endpoints interactively.</span></div>
+          </div>
+          <div class="item" style="margin-top:10px;">
+            <div class="item-top">
+              <div class="item-url">OpenAPI Spec</div>
+              <span class="badge">GET /api/openapi.yaml</span>
+            </div>
+            <div class="meta"><span>Raw YAML spec for code generation and client SDKs.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="span-6 show-dev page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Test Runner</h2>
+            <div class="hint">Run the backend test suite from the dashboard</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="runTests()">Run tests</button>
+          </div>
+          <div id="test-summary" class="item" style="display:none;">
+            <div class="item-top">
+              <div class="item-url">Results</div>
+              <span class="badge" id="test-badge">-</span>
+            </div>
+            <div class="meta"><span id="test-counts">-</span></div>
+          </div>
+          <div id="test-results" class="list" style="margin-top:10px;"></div>
+        </div>
+      </div>
     </div>
     <div class="footer">
       Local-only dashboard. Web UI is optional; the engine stays headless.
@@ -1093,7 +1140,9 @@ INDEX_HTML = """<!doctype html>
           ? "options"
           : path === "/log"
             ? "log"
-            : "dashboard";
+            : path === "/dev"
+              ? "dev"
+              : "dashboard";
 
     function applyPage() {
       document.body.classList.add(`page-${page}`);
@@ -1110,6 +1159,8 @@ INDEX_HTML = """<!doctype html>
         document.querySelectorAll('.show-options').forEach((el) => el.style.display = '');
       } else if (page === 'log') {
         document.querySelectorAll('.show-log').forEach((el) => el.style.display = '');
+      } else if (page === 'dev') {
+        document.querySelectorAll('.show-dev').forEach((el) => el.style.display = '');
       }
     }
 
@@ -2051,6 +2102,54 @@ INDEX_HTML = """<!doctype html>
       document.getElementById('result-json').textContent = JSON.stringify(data, null, 2);
       await refresh();
     }
+    function backendBaseUrl() {
+      return loadBackendState().selected || DEFAULT_BACKEND_URL;
+    }
+    function openDocs() {
+      window.open(`${backendBaseUrl()}/api/docs`, '_blank');
+    }
+    function openSpec() {
+      window.open(`${backendBaseUrl()}/api/openapi.yaml`, '_blank');
+    }
+    async function runTests() {
+      const summary = document.getElementById('test-summary');
+      const results = document.getElementById('test-results');
+      const badge = document.getElementById('test-badge');
+      const counts = document.getElementById('test-counts');
+      if (summary) summary.style.display = '';
+      if (badge) { badge.textContent = 'running...'; badge.className = 'badge'; }
+      if (counts) counts.textContent = 'Running test suite...';
+      if (results) results.innerHTML = '<div class="item">Running...</div>';
+      try {
+        const r = await fetch(`${backendBaseUrl()}/api/tests`);
+        const data = await r.json();
+        const passed = data.passed ?? 0;
+        const failed = data.failed ?? 0;
+        const errors = data.errors ?? 0;
+        const total = data.total ?? (passed + failed + errors);
+        const ok = failed === 0 && errors === 0;
+        if (badge) { badge.textContent = ok ? 'pass' : 'fail'; badge.className = ok ? 'badge good' : 'badge bad'; }
+        if (counts) counts.textContent = `${passed} passed, ${failed} failed, ${errors} errors — ${total} total`;
+        const tests = data.tests || data.results || [];
+        if (results) {
+          results.innerHTML = tests.length ? tests.map((t) => {
+            const name = t.name || t.test || 'unknown';
+            const status = t.outcome || t.status || 'unknown';
+            return `<div class="item compact">
+              <div class="item-top">
+                <div class="item-url">${name}</div>
+                <span class="${badgeClass(status)}">${status}</span>
+              </div>
+              ${t.message ? `<div class="meta"><span>${t.message}</span></div>` : ''}
+            </div>`;
+          }).join('') : `<div class="item">${ok ? 'All tests passed.' : 'No test details available.'}</div>`;
+        }
+      } catch (err) {
+        if (badge) { badge.textContent = 'error'; badge.className = 'badge bad'; }
+        if (counts) counts.textContent = `Failed to reach backend: ${err.message}`;
+        if (results) results.innerHTML = '';
+      }
+    }
     async function newSession() {
       const r = await fetch(apiPath('/api/session'), {
         method: 'POST',
@@ -2179,7 +2278,7 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         backend_url = self._backend_url(parsed)
-        if path in {"/", "/index.html", "/bandwidth", "/lifecycle", "/options", "/log"}:
+        if path in {"/", "/index.html", "/bandwidth", "/lifecycle", "/options", "/log", "/dev"}:
             body = INDEX_HTML.encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
