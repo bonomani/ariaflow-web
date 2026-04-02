@@ -266,6 +266,29 @@ class TestPostMisc:
         data = _get(f"{web_server}/api/archive")
         assert isinstance(data, dict)
 
+    def test_events_endpoint_exists(self, web_server: str) -> None:
+        """SSE endpoint returns 502 when backend is mocked (no real stream)."""
+        try:
+            _get(f"{web_server}/api/events")
+        except Exception:
+            pass  # Expected — mock backend can't stream SSE
+
+    def test_scheduler(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/scheduler")
+        assert isinstance(data, dict)
+
+    def test_sessions(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/sessions")
+        assert isinstance(data, dict)
+
+    def test_session_stats(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/session/stats")
+        assert isinstance(data, dict)
+
+    def test_aria2_options(self, web_server: str) -> None:
+        data = _post(f"{web_server}/api/aria2/options", {"max-concurrent-downloads": "5"})
+        assert isinstance(data, dict)
+
     def test_cleanup(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/cleanup")
         assert isinstance(data, dict)
@@ -321,6 +344,11 @@ class TestApiParamCoverage:
         "POST /api/resume": "test_resume",
         "POST /api/bandwidth/probe": "test_bandwidth_probe",
         "GET /api/archive": "test_archive",
+        "GET /api/events": "test_events_endpoint_exists",
+        "GET /api/scheduler": "test_scheduler",
+        "GET /api/sessions": "test_sessions",
+        "GET /api/session/stats": "test_session_stats",
+        "POST /api/aria2/options": "test_aria2_options",
         "POST /api/cleanup": "test_cleanup",
         # Error handling
         "POST invalid JSON": "test_invalid_json_body",

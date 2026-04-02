@@ -84,6 +84,23 @@ def get_api_discovery_from(base_url: str) -> dict:
     return _request("/api", base_url=base_url)
 
 
+def get_scheduler_from(base_url: str) -> dict:
+    return _request("/api/scheduler", base_url=base_url)
+
+
+def get_sessions_from(base_url: str, limit: int = 50) -> dict:
+    return _request(f"/api/sessions?{urlencode({'limit': limit})}", base_url=base_url)
+
+
+def get_session_stats_from(base_url: str, session_id: str | None = None) -> dict:
+    qs = f"?{urlencode({'session_id': session_id})}" if session_id else ""
+    return _request(f"/api/session/stats{qs}", base_url=base_url)
+
+
+def set_aria2_options_from(base_url: str, options: dict) -> dict:
+    return _request("/api/aria2/options", method="POST", payload=options, base_url=base_url)
+
+
 def get_status_from(base_url: str) -> dict:
     return _request("/api/status", base_url=base_url)
 

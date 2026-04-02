@@ -24,6 +24,9 @@ from .client import (
     get_item_files_from,
     get_lifecycle_from,
     get_log_from,
+    get_scheduler_from,
+    get_session_stats_from,
+    get_sessions_from,
     get_status_from,
     item_action_from,
     item_priority_from,
@@ -34,6 +37,7 @@ from .client import (
     run_action_from,
     run_ucc_from,
     save_declaration_from,
+    set_aria2_options_from,
     set_item_files_from,
     set_session_from,
 )
@@ -154,6 +158,39 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
         STATUS_CACHE["payload"] = payload
         return payload
 
+    def _proxy_sse(self, backend_url: str) -> None:
+        """Forward an SSE stream from the backend to the client."""
+        import http.client as hc
+        parsed = urlparse(backend_url)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or 8000
+        try:
+            conn = hc.HTTPConnection(host, port, timeout=5)
+            conn.request("GET", "/api/events")
+            resp = conn.getresponse()
+            if resp.status != 200:
+                self._send_json({"error": "sse_unavailable"}, status=502)
+                conn.close()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            self.end_headers()
+            while True:
+                line = resp.readline()
+                if not line:
+                    break
+                self.wfile.write(line)
+                self.wfile.flush()
+        except Exception:
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
@@ -249,6 +286,23 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
         if path == "/api/archive":
             payload = get_archive_from(backend_url)
             self._send_json(payload, status=self._forward_status(payload))
+            return
+        if path == "/api/scheduler":
+            payload = get_scheduler_from(backend_url)
+            self._send_json(payload, status=self._forward_status(payload))
+            return
+        if path == "/api/sessions":
+            payload = get_sessions_from(backend_url)
+            self._send_json(payload, status=self._forward_status(payload))
+            return
+        if path == "/api/session/stats":
+            qs = parse_qs(parsed.query, keep_blank_values=True)
+            sid = qs.get("session_id", [None])[0]
+            payload = get_session_stats_from(backend_url, sid)
+            self._send_json(payload, status=self._forward_status(payload))
+            return
+        if path == "/api/events":
+            self._proxy_sse(backend_url)
             return
         if path.startswith("/api/item/"):
             parts = path.split("/")
@@ -374,6 +428,12 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
                     self._send_json(response, status=self._forward_status(response))
                     return
             self._send_json({"error": "not_found"}, status=404)
+            return
+
+        if path == "/api/aria2/options":
+            options = payload if isinstance(payload, dict) else {}
+            response = set_aria2_options_from(backend_url, options)
+            self._send_json(response, status=self._forward_status(response))
             return
 
         if path == "/api/cleanup":
