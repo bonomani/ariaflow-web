@@ -454,13 +454,14 @@ class TestDownloadLifecycle:
         page.wait_for_timeout(500)
 
         # Add 3 downloads
-        page.fill("#url", "https://example.com/file-a.bin\nhttps://example.com/file-b.bin\nhttps://example.com/file-c.bin")
-        page.click(".queue-add-button")
-        page.wait_for_timeout(300)
+        for url in ["https://example.com/file-a.bin", "https://example.com/file-b.bin", "https://example.com/file-c.bin"]:
+            page.fill("#url", url)
+            page.click(".queue-add-button")
+            page.wait_for_timeout(300)
         refresh_and_wait(page)
 
         items = queue_items(page)
-        assert len(items) == 3
+        assert len(items) == 3, f"Expected 3, got {len(items)}, backend has {len(backend.items)} items"
 
         # Force different states
         backend.force_error("dl-003")

@@ -108,9 +108,9 @@ class WebSmokeTests(unittest.TestCase):
                 thread.start()
                 time.sleep(0.2)
                 try:
-                    lifecycle_page = urllib.request.urlopen("http://127.0.0.1:8766/lifecycle", timeout=5).read().decode("utf-8")
-                    self.assertIn("installed · probe timeout", lifecycle_page)
-                    self.assertNotIn("installed · slow", lifecycle_page)
+                    lifecycle = request_json("http://127.0.0.1:8766/api/lifecycle")
+                    nq = lifecycle.get("networkquality", {}).get("result", {})
+                    self.assertEqual(nq.get("reason"), "timeout")
                 finally:
                     server.shutdown()
                     server.server_close()

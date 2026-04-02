@@ -1,0 +1,357 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ariaflow</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body data-page="dashboard">
+  <div class="wrap">
+    <div class="nav">
+      <a href="/" data-page="dashboard">Dashboard</a>
+      <a href="/bandwidth" data-page="bandwidth">Bandwidth</a>
+      <a href="/lifecycle" data-page="lifecycle">Service Status</a>
+      <a href="/options" data-page="options">Options</a>
+      <a href="/log" data-page="log">Log</a>
+      <a href="/dev" data-page="dev">Developer</a>
+      <div class="spacer"></div>
+      <label class="refresh-control" for="refresh-interval">
+        Refresh
+        <select id="refresh-interval" onchange="setRefreshInterval(this.value)">
+          <option value="1500">1.5s</option>
+          <option value="3000">3s</option>
+          <option value="5000">5s</option>
+          <option value="10000" selected>10s</option>
+          <option value="30000">30s</option>
+          <option value="0">Off</option>
+        </select>
+      </label>
+      <button class="secondary" id="theme-btn" onclick="toggleTheme()">Theme</button>
+    </div>
+    <div class="hero">
+      <div class="title">
+        <h1>ariaflow</h1>
+        <p>Headless queue engine with a local dashboard.</p>
+      </div>
+      <div class="panel">
+        <div class="chips">
+          <div class="chip">Web UI <strong id="chip-web-version">__ARIAFLOW_WEB_VERSION__</strong></div>
+          <div class="chip">PID <strong id="chip-web-pid">__ARIAFLOW_WEB_PID__</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="section-title">
+        <h2>Backends</h2>
+        <div class="hint">Local default is 127.0.0.1:8000; manual backends stay browser-local</div>
+      </div>
+      <div class="backend-add-row">
+        <div class="backend-add-group">
+          <input id="backend-input" placeholder="http://127.0.0.1:8000">
+          <button class="secondary backend-add-button" onclick="addBackend()">Add</button>
+        </div>
+      </div>
+      <div class="chips" style="margin-top:12px;">
+        <div class="chip">Version <strong id="backend-version">-</strong></div>
+        <div class="chip">PID <strong id="backend-pid">-</strong></div>
+        <div class="chip">Runner <strong id="backend-runner">idle</strong></div>
+        <div class="chip">Startup <strong id="backend-startup">manual</strong></div>
+        <div class="chip">Cap <strong id="backend-cap">-</strong></div>
+        <div class="chip">Last issue <strong id="backend-error">none</strong></div>
+        <div class="chip">Run <strong id="backend-session">-</strong></div>
+      </div>
+      <div id="backend-panel" class="chips" style="margin-top:12px;"></div>
+    </div>
+    <div class="grid">
+      <div class="span-12 show-dashboard page-only">
+        <div class="panel toolbar">
+          <div class="queue-add-row">
+            <div class="queue-add-group">
+              <textarea id="url" rows="1" placeholder="Paste one or more URLs, one per line"></textarea>
+              <button class="secondary queue-add-button" onclick="add()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="span-12 show-dashboard page-only">
+        <div class="panel toolbar">
+          <div class="action-bar">
+            <div class="action-buttons">
+              <button class="secondary" id="runner-btn" onclick="toggleRunner()">Start engine</button>
+              <button class="secondary" onclick="newSession()">New run</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="span-12 show-dashboard page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Queue</h2>
+            <div class="hint">Jobs live inside the queue; pause or resume the flow without stopping the engine</div>
+          </div>
+          <div class="system-card" style="margin-bottom:12px;">
+            <div class="queue-overview">
+              <div class="queue-primary">
+                <div class="label">Queue status</div>
+                <div class="value"><span class="badge" id="queue-state">idle</span></div>
+                <div class="sub" id="queue-detail">Waiting for state</div>
+              </div>
+              <div class="summary">
+                <div class="metric"><div class="label">Queued</div><div class="value" id="sum-queued">0</div><div class="sub">waiting jobs</div></div>
+                <div class="metric"><div class="label">Done</div><div class="value" id="sum-done">0</div><div class="sub">completed</div></div>
+                <div class="metric"><div class="label">Errors</div><div class="value" id="sum-error">0</div><div class="sub">failed jobs</div></div>
+                <div class="metric"><div class="label">Speed</div><div class="value" id="queue-speed">idle</div><div class="sub">current transfer rate</div><div id="global-speed-chart" style="margin-top:6px;"></div></div>
+              </div>
+            </div>
+            <div class="system-head">
+              <div class="system-copy">
+                <h3>Queue State</h3>
+                <div class="meta"><span>The shared workflow state. Jobs wait here and advance only when the engine is running.</span></div>
+              </div>
+              <span class="badge" id="queue-state-badge">idle</span>
+            </div>
+            <div class="system-facts">
+              <div class="system-fact"><span>Active job</span><strong id="queue-active">none</strong></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="toggle-btn" onclick="toggleQueue()">Pause queue</button>
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <input id="queue-search" type="text" placeholder="Search by URL or filename..." oninput="setQueueSearch(this.value)" style="padding:8px 12px; border-radius:999px; font-size:0.88rem;">
+          </div>
+          <div class="filter-bar" id="queue-filters">
+            <button class="filter-btn active" data-filter="all" onclick="setQueueFilter('all')">All</button>
+            <button class="filter-btn" data-filter="queued" onclick="setQueueFilter('queued')">Queued</button>
+            <button class="filter-btn" data-filter="downloading" onclick="setQueueFilter('downloading')">Downloading</button>
+            <button class="filter-btn" data-filter="paused" onclick="setQueueFilter('paused')">Paused</button>
+            <button class="filter-btn" data-filter="done" onclick="setQueueFilter('done')">Done</button>
+            <button class="filter-btn" data-filter="error" onclick="setQueueFilter('error')">Error</button>
+          </div>
+          <div id="queue" class="list">Loading...</div>
+        </div>
+      </div>
+      <div class="span-12 show-dashboard page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Session</h2>
+            <div class="hint">The current run context that groups queue activity, logs, and job history</div>
+          </div>
+          <div class="system-card">
+            <div class="system-head">
+              <div class="system-copy">
+                <h3>Current Session</h3>
+                <div class="meta"><span>The current run context. Jobs, logs, and queue activity are grouped under this session.</span></div>
+              </div>
+              <span class="badge" id="session-state">none</span>
+            </div>
+            <div class="system-facts">
+              <div class="system-fact"><span>Current session</span><strong id="session-detail">-</strong></div>
+              <div class="system-fact"><span>Started</span><strong id="session-started">-</strong></div>
+              <div class="system-fact"><span>Last seen</span><strong id="session-last-seen">-</strong></div>
+              <div class="system-fact"><span>Closed</span><strong id="session-closed">-</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="span-6 show-bandwidth page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Bandwidth</h2>
+            <div class="hint">Network probe, cap, and download concurrency</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="runProbe()">Run probe</button>
+          </div>
+          <div class="list" style="margin-bottom:12px;">
+            <div class="item">
+              <div class="item-top"><div class="item-url">Interface</div><span class="badge" id="bw-interface">-</span></div>
+              <div class="meta"><span id="bw-interface-detail">Detecting...</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Probe result</div><span class="badge" id="bw-source">-</span></div>
+              <div class="meta"><span id="bw-down">No probe yet</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Download speed</div><span class="badge" id="bw-down-badge">-</span></div>
+              <div class="meta"><span id="bw-down-detail">Measured downlink from last probe</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Upload speed</div><span class="badge" id="bw-up-badge">-</span></div>
+              <div class="meta"><span id="bw-up-detail">Measured uplink from last probe</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Current cap</div><span class="badge" id="bw-cap">-</span></div>
+              <div class="meta"><span id="bw-global">Configured limit unavailable</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Probe details</div><span class="badge" id="bw-probe-mode">-</span></div>
+              <div class="meta"><span id="bw-probe-detail">No probe yet</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="span-6 show-bandwidth page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Bandwidth Policy</h2>
+            <div class="hint">Reserve bandwidth and control download concurrency</div>
+          </div>
+          <div id="bw-config-panel" class="list">Loading...</div>
+        </div>
+      </div>
+      <div class="span-6 show-lifecycle page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Service Status</h2>
+            <div class="hint">Installed, current, autostart, and updater state</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="loadLifecycle()">Refresh service status</button>
+          </div>
+          <div class="item" style="margin-bottom:12px;">
+            <div class="item-top">
+              <div class="item-url">Update policy</div>
+              <span class="badge">Homebrew tap</span>
+            </div>
+            <div class="meta"><span>Upgrades require Homebrew to install the new version and restart the service.</span></div>
+          </div>
+          <div id="lifecycle" class="list">Loading...</div>
+        </div>
+      </div>
+      <div class="span-6 show-options page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Options</h2>
+            <div class="hint">Operator policies and toggles</div>
+          </div>
+          <div class="list" id="options-panel">Loading...</div>
+        </div>
+      </div>
+      <div class="span-6 show-log page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Log</h2>
+            <div class="hint">Action history and UCC trace</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="uccRun()">Run contract</button>
+            <button class="secondary" onclick="preflightRun()">Preflight</button>
+          </div>
+          <div id="contract-trace" class="list">Idle</div>
+          <div class="section-title" style="margin-top:14px;">
+            <h2>Preflight</h2>
+            <div class="hint">Pass, warnings, and failures</div>
+          </div>
+          <div id="preflight" class="list">Idle</div>
+          <div id="result" class="mono" style="white-space:pre-wrap;word-break:break-word;color:var(--text);margin-top:12px;">Idle</div>
+          <details class="debug">
+            <summary>Action JSON</summary>
+            <div id="result-json" class="debug-box">Idle</div>
+          </details>
+        </div>
+      </div>
+      <div class="span-6 show-log page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Action history</h2>
+            <div class="hint">Normalized event log</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <select id="action-filter" onchange="refreshActionLog()">
+              <option value="all">All actions</option>
+              <option value="add">Add</option>
+              <option value="preflight">Preflight</option>
+              <option value="run">Run</option>
+              <option value="stop">Stop</option>
+              <option value="ucc">UCC</option>
+              <option value="probe">Probe</option>
+              <option value="pause">Pause</option>
+              <option value="resume">Resume</option>
+              <option value="poll">Poll</option>
+              <option value="complete">Complete</option>
+              <option value="error">Error</option>
+            </select>
+            <select id="target-filter" onchange="refreshActionLog()">
+              <option value="all">All targets</option>
+              <option value="bandwidth">Bandwidth</option>
+              <option value="queue">Queue</option>
+              <option value="queue_item">Queue job</option>
+              <option value="active_transfer">Active transfer</option>
+              <option value="system">System</option>
+            </select>
+            <select id="session-filter" onchange="refreshActionLog()">
+              <option value="all">All sessions</option>
+              <option value="current" selected>Current run</option>
+            </select>
+          </div>
+          <div id="action-log" class="list">Loading...</div>
+        </div>
+      </div>
+      <div class="span-6 show-log page-only">
+        <div class="panel declaration">
+          <div class="section-title">
+            <h2>Declaration</h2>
+            <div class="hint">UIC settings and policy</div>
+          </div>
+          <textarea id="declaration" placeholder="Loading declaration..."></textarea>
+          <div class="row">
+            <button class="secondary" onclick="loadDeclaration()">Load</button>
+            <button class="secondary" onclick="saveDeclaration()">Save</button>
+          </div>
+        </div>
+      </div>
+      <div class="span-6 show-dev page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>API Documentation</h2>
+            <div class="hint">Interactive Swagger UI and OpenAPI spec</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="openDocs()">Open Swagger UI</button>
+            <button class="secondary" onclick="openSpec()">Download OpenAPI spec</button>
+          </div>
+          <div class="item">
+            <div class="item-top">
+              <div class="item-url">Swagger UI</div>
+              <span class="badge good">GET /api/docs</span>
+            </div>
+            <div class="meta"><span>Browse and try all backend API endpoints interactively.</span></div>
+          </div>
+          <div class="item" style="margin-top:10px;">
+            <div class="item-top">
+              <div class="item-url">OpenAPI Spec</div>
+              <span class="badge">GET /api/openapi.yaml</span>
+            </div>
+            <div class="meta"><span>Raw YAML spec for code generation and client SDKs.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="span-6 show-dev page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Test Runner</h2>
+            <div class="hint">Run the backend test suite from the dashboard</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="runTests()">Run tests</button>
+          </div>
+          <div id="test-summary" class="item" style="display:none;">
+            <div class="item-top">
+              <div class="item-url">Results</div>
+              <span class="badge" id="test-badge">-</span>
+            </div>
+            <div class="meta"><span id="test-counts">-</span></div>
+          </div>
+          <div id="test-results" class="list" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      Local-only dashboard. Web UI is optional; the engine stays headless.
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

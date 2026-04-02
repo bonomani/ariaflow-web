@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-WEBAPP = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "webapp.py"
+STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static"
 TEST_DIR = Path(__file__).resolve().parent
 
 # JS function names invoked by onclick/onchange/oninput handlers
@@ -20,15 +20,15 @@ TEMPLATE_RE = re.compile(r'\$\{[^}]+\}')
 
 
 def _extract_actions() -> set[str]:
-    """Extract all unique JS function names from inline event handlers in webapp.py."""
-    source = WEBAPP.read_text(encoding="utf-8")
+    """Extract all unique JS function names from inline event handlers in static files."""
     actions: set[str] = set()
-    for match in ACTION_RE.finditer(source):
-        fn = match.group(1).strip()
-        # Skip template expressions — these are dynamic (e.g., itemAction with item IDs)
-        if "${" in fn:
-            continue
-        actions.add(fn)
+    for path in [STATIC_DIR / "index.html", STATIC_DIR / "app.js"]:
+        source = path.read_text(encoding="utf-8")
+        for match in ACTION_RE.finditer(source):
+            fn = match.group(1).strip()
+            if "${" in fn:
+                continue
+            actions.add(fn)
     return actions
 
 
