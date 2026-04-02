@@ -17,9 +17,9 @@ from conftest import start_server, stop_server  # noqa: E402
 
 @pytest.fixture(scope="module")
 def web_server():
-    url, server, patches, _ = start_server()
+    url, _, web_srv, backend_srv, patches, _ = start_server()
     yield url
-    stop_server(server, patches)
+    stop_server(web_srv, backend_srv, patches)
 
 
 class TestStaticFiles:

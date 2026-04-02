@@ -25,9 +25,9 @@ def _goto(page: Page, url: str) -> None:
 
 @pytest.fixture(scope="module")
 def web_server():
-    url, server, patches, mocks = start_server()
+    url, _, web_srv, backend_srv, patches, _ = start_server()
     yield url
-    stop_server(server, patches)
+    stop_server(web_srv, backend_srv, patches)
 
 
 @pytest.fixture(scope="module")
@@ -95,25 +95,10 @@ class TestRoutes:
         assert resp.status == 200
         assert "text/html" in resp.headers.get("Content-Type", "")
 
-    @pytest.mark.parametrize("path", ["/api", "/api/status", "/api/bandwidth", "/api/log", "/api/declaration", "/api/options", "/api/lifecycle", "/api/discovery"])
-    def test_api_returns_json(self, web_server: str, path: str) -> None:
-        resp = urllib.request.urlopen(f"{web_server}{path}", timeout=5)
+    def test_api_discovery_endpoint(self, web_server: str) -> None:
+        resp = urllib.request.urlopen(f"{web_server}/api/discovery", timeout=5)
         assert resp.status == 200
         assert isinstance(json.loads(resp.read().decode()), dict)
-
-    def test_api_discovery_has_name(self, web_server: str) -> None:
-        data = json.loads(urllib.request.urlopen(f"{web_server}/api", timeout=5).read().decode())
-        assert "name" in data
-
-    def test_bandwidth_probe_endpoint(self, web_server: str) -> None:
-        req = urllib.request.Request(f"{web_server}/api/bandwidth/probe", data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
-        data = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
-        assert data.get("ok") is True
-
-    def test_item_action_proxy(self, web_server: str) -> None:
-        req = urllib.request.Request(f"{web_server}/api/item/item-1/pause", data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
-        data = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
-        assert data["ok"] is True
 
 
 # ---------------------------------------------------------------------------

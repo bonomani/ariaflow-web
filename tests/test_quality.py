@@ -39,7 +39,7 @@ class TestPythonCompile:
         )
         assert result.returncode == 0, f"Compile failed:\n{result.stderr}"
 
-    @pytest.mark.parametrize("module", ["client", "cli", "bonjour", "__init__"])
+    @pytest.mark.parametrize("module", ["cli", "bonjour", "__init__"])
     def test_module_compiles(self, module: str) -> None:
         path = SRC / "ariaflow_web" / f"{module}.py"
         result = subprocess.run(

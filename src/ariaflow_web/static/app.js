@@ -17,7 +17,7 @@ document.addEventListener('alpine:init', () => {
     refreshInFlight: false,
     lastRev: null,
     page: 'dashboard',
-    DEFAULT_BACKEND_URL: 'http://127.0.0.1:8000',
+    DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
     backendInput: '',
     urlInput: '',
     addOutput: '',
@@ -538,9 +538,7 @@ document.addEventListener('alpine:init', () => {
     },
     apiPath(path) {
       const backend = this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;
-      const u = new URL(path, window.location.origin);
-      u.searchParams.set('backend', backend);
-      return `${u.pathname}${u.search}`;
+      return `${backend.replace(/\/+$/, '')}${path}`;
     },
     backendBaseUrl() {
       return this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;

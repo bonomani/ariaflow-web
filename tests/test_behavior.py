@@ -4,16 +4,13 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from playwright.sync_api import Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from ariaflow_web.webapp import STATUS_CACHE  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from conftest import start_server, stop_server, bust_cache  # noqa: E402
+from conftest import start_server, stop_server, DEFAULT_STATUS  # noqa: E402
 
 pytestmark = pytest.mark.slow
 _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
@@ -21,7 +18,7 @@ _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
 
 def _goto(page: Page, url: str) -> None:
     page.goto(url)
-    page.wait_for_timeout(200)
+    page.wait_for_timeout(400)
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +32,7 @@ class SwitchableBackend:
         self.speed = 0
         self.call_count = 0
 
-    def status(self, _base_url: str) -> dict:
+    def status(self) -> dict:
         self.call_count += 1
         if not self.online:
             return {"ok": False, "ariaflow": {"reachable": False, "error": "connection refused"}}
@@ -62,15 +59,10 @@ backend = SwitchableBackend()
 def web_server():
     global backend
     backend = SwitchableBackend()
-    url, server, patches, _ = start_server(
-        extra={"ariaflow_web.webapp.get_status_from": "__SKIP__"},
-    )
-    # Replace status mock with our switchable one
-    p = patch("ariaflow_web.webapp.get_status_from", side_effect=backend.status)
-    p.start()
-    patches.append(p)
+    url, _, web_srv, backend_srv, patches, handler_cls = start_server()
+    handler_cls.status_data = lambda: backend.status()
     yield url
-    stop_server(server, patches)
+    stop_server(web_srv, backend_srv, patches)
 
 
 @pytest.fixture(scope="module")
@@ -88,7 +80,7 @@ def page(browser_context, web_server) -> Page:
 
 
 def refresh(page: Page) -> None:
-    bust_cache()
+    page.evaluate(f"{_ALPINE_EVAL}._consecutiveFailures = 0; {_ALPINE_EVAL}.lastRev = null")
     page.evaluate(f"{_ALPINE_EVAL}.refresh()")
     page.wait_for_timeout(500)
 
@@ -181,7 +173,7 @@ class TestConcurrentRefreshGuard:
         backend.online = True
         backend.items = []
         _goto(page, f"{web_server}/")
-        bust_cache()
+        pass  # no server-side cache to bust
         backend.call_count = 0
         page.evaluate(f"Promise.all([{_ALPINE_EVAL}.refresh(), {_ALPINE_EVAL}.refresh()])")
         page.wait_for_timeout(500)
@@ -198,6 +190,7 @@ class TestRenderingEdgeCases:
         assert "no " in text.lower() or "empty" in text.lower()
 
     def test_many_items(self, page: Page, web_server: str) -> None:
+        backend.online = True
         backend.items = [{"id": f"m{i}", "url": f"http://example.com/file-{i:03d}.bin", "status": "queued", "gid": f"g{i}", "created_at": "2026-04-02"} for i in range(50)]
         _goto(page, f"{web_server}/")
         refresh(page)
@@ -205,6 +198,7 @@ class TestRenderingEdgeCases:
         backend.items = []
 
     def test_item_with_missing_fields(self, page: Page, web_server: str) -> None:
+        backend.online = True
         backend.items = [{"status": "queued"}]
         _goto(page, f"{web_server}/")
         refresh(page)
@@ -289,7 +283,7 @@ class TestSpeedHistory:
         backend.items = [{"id": "sp2", "url": "http://example.com/cap.bin", "status": "downloading", "gid": "gsp2", "created_at": "2026-04-02"}]
         _goto(page, f"{web_server}/")
         for _ in range(35):
-            bust_cache()
+            pass  # no server-side cache to bust
             page.evaluate(f"{_ALPINE_EVAL}.refresh()")
             page.wait_for_timeout(50)
         page.wait_for_timeout(300)

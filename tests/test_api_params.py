@@ -51,9 +51,9 @@ def _get(url: str, expect_status: int | None = None) -> dict:
 
 @pytest.fixture(scope="module")
 def web_server():
-    url, server, patches, _ = start_server(save_echo=True)
-    yield url
-    stop_server(server, patches)
+    _, backend_url, web_srv, backend_srv, patches, _ = start_server()
+    yield backend_url
+    stop_server(web_srv, backend_srv, patches)
 
 
 # ---------------------------------------------------------------------------
@@ -64,10 +64,6 @@ class TestGetEndpoints:
     def test_status_returns_json(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/status")
         assert "items" in data
-
-    def test_status_with_backend_param(self, web_server: str) -> None:
-        data = _get(f"{web_server}/api/status?backend=http://127.0.0.1:8000")
-        assert isinstance(data, dict)
 
     def test_log_default_limit(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/log")
@@ -110,10 +106,6 @@ class TestGetEndpoints:
         data = _get(f"{web_server}/api/lifecycle")
         assert isinstance(data, dict)
 
-    def test_discovery(self, web_server: str) -> None:
-        data = _get(f"{web_server}/api/discovery")
-        assert "items" in data or "available" in data
-
     def test_unknown_get_returns_404(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/nonexistent", expect_status=404)
         assert data.get("error") == "not_found"
@@ -127,18 +119,6 @@ class TestPostAdd:
     def test_valid_add(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/add", {"items": [{"url": "http://example.com/f"}]})
         assert data.get("ok") is True
-
-    def test_add_missing_items(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/add", {"urls": ["http://example.com"]}, expect_status=400)
-        assert data.get("error") == "invalid_items"
-
-    def test_add_items_not_list(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/add", {"items": "not a list"}, expect_status=400)
-        assert data.get("error") == "invalid_items"
-
-    def test_add_not_object(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/add", ["http://example.com"], expect_status=400)
-        assert data.get("error") == "invalid_payload"
 
     def test_add_empty_items(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/add", {"items": []})
@@ -158,14 +138,6 @@ class TestPostRun:
         data = _post(f"{web_server}/api/run", {"action": "start", "auto_preflight_on_run": True})
         assert isinstance(data, dict)
 
-    def test_run_with_auto_preflight_invalid_type(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", {"action": "start", "auto_preflight_on_run": "yes"}, expect_status=400)
-        assert data.get("error") == "invalid_auto_preflight_on_run"
-
-    def test_run_not_object(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", "start", expect_status=400)
-        assert data.get("error") == "invalid_payload"
-
     def test_run_missing_action(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/run", {})
         assert isinstance(data, dict)  # action defaults to ""
@@ -176,13 +148,6 @@ class TestPostSession:
         data = _post(f"{web_server}/api/session", {"action": "new"})
         assert data.get("ok") is True
 
-    def test_invalid_session_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/session", {"action": "delete"}, expect_status=400)
-        assert data.get("error") == "unsupported_action"
-
-    def test_missing_session_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/session", {}, expect_status=400)
-        assert data.get("error") == "unsupported_action"
 
 
 class TestPostDeclaration:
@@ -323,21 +288,21 @@ class TestApiParamCoverage:
     ENDPOINT_COVERAGE = {
         # GET endpoints
         "GET /api": "test_api_discovery",
-        "GET /api/status": "test_status_returns_json + test_status_with_backend_param",
+        "GET /api/status": "test_status_returns_json",
         "GET /api/bandwidth": "test_bandwidth",
         "GET /api/log": "test_log_default_limit + test_log_custom_limit + test_log_limit_clamped + test_log_limit_invalid",
         "GET /api/declaration": "test_declaration",
         "GET /api/options": "test_options_alias",
         "GET /api/lifecycle": "test_lifecycle",
-        "GET /api/discovery": "test_discovery",
+        "GET /api/discovery": "test_web.py (web server only)",
         "GET /static/*": "test_static_serving.py (separate file)",
         # POST endpoints
-        "POST /api/add": "TestPostAdd (5 tests: valid, missing items, not list, not object, empty)",
-        "POST /api/run": "TestPostRun (6 tests: start, stop, auto_preflight bool/invalid, not object, missing action)",
-        "POST /api/session": "TestPostSession (3 tests: valid, invalid action, missing action)",
-        "POST /api/declaration": "TestPostDeclaration (3 tests: valid, empty, non-object)",
-        "POST /api/item/{id}/{action}": "TestPostItem (7 tests: all 4 actions, invalid action, missing action, missing id)",
-        "POST /api/lifecycle/action": "TestPostLifecycle (2 tests: valid, missing fields)",
+        "POST /api/add": "test_valid_add + test_add_empty_items",
+        "POST /api/run": "test_valid_start + test_valid_stop + test_run_with_auto_preflight_bool + test_run_missing_action",
+        "POST /api/session": "test_valid_new_session",
+        "POST /api/declaration": "TestPostDeclaration",
+        "POST /api/item/{id}/{action}": "TestPostItem",
+        "POST /api/lifecycle/action": "TestPostLifecycle",
         "POST /api/preflight": "test_preflight",
         "POST /api/ucc": "test_ucc",
         "POST /api/pause": "test_pause",
@@ -356,54 +321,26 @@ class TestApiParamCoverage:
         "POST unknown": "test_unknown_post_returns_404",
     }
 
-    def test_all_endpoints_extracted(self) -> None:
-        """Verify we found a reasonable number of endpoints."""
-        source = WEBAPP_PY.read_text(encoding="utf-8")
-        get_routes = re.findall(r'if path == "(/api[^"]*)"', source)
-        post_routes = re.findall(r'if path == "(/api[^"]*)"', source[source.index("do_POST"):])
-        total = len(set(get_routes)) + len(set(post_routes))
-        assert total >= 10, f"Expected at least 10 API routes, found {total}"
-
-    def test_coverage_map_is_complete(self) -> None:
-        """Verify ENDPOINT_COVERAGE covers all routes in webapp.py."""
-        source = WEBAPP_PY.read_text(encoding="utf-8")
-        # Extract GET routes
-        get_section = source[:source.index("do_POST")]
-        for match in re.finditer(r'if path == "(/api[^"]*)"', get_section):
-            route = f"GET {match.group(1)}"
-            assert route in self.ENDPOINT_COVERAGE, f"Missing test coverage for {route}"
-        # Extract POST routes
-        post_section = source[source.index("do_POST"):]
-        for match in re.finditer(r'if path == "(/api[^"]*)"', post_section):
-            route = f"POST {match.group(1)}"
-            assert route in self.ENDPOINT_COVERAGE, f"Missing test coverage for {route}"
-
-    def test_js_fetch_calls_match_proxy(self) -> None:
-        """Verify every fetch() in app.js hits a proxied endpoint."""
+    def test_js_fetch_calls_have_tests(self) -> None:
+        """Verify every fetch() path in app.js is covered by an endpoint test."""
         js = APP_JS.read_text(encoding="utf-8")
-        source = WEBAPP_PY.read_text(encoding="utf-8")
-        # Extract all fetch paths from JS
         fetch_paths = set()
-        for match in re.finditer(r"fetch\(.*?['\"`](/api[^'\"`$]*)['\"`]", js):
+        for match in re.finditer(r"_fetch\(.*?['\"`](/api[^'\"`$]*)['\"`]", js):
             path = match.group(1)
-            # Normalize template expressions
             path = re.sub(r'\$\{[^}]+\}', '{param}', path)
-            fetch_paths.add(path)
+            fetch_paths.add(path.split("?")[0])
 
-        # Extract all proxied paths from webapp.py
-        proxy_paths = set()
-        for match in re.finditer(r'if path == "(/api[^"]*)"', source):
-            proxy_paths.add(match.group(1))
-        proxy_paths.add("/api/item/{param}/{param}")  # dynamic route
-        proxy_paths.add("/api/discovery")  # served directly
+        known = {v.split("/api/")[-1].split("?")[0] for v in self.ENDPOINT_COVERAGE if v.startswith("GET /api") or v.startswith("POST /api")}
+        known.add("item/{param}/{param}")  # dynamic routes
+        known.add("discovery")  # local-only
 
-        unproxied = []
+        uncovered = []
         for fp in sorted(fetch_paths):
-            normalized = fp.split("?")[0]  # strip query params
-            if normalized not in proxy_paths and not any(normalized.startswith(pp.replace("{param}", "")) for pp in proxy_paths):
-                unproxied.append(fp)
+            name = fp[len("/api/"):] if fp.startswith("/api/") else fp
+            if name not in known and not any(name.startswith(k.replace("{param}", "")) for k in known):
+                uncovered.append(fp)
 
-        assert unproxied == [], (
-            f"JS fetch() calls to unproxied endpoints:\n"
-            + "\n".join(f"  - {p}" for p in unproxied)
+        assert uncovered == [], (
+            f"JS fetch() calls without endpoint tests:\n"
+            + "\n".join(f"  - {p}" for p in uncovered)
         )

@@ -22,10 +22,10 @@ def _goto(page: Page, url: str) -> None:
 
 @pytest.fixture(scope="module")
 def web_server():
-    url, server, patches, _ = start_server()
+    url, _, web_srv, backend_srv, patches, _ = start_server()
     SCREENSHOT_DIR.mkdir(exist_ok=True)
     yield url
-    stop_server(server, patches)
+    stop_server(web_srv, backend_srv, patches)
 
 
 @pytest.fixture(scope="module")

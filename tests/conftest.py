@@ -1,20 +1,22 @@
 """Shared fixtures for all test files."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
 import threading
 import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from unittest.mock import patch
+from urllib.parse import urlparse, parse_qs
 
 import pytest
 from playwright.sync_api import sync_playwright, Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ariaflow_web.webapp import serve, STATUS_CACHE  # noqa: E402
+from ariaflow_web.webapp import serve  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Default mock data
@@ -63,6 +65,133 @@ DEFAULT_PREFLIGHT = {"status": "pass", "gates": [{"name": "aria2", "satisfied": 
 
 
 # ---------------------------------------------------------------------------
+# Mock backend server (simulates ariaflow backend API)
+# ---------------------------------------------------------------------------
+
+class MockBackendHandler(BaseHTTPRequestHandler):
+    """Handles API requests that the frontend sends directly to the backend."""
+
+    # Class-level state — overridable per test. Can be dict or callable returning dict.
+    status_data: dict | object = DEFAULT_STATUS
+    declaration_data: dict | object = DEFAULT_DECLARATION
+    lifecycle_data: dict = DEFAULT_LIFECYCLE
+    log_data: dict = DEFAULT_LOG
+    preflight_data: dict = DEFAULT_PREFLIGHT
+    # Optional: a FakeBackend object that intercepts all calls
+    fake_backend: object | None = None
+
+    def _send(self, data: dict, status: int = 200) -> None:
+        body = json.dumps(data, separators=(",", ":")).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_GET(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        if path == "/api" or path == "/api/":
+            self._send({"name": "ariaflow", "version": "0.1.48", "endpoints": {"GET": [], "POST": []}})
+        elif path == "/api/status":
+            sd = type(self).status_data
+            data = sd() if callable(sd) else sd
+            self._send(data)
+        elif path == "/api/bandwidth":
+            self._send({"source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80, "interface_name": "eth0"})
+        elif path == "/api/log":
+            self._send(self.log_data)
+        elif path == "/api/declaration" or path == "/api/options":
+            dd = type(self).declaration_data
+            data = dd() if callable(dd) else dd
+            self._send(data)
+        elif path == "/api/lifecycle":
+            self._send(self.lifecycle_data)
+        elif path == "/api/archive":
+            self._send({"items": []})
+        elif path == "/api/scheduler":
+            self._send({"status": "running", "running": True, "paused": False, "session_id": "sess-001"})
+        elif path == "/api/sessions":
+            self._send({"sessions": []})
+        elif path == "/api/session/stats":
+            self._send({"session_id": "sess-001", "total": 5, "done": 1})
+        elif path.startswith("/api/item/") and path.endswith("/files"):
+            self._send({"files": []})
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+        try:
+            payload = json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            self._send({"ok": False, "error": "invalid_json"}, status=400)
+            return
+
+        if path == "/api/add":
+            items = payload.get("items", [])
+            self._send({"ok": True, "count": len(items), "added": [{"url": item.get("url", "")} for item in items]})
+        elif path == "/api/run":
+            action = payload.get("action", "")
+            if action == "start":
+                self._send({"ok": True, "action": "start", "result": {"started": True}})
+            elif action == "stop":
+                self._send({"ok": True, "action": "stop", "result": {"stopped": True}})
+            else:
+                self._send({"ok": False, "error": "invalid_action"}, status=400)
+        elif path == "/api/preflight":
+            self._send(self.preflight_data)
+        elif path == "/api/ucc":
+            self._send({"result": {"outcome": "converged", "observation": "ok"}, "meta": {"contract": "UCC", "version": "1.0"}})
+        elif path == "/api/declaration":
+            self.declaration_data = payload if isinstance(payload, dict) and payload.get("uic") else self.declaration_data
+            self._send(self.declaration_data)
+        elif path == "/api/lifecycle/action":
+            self._send({"ok": True, "lifecycle": self.lifecycle_data})
+        elif path == "/api/session":
+            self._send({"ok": True, "session": "sess-002"})
+        elif path == "/api/pause":
+            self._send({"paused": True})
+        elif path == "/api/resume":
+            self._send({"resumed": True})
+        elif path == "/api/bandwidth/probe":
+            self._send({"ok": True, "source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80})
+        elif path == "/api/cleanup":
+            self._send({"ok": True, "archived": 0, "remaining": 0})
+        elif path == "/api/aria2/options":
+            self._send({"ok": True})
+        elif path.startswith("/api/item/"):
+            parts = path.split("/")
+            if len(parts) == 5:
+                action = parts[4]
+                if action == "priority":
+                    self._send({"ok": True, "item": {"id": parts[3], "priority": payload.get("priority", 0)}})
+                elif action == "files":
+                    self._send({"ok": True, "selected": payload.get("select", [])})
+                elif action in {"pause", "resume", "remove", "retry"}:
+                    self._send({"ok": True, "item": {"id": parts[3], "status": "paused"}})
+                else:
+                    self._send({"error": "not_found"}, status=404)
+            else:
+                self._send({"error": "not_found"}, status=404)
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A003
+        return
+
+
+# ---------------------------------------------------------------------------
 # Port allocator (avoids conflicts between test files)
 # ---------------------------------------------------------------------------
 
@@ -95,97 +224,41 @@ def _allocate_port() -> int:
 # Server factory
 # ---------------------------------------------------------------------------
 
-def make_mock_patches(
-    status: dict | None = None,
-    declaration: dict | None = None,
-    lifecycle: dict | None = None,
-    log: dict | None = None,
-    preflight: dict | None = None,
-    save_echo: bool = False,
-    extra: dict | None = None,
-) -> list:
-    """Create mock patches for the webapp. Returns list of started patches."""
-
-    def echo_save(_base_url: str, decl: dict) -> dict:
-        return decl
-
-    def add_items_response(_base_url: str, items: list) -> dict:
-        return {"ok": True, "count": len(items), "added": [{"url": item.get("url", "")} for item in items]}
-
-    config: dict[str, object] = {
-        "ariaflow_web.webapp.get_status_from": status or DEFAULT_STATUS,
-        "ariaflow_web.webapp.get_log_from": log or DEFAULT_LOG,
-        "ariaflow_web.webapp.get_declaration_from": declaration or DEFAULT_DECLARATION,
-        "ariaflow_web.webapp.get_lifecycle_from": lifecycle or DEFAULT_LIFECYCLE,
-        "ariaflow_web.webapp.preflight_from": preflight or DEFAULT_PREFLIGHT,
-        "ariaflow_web.webapp.run_action_from": {"ok": True, "action": "start", "result": {"started": True}},
-        "ariaflow_web.webapp.run_ucc_from": {"result": {"outcome": "converged", "observation": "ok"}, "meta": {"contract": "UCC", "version": "1.0"}},
-        "ariaflow_web.webapp.discover_http_services": {"available": False, "items": [], "reason": "none"},
-        "ariaflow_web.webapp.set_session_from": {"ok": True, "session": "sess-002"},
-        "ariaflow_web.webapp.pause_from": {"paused": True},
-        "ariaflow_web.webapp.resume_from": {"resumed": True},
-        "ariaflow_web.webapp.lifecycle_action_from": {"ok": True, "lifecycle": lifecycle or DEFAULT_LIFECYCLE},
-        "ariaflow_web.webapp.item_action_from": {"ok": True, "item": {"id": "item-1", "status": "paused"}},
-        "ariaflow_web.webapp.get_api_discovery_from": {"name": "ariaflow", "version": "0.1.48", "endpoints": {"GET": [], "POST": []}},
-        "ariaflow_web.webapp.get_bandwidth_from": {"source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80, "interface_name": "eth0"},
-        "ariaflow_web.webapp.bandwidth_probe_from": {"ok": True, "source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80},
-        "ariaflow_web.webapp.get_scheduler_from": {"status": "running", "running": True, "paused": False, "session_id": "sess-001"},
-        "ariaflow_web.webapp.get_sessions_from": {"sessions": []},
-        "ariaflow_web.webapp.get_session_stats_from": {"session_id": "sess-001", "total": 5, "done": 1},
-        "ariaflow_web.webapp.set_aria2_options_from": {"ok": True},
-        "ariaflow_web.webapp.item_priority_from": {"ok": True, "item": {"id": "item-1", "priority": 0}},
-        "ariaflow_web.webapp.get_item_files_from": {"files": []},
-        "ariaflow_web.webapp.set_item_files_from": {"ok": True, "selected": []},
-        "ariaflow_web.webapp.get_archive_from": {"items": []},
-        "ariaflow_web.webapp.cleanup_from": {"ok": True, "archived": 0, "remaining": 0},
-        "ariaflow_web.webapp._local_pid_for_port": None,
-    }
-    if extra:
-        config.update(extra)
-
-    patches = []
-    mocks: dict[str, object] = {}
-
-    for name, rv in config.items():
-        p = patch(name, return_value=rv)
-        m = p.start()
-        mocks[name] = m
-        patches.append(p)
-
-    # add_items_from always echoes
-    p_add = patch("ariaflow_web.webapp.add_items_from", side_effect=add_items_response)
-    mocks["ariaflow_web.webapp.add_items_from"] = p_add.start()
-    patches.append(p_add)
-
-    # save_declaration echoes or returns static
-    if save_echo:
-        p_save = patch("ariaflow_web.webapp.save_declaration_from", side_effect=echo_save)
-    else:
-        p_save = patch("ariaflow_web.webapp.save_declaration_from", return_value=declaration or DEFAULT_DECLARATION)
-    mocks["ariaflow_web.webapp.save_declaration_from"] = p_save.start()
-    patches.append(p_save)
-
-    return patches, mocks
+def start_mock_backend(**overrides: object) -> tuple:
+    """Start a mock backend API server. Returns (url, server)."""
+    port = _allocate_port()
+    # Create a subclass to avoid shared state across test modules
+    handler_cls = type("IsolatedHandler", (MockBackendHandler,), {})
+    for key, value in overrides.items():
+        setattr(handler_cls, key, value)
+    server = ThreadingHTTPServer(("127.0.0.1", port), handler_cls)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.1)
+    return f"http://127.0.0.1:{port}", server, handler_cls
 
 
 def start_server(port: int | None = None, **mock_kwargs: object) -> tuple:
-    """Start a mocked web server. Returns (url, server, patches, mocks)."""
+    """Start ariaflow-web (static files) + mock backend. Returns (web_url, backend_url, web_server, backend_server, patches)."""
     if port is None:
         port = _allocate_port()
-    tmp = tempfile.mkdtemp()
-    os.environ["ARIA_QUEUE_DIR"] = tmp
-    patches, mocks = make_mock_patches(**mock_kwargs)
-    server = serve(host="127.0.0.1", port=port)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    backend_url, backend_server, handler_cls = start_mock_backend(**mock_kwargs)
+    from unittest.mock import patch
+    p = patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
+    p.start()
+    web_server = serve(host="127.0.0.1", port=port, backend_url=backend_url)
+    thread = threading.Thread(target=web_server.serve_forever, daemon=True)
     thread.start()
-    time.sleep(0.3)
-    return f"http://127.0.0.1:{port}", server, patches, mocks
+    time.sleep(0.2)
+    return f"http://127.0.0.1:{port}", backend_url, web_server, backend_server, [p], handler_cls
 
 
-def stop_server(server: object, patches: list) -> None:
-    server.shutdown()
-    server.server_close()
-    for p in patches:
+def stop_server(web_server: object, backend_server: object, patches: list | None = None) -> None:
+    web_server.shutdown()
+    web_server.server_close()
+    backend_server.shutdown()
+    backend_server.server_close()
+    for p in (patches or []):
         p.stop()
 
 
@@ -205,8 +278,3 @@ def shared_browser(playwright_instance):
     browser = playwright_instance.chromium.launch(headless=True)
     yield browser
     browser.close()
-
-
-def bust_cache() -> None:
-    STATUS_CACHE["ts"] = 0.0
-    STATUS_CACHE["payload"] = None

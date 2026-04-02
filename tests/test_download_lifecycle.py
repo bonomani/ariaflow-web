@@ -3,13 +3,11 @@ possible action, verify the UI reflects each state change, then remove it."""
 from __future__ import annotations
 
 import json
-import os
 import sys
-import tempfile
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 import threading
 import time
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from playwright.sync_api import sync_playwright, Page
@@ -18,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ariaflow_web.webapp import serve  # noqa: E402
-from conftest import bust_cache  # noqa: E402
+from conftest import _allocate_port  # noqa: E402
 
 pytestmark = pytest.mark.slow
 _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
@@ -59,7 +57,7 @@ class FakeBackend:
                 }
         return None
 
-    def status(self, _base_url: str) -> dict:
+    def status(self) -> dict:
         active = self._active()
         # Advance progress on each poll
         for item in self.items:
@@ -93,7 +91,7 @@ class FakeBackend:
             view["downloadSpeed"] = 5242880
         return view
 
-    def add_items(self, _base_url: str, items: list[dict]) -> dict:
+    def add_items(self, items: list[dict]) -> dict:
         added = []
         for entry in items:
             item_id = f"dl-{self.next_id:03d}"
@@ -111,7 +109,7 @@ class FakeBackend:
             added.append({"url": entry["url"], "id": item_id})
         return {"ok": True, "count": len(added), "added": added}
 
-    def run_action(self, _base_url: str, action: str, _auto: bool | None = None) -> dict:
+    def run_action(self, action: str, auto: bool | None = None) -> dict:
         if action == "start":
             self.running = True
             # Start first queued item
@@ -125,7 +123,7 @@ class FakeBackend:
             return {"ok": True, "action": "stop", "result": {"stopped": True}}
         return {"ok": False, "error": "unknown_action"}
 
-    def item_action(self, _base_url: str, item_id: str, action: str) -> dict:
+    def item_action(self, item_id: str, action: str) -> dict:
         item = self._find(item_id)
         if not item:
             return {"ok": False, "error": "not_found", "message": f"item {item_id} not found"}
@@ -150,14 +148,14 @@ class FakeBackend:
             return {"ok": True, "removed": True, "item": self._item_view(item)}
         return {"ok": False, "error": "invalid_action"}
 
-    def pause_queue(self, _base_url: str) -> dict:
+    def pause_queue(self) -> dict:
         self.paused = True
         for item in self.items:
             if item["status"] == "downloading":
                 item["status"] = "paused"
         return {"paused": True}
 
-    def resume_queue(self, _base_url: str) -> dict:
+    def resume_queue(self) -> dict:
         self.paused = False
         for item in self.items:
             if item["status"] == "paused":
@@ -182,53 +180,109 @@ class FakeBackend:
 # ---------------------------------------------------------------------------
 
 from conftest import _allocate_port  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
 backend = FakeBackend()
+
+
+class FakeBackendHandler(BaseHTTPRequestHandler):
+    """HTTP handler that delegates to the module-level FakeBackend."""
+
+    def _send(self, data: dict, status: int = 200) -> None:
+        body = json.dumps(data, separators=(",", ":")).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_GET(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        if path == "/api/status":
+            self._send(backend.status())
+        elif path == "/api/declaration" or path == "/api/options":
+            self._send({"uic": {"preferences": []}, "ucc": {}, "policy": {}})
+        elif path == "/api/lifecycle":
+            self._send({})
+        elif path == "/api/log":
+            self._send({"items": []})
+        elif path == "/api/bandwidth":
+            self._send({"source": "default", "downlink_mbps": 0, "cap_mbps": 2})
+        elif path == "/api" or path == "/api/":
+            self._send({"name": "ariaflow", "endpoints": {"GET": [], "POST": []}})
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+        payload = json.loads(raw or "{}")
+
+        if path == "/api/add":
+            self._send(backend.add_items(payload.get("items", [])))
+        elif path == "/api/run":
+            self._send(backend.run_action(payload.get("action", ""), payload.get("auto_preflight_on_run")))
+        elif path == "/api/pause":
+            self._send(backend.pause_queue())
+        elif path == "/api/resume":
+            self._send(backend.resume_queue())
+        elif path == "/api/session":
+            self._send({"ok": True, "session": "test-sess"})
+        elif path == "/api/preflight":
+            self._send({"status": "pass", "gates": [], "warnings": [], "hard_failures": []})
+        elif path == "/api/ucc":
+            self._send({"result": {"outcome": "converged"}})
+        elif path == "/api/declaration":
+            self._send({"uic": {"preferences": []}, "ucc": {}, "policy": {}})
+        elif path == "/api/bandwidth/probe":
+            self._send({"ok": True, "source": "default"})
+        elif path.startswith("/api/item/"):
+            parts = path.split("/")
+            if len(parts) == 5:
+                self._send(backend.item_action(parts[3], parts[4]))
+            else:
+                self._send({"error": "not_found"}, status=404)
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A003
+        return
 
 
 @pytest.fixture(scope="module")
 def web_server():
     global backend
     backend = FakeBackend()
-    tmp = tempfile.mkdtemp()
-    os.environ["ARIA_QUEUE_DIR"] = tmp
 
-    declaration = {"uic": {"preferences": []}, "ucc": {}, "policy": {}}
+    # Start fake backend
+    backend_port = _allocate_port()
+    backend_server = ThreadingHTTPServer(("127.0.0.1", backend_port), FakeBackendHandler)
+    threading.Thread(target=backend_server.serve_forever, daemon=True).start()
+    backend_url = f"http://127.0.0.1:{backend_port}"
 
-    patches = [
-        patch("ariaflow_web.webapp.get_status_from", side_effect=backend.status),
-        patch("ariaflow_web.webapp.add_items_from", side_effect=backend.add_items),
-        patch("ariaflow_web.webapp.run_action_from", side_effect=backend.run_action),
-        patch("ariaflow_web.webapp.item_action_from", side_effect=backend.item_action),
-        patch("ariaflow_web.webapp.pause_from", side_effect=backend.pause_queue),
-        patch("ariaflow_web.webapp.resume_from", side_effect=backend.resume_queue),
-        patch("ariaflow_web.webapp.get_log_from", return_value={"items": []}),
-        patch("ariaflow_web.webapp.get_declaration_from", return_value=declaration),
-        patch("ariaflow_web.webapp.get_lifecycle_from", return_value={}),
-        patch("ariaflow_web.webapp.preflight_from", return_value={"status": "pass", "gates": [], "warnings": [], "hard_failures": []}),
-        patch("ariaflow_web.webapp.run_ucc_from", return_value={"result": {"outcome": "converged"}}),
-        patch("ariaflow_web.webapp.save_declaration_from", return_value={"saved": True}),
-        patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}),
-        patch("ariaflow_web.webapp.set_session_from", return_value={"ok": True, "session": "test-sess"}),
-        patch("ariaflow_web.webapp.lifecycle_action_from", return_value={"ok": True, "lifecycle": {}}),
-        patch("ariaflow_web.webapp.get_api_discovery_from", return_value={"name": "ariaflow", "endpoints": {"GET": [], "POST": []}}),
-        patch("ariaflow_web.webapp.get_bandwidth_from", return_value={"source": "default", "downlink_mbps": 0, "cap_mbps": 2}),
-        patch("ariaflow_web.webapp.bandwidth_probe_from", return_value={"ok": True, "source": "default"}),
-        patch("ariaflow_web.webapp._local_pid_for_port", return_value=None),
-    ]
-    for p in patches:
-        p.start()
-
-    port = _allocate_port()
-    server = serve(host="127.0.0.1", port=port)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    # Start web server pointing to fake backend
+    p = patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
+    p.start()
+    web_port = _allocate_port()
+    web_srv = serve(host="127.0.0.1", port=web_port, backend_url=backend_url)
+    threading.Thread(target=web_srv.serve_forever, daemon=True).start()
     time.sleep(0.3)
-    yield f"http://127.0.0.1:{port}"
-    server.shutdown()
-    server.server_close()
-    for p in patches:
-        p.stop()
+    yield f"http://127.0.0.1:{web_port}"
+    web_srv.shutdown()
+    web_srv.server_close()
+    backend_server.shutdown()
+    backend_server.server_close()
+    p.stop()
 
 
 @pytest.fixture(scope="module")
@@ -240,7 +294,7 @@ def browser_context(shared_browser):
 
 def refresh_and_wait(page: Page) -> None:
     """Trigger a JS refresh and wait for the queue to update."""
-    bust_cache()
+    page.evaluate(f"{_ALPINE_EVAL}._consecutiveFailures = 0; {_ALPINE_EVAL}.lastRev = null")
     page.evaluate(f"{_ALPINE_EVAL}.refresh()")
     page.wait_for_timeout(500)
 
