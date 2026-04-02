@@ -15,8 +15,10 @@ import pytest
 from playwright.sync_api import sync_playwright, Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ariaflow_web.webapp import serve  # noqa: E402
+from conftest import bust_cache  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +173,7 @@ class FakeBackend:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-PORT = 8790
+from conftest import _allocate_port  # noqa: E402
 
 backend = FakeBackend()
 
@@ -209,11 +211,12 @@ def web_server():
     for p in patches:
         p.start()
 
-    server = serve(host="127.0.0.1", port=PORT)
+    port = _allocate_port()
+    server = serve(host="127.0.0.1", port=port)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     time.sleep(0.3)
-    yield f"http://127.0.0.1:{PORT}"
+    yield f"http://127.0.0.1:{port}"
     server.shutdown()
     server.server_close()
     for p in patches:
@@ -221,22 +224,15 @@ def web_server():
 
 
 @pytest.fixture(scope="module")
-def browser_context():
-    pw = sync_playwright().start()
-    browser = pw.chromium.launch(headless=True)
-    ctx = browser.new_context()
+def browser_context(shared_browser):
+    ctx = shared_browser.new_context()
     yield ctx
     ctx.close()
-    browser.close()
-    pw.stop()
 
 
 def refresh_and_wait(page: Page) -> None:
     """Trigger a JS refresh and wait for the queue to update."""
-    # Reset server-side status cache so next fetch is fresh
-    from ariaflow_web.webapp import STATUS_CACHE
-    STATUS_CACHE["ts"] = 0.0
-    STATUS_CACHE["payload"] = None
+    bust_cache()
     page.evaluate("refresh()")
     page.wait_for_timeout(500)
 

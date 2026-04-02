@@ -722,7 +722,7 @@
       const stateLabel = liveStatus ? `${escapeHtml(normalizedStatus)} · aria2:${escapeHtml(liveStatus)}` : escapeHtml(normalizedStatus);
       const itemId = item.id || '';
       const safeItemId = escapeHtml(itemId);
-      const canPause = ['queued', 'downloading'].includes(normalizedStatus);
+      const canPause = normalizedStatus === 'downloading';
       const canResume = normalizedStatus === 'paused';
       const canRetry = ['error', 'failed', 'stopped'].includes(normalizedStatus);
       const actionBtns = safeItemId ? `
@@ -1121,7 +1121,8 @@
       await refresh();
     }
     async function toggleQueue() {
-      const paused = lastStatus?.state?.paused;
+      const paused = lastStatus?.state?.paused
+        ?? document.getElementById('toggle-btn')?.textContent?.includes('Resume');
       return paused ? resumeQueue() : pauseQueue();
     }
     async function add() {
