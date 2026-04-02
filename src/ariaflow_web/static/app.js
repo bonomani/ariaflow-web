@@ -250,6 +250,12 @@ document.addEventListener('alpine:init', () => {
 
       this.initTheme();
       this.initNotifications();
+      window.addEventListener('popstate', () => {
+        const path = window.location.pathname.replace(/[/]+$/, '');
+        const target = path === '/bandwidth' ? 'bandwidth' : path === '/lifecycle' ? 'lifecycle' : path === '/options' ? 'options' : path === '/log' ? 'log' : path === '/dev' ? 'dev' : path === '/archive' ? 'archive' : 'dashboard';
+        this.page = target;
+        this._loadPageData(target);
+      });
 
       // Dashboard needs status immediately; other pages defer it
       if (this.page === 'dashboard') {
@@ -268,6 +274,22 @@ document.addEventListener('alpine:init', () => {
 
       // Discovery is non-critical, defer it
       setTimeout(() => this.discoverBackends().catch(() => {}), 2000);
+    },
+
+    navigateTo(target) {
+      if (this.page === target) return;
+      this.page = target;
+      const urlMap = { dashboard: '/', bandwidth: '/bandwidth', lifecycle: '/lifecycle', options: '/options', log: '/log', dev: '/dev', archive: '/archive' };
+      history.pushState(null, '', urlMap[target] || '/');
+      this._loadPageData(target);
+    },
+    _loadPageData(target) {
+      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch(() => {}); }
+      if (target === 'lifecycle') this.loadLifecycle();
+      if (target === 'bandwidth') this.loadDeclaration();
+      if (target === 'options') this.loadDeclaration();
+      if (target === 'log') { this.loadDeclaration(); this.refreshActionLog(); }
+      if (target === 'archive') this.loadArchive();
     },
 
     // --- formatting ---

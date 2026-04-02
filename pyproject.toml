@@ -20,3 +20,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 ariaflow_web = ["static/*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that require a browser (Playwright)",
+]

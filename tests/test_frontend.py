@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from conftest import start_server, stop_server  # noqa: E402
 
+pytestmark = pytest.mark.slow
+
 def _goto(page: Page, url: str) -> None:
     """Navigate and wait for Alpine."""
     page.goto(url)

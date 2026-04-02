@@ -11,13 +11,13 @@
 <body x-data="ariaflow" :class="'page-' + page">
   <div class="wrap">
     <div class="nav">
-      <a href="/" :class="{ active: page === 'dashboard' }">Dashboard</a>
-      <a href="/bandwidth" :class="{ active: page === 'bandwidth' }">Bandwidth</a>
-      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }">Service Status</a>
-      <a href="/options" :class="{ active: page === 'options' }">Options</a>
-      <a href="/log" :class="{ active: page === 'log' }">Log</a>
-      <a href="/dev" :class="{ active: page === 'dev' }">Developer</a>
-      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="page = 'archive'; loadArchive()">Archive</a>
+      <a href="/" :class="{ active: page === 'dashboard' }" @click.prevent="navigateTo('dashboard')">Dashboard</a>
+      <a href="/bandwidth" :class="{ active: page === 'bandwidth' }" @click.prevent="navigateTo('bandwidth')">Bandwidth</a>
+      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">Service Status</a>
+      <a href="/options" :class="{ active: page === 'options' }" @click.prevent="navigateTo('options')">Options</a>
+      <a href="/log" :class="{ active: page === 'log' }" @click.prevent="navigateTo('log')">Log</a>
+      <a href="/dev" :class="{ active: page === 'dev' }" @click.prevent="navigateTo('dev')">Developer</a>
+      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">Archive</a>
       <div class="spacer"></div>
       <label class="refresh-control" for="refresh-interval">
         Refresh

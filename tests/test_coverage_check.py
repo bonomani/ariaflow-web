@@ -87,7 +87,7 @@ COVERAGE_MAP: dict[str, str] = {
     "openFileSelection": "test_file_selection",
     "closeFileSelection": "test_file_selection",
     "saveFileSelection": "test_file_selection",
-    "page = 'archive'; loadArchive": "test_archive",
+    "navigateTo": "test_nav_links",
 }
 
 

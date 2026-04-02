@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ariaflow_web.webapp import serve  # noqa: E402
 from conftest import bust_cache  # noqa: E402
 
+pytestmark = pytest.mark.slow
 _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
 
 
