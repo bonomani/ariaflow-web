@@ -1066,9 +1066,13 @@ INDEX_HTML = """<!doctype html>
     }
 
     function initNotifications() {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'default') return;
+      // Browser requires a user gesture to prompt — attach to first click
+      const handler = () => {
         Notification.requestPermission();
-      }
+        document.removeEventListener('click', handler);
+      };
+      document.addEventListener('click', handler);
     }
 
     function setQueueFilter(filter) {
@@ -1898,7 +1902,7 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('backend-runner').textContent = 'offline';
           document.getElementById('backend-session').textContent = '-';
           document.getElementById('backend-error').textContent = data?.backend?.error || 'connection refused';
-          document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
+          document.getElementById('backend-startup').textContent = getDeclarationPreference('auto_preflight_on_run') ? 'auto-check' : 'manual';
           document.getElementById('backend-cap').textContent = '-';
           document.getElementById('queue-state').textContent = 'offline';
           document.getElementById('queue-state-badge').textContent = 'offline';
@@ -1946,7 +1950,7 @@ INDEX_HTML = """<!doctype html>
         if (toggleButton) toggleButton.textContent = data.state && data.state.paused ? 'Resume queue' : 'Pause queue';
         const runnerButton = document.getElementById('runner-btn');
         if (runnerButton) runnerButton.textContent = data.state && data.state.running ? 'Stop engine' : 'Start engine';
-        document.getElementById('backend-startup').textContent = autoPreflight ? 'auto-check' : 'manual';
+        document.getElementById('backend-startup').textContent = getDeclarationPreference('auto_preflight_on_run') ? 'auto-check' : 'manual';
         document.getElementById('queue-state').textContent = queueStateLabel(state, items, liveActive);
         document.getElementById('queue-state-badge').textContent = queueStateLabel(state, items, liveActive);
         document.getElementById('queue-detail').textContent = state?.paused ? 'Queue is paused' : (state?.running ? 'Queue can advance' : 'Waiting for engine start');
