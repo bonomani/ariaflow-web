@@ -406,12 +406,15 @@ class TestOptionsButtons:
             mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
             checkbox.click()
             page.wait_for_timeout(500)
-            # Should save the declaration
             assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
 
+
+class TestBandwidthConfigButtons:
+    """Duplicate/simultaneous/bandwidth config moved to Bandwidth page."""
+
     def test_duplicate_action_dropdown(self, page: Page, web_server: str) -> None:
-        page.goto(f"{web_server}/options")
-        page.wait_for_selector(".show-options", state="visible", timeout=5000)
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
         page.wait_for_timeout(500)
         select = page.query_selector('select[onchange*="setDuplicateAction"]')
         if select:
@@ -421,8 +424,8 @@ class TestOptionsButtons:
             assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
 
     def test_simultaneous_downloads_input(self, page: Page, web_server: str) -> None:
-        page.goto(f"{web_server}/options")
-        page.wait_for_selector(".show-options", state="visible", timeout=5000)
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
         page.wait_for_timeout(500)
         input_el = page.query_selector('input[oninput*="setSimultaneousLimit"]')
         if input_el:
@@ -430,6 +433,25 @@ class TestOptionsButtons:
             input_el.fill("3")
             page.wait_for_timeout(500)
             assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
+
+    def test_bandwidth_free_percent_input(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
+        page.wait_for_timeout(500)
+        input_el = page.query_selector('input[oninput*="bandwidth_free_percent"]')
+        if input_el:
+            mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
+            input_el.fill("30")
+            page.wait_for_timeout(500)
+            assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
+
+    def test_run_probe_button(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
+        mock_tracker["ariaflow_web.webapp.preflight_from"].reset_mock()
+        page.click('button:has-text("Run probe")')
+        page.wait_for_timeout(500)
+        assert mock_tracker["ariaflow_web.webapp.preflight_from"].called
 
 
 # ---------------------------------------------------------------------------

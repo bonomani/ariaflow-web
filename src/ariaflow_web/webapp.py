@@ -803,30 +803,50 @@ INDEX_HTML = """<!doctype html>
           </div>
         </div>
       </div>
-      <div class="span-5 show-bandwidth page-only">
+      <div class="span-6 show-bandwidth page-only">
         <div class="panel">
           <div class="section-title">
             <h2>Bandwidth</h2>
-            <div class="hint">Probe and cap</div>
+            <div class="hint">Network probe, cap, and download concurrency</div>
+          </div>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="secondary" onclick="runProbe()">Run probe</button>
           </div>
           <div class="list" style="margin-bottom:12px;">
             <div class="item">
+              <div class="item-top"><div class="item-url">Interface</div><span class="badge" id="bw-interface">-</span></div>
+              <div class="meta"><span id="bw-interface-detail">Detecting...</span></div>
+            </div>
+            <div class="item">
               <div class="item-top"><div class="item-url">Probe result</div><span class="badge" id="bw-source">-</span></div>
               <div class="meta"><span id="bw-down">No probe yet</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Download speed</div><span class="badge" id="bw-down-badge">-</span></div>
+              <div class="meta"><span id="bw-down-detail">Measured downlink from last probe</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Upload speed</div><span class="badge" id="bw-up-badge">-</span></div>
+              <div class="meta"><span id="bw-up-detail">Measured uplink from last probe</span></div>
             </div>
             <div class="item">
               <div class="item-top"><div class="item-url">Current cap</div><span class="badge" id="bw-cap">-</span></div>
               <div class="meta"><span id="bw-global">Configured limit unavailable</span></div>
             </div>
             <div class="item">
-              <div class="item-top"><div class="item-url">Live download</div><span class="badge" id="bw-live">idle</span></div>
-              <div class="meta"><span id="bw-live-detail">No active transfer</span></div>
-            </div>
-            <div class="item">
               <div class="item-top"><div class="item-url">Probe details</div><span class="badge" id="bw-probe-mode">-</span></div>
               <div class="meta"><span id="bw-probe-detail">No probe yet</span></div>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="span-6 show-bandwidth page-only">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Bandwidth Policy</h2>
+            <div class="hint">Reserve bandwidth and control download concurrency</div>
+          </div>
+          <div id="bw-config-panel" class="list">Loading...</div>
         </div>
       </div>
       <div class="span-6 show-lifecycle page-only">
@@ -1322,18 +1342,50 @@ INDEX_HTML = """<!doctype html>
         </div>
       `;
     }
-    function renderOptionsPanel(declaration) {
+    function renderBandwidthConfigPanel(declaration) {
       const prefs = declaration?.uic?.preferences || [];
-      const autoPreflight = prefs.find((item) => item.name === 'auto_preflight_on_run');
+      const freePercent = prefs.find((item) => item.name === 'bandwidth_free_percent');
+      const freeAbsolute = prefs.find((item) => item.name === 'bandwidth_free_absolute_mbps');
+      const floor = prefs.find((item) => item.name === 'bandwidth_floor_mbps');
       const dedup = prefs.find((item) => item.name === 'duplicate_active_transfer_action');
       const concurrency = prefs.find((item) => item.name === 'max_simultaneous_downloads');
-      const postAction = prefs.find((item) => item.name === 'post_action_rule');
       return [
         renderOptionCard(
-          'Auto preflight',
-          autoPreflight?.value ? 'enabled' : 'disabled',
-          'Run UIC preflight automatically before starting the queue.',
-          `<label class="refresh-control"><input type="checkbox" ${autoPreflight?.value ? 'checked' : ''} onchange="setAutoPreflightPreference(this.checked)">Toggle</label>`
+          'Min free bandwidth (%)',
+          `${Number(freePercent?.value ?? 20)}%`,
+          'Reserve this percentage of measured bandwidth. Downloads are capped to use only the remainder. Default: 20%.',
+          `<label class="refresh-control" style="justify-content:flex-start;">
+            <input type="number" min="0" max="90" step="1" value="${Number(freePercent?.value ?? 20)}" oninput="setBandwidthPref('bandwidth_free_percent', Number(this.value), 20)" style="width:80px; padding:0 8px; height:32px;">
+            <span>%</span>
+          </label>`
+        ),
+        renderOptionCard(
+          'Min free bandwidth (absolute)',
+          `${Number(freeAbsolute?.value ?? 0)} Mbps`,
+          'Always reserve at least this many Mbps regardless of probe result. Default: 0 Mbps.',
+          `<label class="refresh-control" style="justify-content:flex-start;">
+            <input type="number" min="0" step="0.5" value="${Number(freeAbsolute?.value ?? 0)}" oninput="setBandwidthPref('bandwidth_free_absolute_mbps', Number(this.value), 0)" style="width:100px; padding:0 8px; height:32px;">
+            <span>Mbps</span>
+          </label>`
+        ),
+        renderOptionCard(
+          'Bandwidth floor',
+          `${Number(floor?.value ?? 2)} Mbps`,
+          'Minimum download cap when no probe is available. Default: 2 Mbps.',
+          `<label class="refresh-control" style="justify-content:flex-start;">
+            <input type="number" min="0.5" step="0.5" value="${Number(floor?.value ?? 2)}" oninput="setBandwidthPref('bandwidth_floor_mbps', Number(this.value), 2)" style="width:100px; padding:0 8px; height:32px;">
+            <span>Mbps</span>
+          </label>`
+        ),
+        renderOptionCard(
+          'Simultaneous downloads',
+          `${Number(concurrency?.value || 1)} job${Number(concurrency?.value || 1) === 1 ? '' : 's'}`,
+          'Limit how many downloads ariaflow may keep active at once. Default is 1 for sequential downloads.',
+          `<label class="refresh-control" style="justify-content:flex-start;">
+            <span>Max</span>
+            <input type="number" min="1" step="1" value="${Number(concurrency?.value || 1)}" oninput="setSimultaneousLimit(this.value)" style="width:110px; padding:0 8px; height:32px;">
+            <span>jobs</span>
+          </label>`
         ),
         renderOptionCard(
           'Duplicate active transfer',
@@ -1345,15 +1397,18 @@ INDEX_HTML = """<!doctype html>
             <option value="ignore" ${dedup?.value === 'ignore' ? 'selected' : ''}>Ignore duplicates</option>
           </select>`
         ),
+      ].join('');
+    }
+    function renderOptionsPanel(declaration) {
+      const prefs = declaration?.uic?.preferences || [];
+      const autoPreflight = prefs.find((item) => item.name === 'auto_preflight_on_run');
+      const postAction = prefs.find((item) => item.name === 'post_action_rule');
+      return [
         renderOptionCard(
-          'Simultaneous downloads',
-          `${Number(concurrency?.value || 1)} job${Number(concurrency?.value || 1) === 1 ? '' : 's'}`,
-          'Limit how many downloads ariaflow may keep active at once. Default is 1 for sequential downloads.',
-          `<label class="refresh-control" style="justify-content:flex-start;">
-            <span>Max</span>
-            <input type="number" min="1" step="1" value="${Number(concurrency?.value || 1)}" oninput="setSimultaneousLimit(this.value)" style="width:110px; padding:0 8px; height:32px;">
-            <span>jobs</span>
-          </label>`
+          'Auto preflight',
+          autoPreflight?.value ? 'enabled' : 'disabled',
+          'Run UIC preflight automatically before starting the queue.',
+          `<label class="refresh-control"><input type="checkbox" ${autoPreflight?.value ? 'checked' : ''} onchange="setAutoPreflightPreference(this.checked)">Toggle</label>`
         ),
         renderOptionCard(
           'Post-action rule',
@@ -1424,6 +1479,55 @@ INDEX_HTML = """<!doctype html>
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
       syncDeclarationUi();
+    }
+    async function setBandwidthPref(name, value, defaultValue) {
+      const r = await fetch(apiPath('/api/declaration'));
+      const data = await r.json();
+      const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
+      const idx = prefs.findIndex((item) => item.name === name);
+      const next = { name, value: value, options: [defaultValue], rationale: `default ${defaultValue}` };
+      if (idx >= 0) prefs[idx] = next;
+      else prefs.push(next);
+      data.uic = data.uic || {};
+      data.uic.preferences = prefs;
+      const save = await fetch(apiPath('/api/declaration'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+      lastDeclaration = await save.json();
+      const bwConfig = document.getElementById('bw-config-panel');
+      if (bwConfig) bwConfig.innerHTML = renderBandwidthConfigPanel(lastDeclaration);
+    }
+    async function runProbe() {
+      const badge = document.getElementById('bw-source');
+      if (badge) badge.textContent = 'probing...';
+      const r = await fetch(apiPath('/api/preflight'), { method: 'POST' });
+      const data = await r.json();
+      lastResult = data;
+      await refresh();
+      updateBandwidthPanel();
+    }
+    function updateBandwidthPanel() {
+      const bw = lastStatus?.bandwidth || {};
+      document.getElementById('bw-interface').textContent = bw.interface_name || 'unknown';
+      document.getElementById('bw-interface-detail').textContent = bw.interface_name
+        ? `Active network interface: ${bw.interface_name}`
+        : 'Interface not detected';
+      document.getElementById('bw-source').textContent = bw.source || '-';
+      document.getElementById('bw-down').textContent = bw.source === 'networkquality'
+        ? `Downlink ${formatMbps(bw.downlink_mbps)}${bw.partial ? ' (partial)' : ''}`
+        : `No probe available${bw.reason ? ` · ${bw.reason}` : ''}`;
+      document.getElementById('bw-down-badge').textContent = bw.downlink_mbps ? formatMbps(bw.downlink_mbps) : '-';
+      document.getElementById('bw-down-detail').textContent = bw.downlink_mbps
+        ? `Measured downlink: ${formatMbps(bw.downlink_mbps)}${bw.partial ? ' (partial capture)' : ''}`
+        : 'No downlink measurement available';
+      document.getElementById('bw-up-badge').textContent = bw.uplink_mbps ? formatMbps(bw.uplink_mbps) : '-';
+      document.getElementById('bw-up-detail').textContent = bw.uplink_mbps
+        ? `Measured uplink: ${formatMbps(bw.uplink_mbps)}`
+        : 'No uplink measurement available';
+      document.getElementById('bw-cap').textContent = bw.cap_mbps ? humanCap(formatMbps(bw.cap_mbps)) : humanCap(bw.limit || '-');
+      document.getElementById('bw-global').textContent = `Configured limit ${humanCap(bw.limit || '-')}`;
+      document.getElementById('bw-probe-mode').textContent = bw.source || '-';
+      document.getElementById('bw-probe-detail').textContent = bw.source === 'networkquality'
+        ? `Measured ${formatMbps(bw.downlink_mbps)} down${bw.uplink_mbps ? `, ${formatMbps(bw.uplink_mbps)} up` : ''}, capped at ${formatMbps(bw.cap_mbps)}${bw.partial ? ' from partial output' : ''}`
+        : 'Using default floor because no probe was available';
     }
     async function setPostActionRule(value) {
       const r = await fetch(apiPath('/api/declaration'));
@@ -1914,12 +2018,16 @@ INDEX_HTML = """<!doctype html>
           document.getElementById('session-started').textContent = '-';
           document.getElementById('session-last-seen').textContent = '-';
           document.getElementById('session-closed').textContent = '-';
+          document.getElementById('bw-interface').textContent = 'offline';
+          document.getElementById('bw-interface-detail').textContent = backendUnavailableLabel(data);
           document.getElementById('bw-source').textContent = 'offline';
           document.getElementById('bw-down').textContent = backendUnavailableLabel(data);
+          document.getElementById('bw-down-badge').textContent = '-';
+          document.getElementById('bw-down-detail').textContent = backendUnavailableLabel(data);
+          document.getElementById('bw-up-badge').textContent = '-';
+          document.getElementById('bw-up-detail').textContent = backendUnavailableLabel(data);
           document.getElementById('bw-cap').textContent = '-';
           document.getElementById('bw-global').textContent = 'Configured limit unavailable';
-          document.getElementById('bw-live').textContent = 'offline';
-          document.getElementById('bw-live-detail').textContent = backendUnavailableLabel(data);
           document.getElementById('bw-probe-mode').textContent = '-';
           document.getElementById('bw-probe-detail').textContent = backendUnavailableLabel(data);
           document.getElementById('runner-btn').textContent = 'Start engine';
@@ -1966,20 +2074,7 @@ INDEX_HTML = """<!doctype html>
           ? `${state.session_closed_at}${state.session_closed_reason ? ` · ${state.session_closed_reason}` : ''}`
           : '-';
         renderQueueSummary(data.summary);
-        document.getElementById('bw-source').textContent = data.bandwidth?.source || '-';
-        document.getElementById('bw-down').textContent = data.bandwidth?.source === 'networkquality'
-          ? `Downlink ${formatMbps(data.bandwidth.downlink_mbps)}${data.bandwidth.partial ? ' (partial capture)' : ''}`
-          : `No networkquality probe available${data.bandwidth?.reason ? ` · ${data.bandwidth.reason}` : ''}`;
-        document.getElementById('bw-cap').textContent = data.bandwidth?.cap_mbps ? humanCap(formatMbps(data.bandwidth.cap_mbps)) : humanCap(data.bandwidth?.limit || '-');
-        document.getElementById('bw-global').textContent = `Configured limit ${humanCap(data.bandwidth?.limit || '-')}`;
-        document.getElementById('bw-live').textContent = activeStateLabel(liveActive, state);
-        document.getElementById('bw-live-detail').textContent = liveActive?.downloadSpeed
-          ? `Speed ${formatRate(liveActive.downloadSpeed)}${liveActive.completedLength ? ` · ${formatBytes(liveActive.completedLength)}/${formatBytes(liveActive.totalLength || 0)}` : ''}`
-          : 'No active transfer';
-        document.getElementById('bw-probe-mode').textContent = data.bandwidth?.source || '-';
-        document.getElementById('bw-probe-detail').textContent = data.bandwidth?.source === 'networkquality'
-          ? `Measured ${formatMbps(data.bandwidth.downlink_mbps)} and capped at ${formatMbps(data.bandwidth.cap_mbps)}${data.bandwidth.partial ? ' from partial output' : ''}`
-          : 'Using default floor because no probe was available';
+        updateBandwidthPanel();
         syncRefreshControl();
       } finally {
         refreshInFlight = false;
@@ -2179,6 +2274,8 @@ INDEX_HTML = """<!doctype html>
       syncDeclarationUi();
       const options = document.getElementById('options-panel');
       if (options) options.innerHTML = renderOptionsPanel(lastDeclaration);
+      const bwConfig = document.getElementById('bw-config-panel');
+      if (bwConfig) bwConfig.innerHTML = renderBandwidthConfigPanel(lastDeclaration);
       const limit = document.querySelector('input[oninput="setSimultaneousLimit(this.value)"]');
       if (limit) limit.value = String(getDeclarationPreference('max_simultaneous_downloads') ?? 1);
     }
@@ -2212,6 +2309,7 @@ INDEX_HTML = """<!doctype html>
     refresh();
     setRefreshInterval(10000);
     if (page === 'lifecycle') loadLifecycle();
+    if (page === 'bandwidth') loadDeclaration();
     if (page === 'options') loadDeclaration();
     if (page === 'log') {
       loadDeclaration();
