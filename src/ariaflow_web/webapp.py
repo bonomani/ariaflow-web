@@ -93,14 +93,14 @@ def _local_pid_for_port_uncached(port: int) -> int | None:
 
 def _normalize_backend_payload(payload: dict, backend_url: str) -> dict:
     parsed = urlparse(backend_url)
-    backend = dict(payload.get("backend") or {})
-    backend.setdefault("reachable", payload.get("ok", True) is not False)
-    backend.setdefault("url", backend_url)
-    if not backend.get("pid") and _is_local_backend(parsed.hostname) and parsed.port:
+    af = dict(payload.get("ariaflow") or {})
+    af.setdefault("reachable", payload.get("ok", True) is not False)
+    af.setdefault("url", backend_url)
+    if not af.get("pid") and _is_local_backend(parsed.hostname) and parsed.port:
         pid = _local_pid_for_port(parsed.port)
         if pid:
-            backend["pid"] = pid
-    payload["backend"] = backend
+            af["pid"] = pid
+    payload["ariaflow"] = af
     return payload
 
 

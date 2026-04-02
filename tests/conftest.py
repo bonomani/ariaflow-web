@@ -35,7 +35,7 @@ DEFAULT_STATUS = {
     "state": {"running": True, "paused": False, "session_id": "sess-001", "session_started_at": "2026-04-01T10:00:00"},
     "summary": {"queued": 1, "done": 1, "error": 1, "total": 5},
     "bandwidth": {"source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 50, "interface_name": "en0"},
-    "backend": {"reachable": True, "version": "0.1.34", "pid": 1234},
+    "ariaflow": {"reachable": True, "version": "0.1.34", "pid": 1234},
 }
 
 DEFAULT_DECLARATION = {"uic": {"preferences": [

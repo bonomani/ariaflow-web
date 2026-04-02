@@ -36,7 +36,7 @@ class WebSmokeTests(unittest.TestCase):
                 "items": [],
                 "state": {"running": False, "paused": False},
                 "summary": {"queued": 0, "done": 0, "error": 0},
-                "backend": {"reachable": True},
+                "ariaflow": {"reachable": True},
             }
             declaration_payload = {"uic": {}, "ucc": {}, "policy": {}}
             with patch("ariaflow_web.webapp.get_lifecycle_from", return_value={}), \
@@ -65,8 +65,8 @@ class WebSmokeTests(unittest.TestCase):
                     status = request_json(
                         "http://127.0.0.1:8767/api/status?" + urllib.parse.urlencode({"backend": "http://127.0.0.1:8000"})
                     )
-                    self.assertEqual(status["backend"]["pid"], 4242)
-                    self.assertEqual(status["backend"]["url"], "http://127.0.0.1:8000")
+                    self.assertEqual(status["ariaflow"]["pid"], 4242)
+                    self.assertEqual(status["ariaflow"]["url"], "http://127.0.0.1:8000")
                 finally:
                     server.shutdown()
                     server.server_close()

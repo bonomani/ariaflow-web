@@ -65,19 +65,19 @@ def _request(path: str, method: str = "GET", payload: dict | None = None, base_u
                     result = {"ok": False, "error": "http_error", "message": str(result)}
                 result.setdefault("ok", False)
                 result.setdefault("http_status", resp.status)
-                result.setdefault("backend", {"reachable": True, "status": resp.status, "url": url})
+                result.setdefault("ariaflow", {"reachable": True, "status": resp.status, "url": url})
                 return result
             return json.loads(raw)
         except (http.client.RemoteDisconnected, ConnectionResetError, BrokenPipeError):
             # Stale keep-alive connection — drop and retry once
             _drop_conn(scheme, host, port)
             if attempt > 0:
-                return {"ok": False, "backend": {"reachable": False, "error": "connection reset", "url": url}}
+                return {"ok": False, "ariaflow": {"reachable": False, "error": "connection reset", "url": url}}
         except (OSError, socket.timeout, http.client.HTTPException) as exc:
             _drop_conn(scheme, host, port)
-            return {"ok": False, "backend": {"reachable": False, "error": str(exc), "url": url}}
+            return {"ok": False, "ariaflow": {"reachable": False, "error": str(exc), "url": url}}
 
-    return {"ok": False, "backend": {"reachable": False, "error": "connection failed", "url": url}}
+    return {"ok": False, "ariaflow": {"reachable": False, "error": "connection failed", "url": url}}
 
 
 def get_api_discovery_from(base_url: str) -> dict:

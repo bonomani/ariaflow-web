@@ -38,14 +38,14 @@ class SwitchableBackend:
     def status(self, _base_url: str) -> dict:
         self.call_count += 1
         if not self.online:
-            return {"ok": False, "backend": {"reachable": False, "error": "connection refused"}}
+            return {"ok": False, "ariaflow": {"reachable": False, "error": "connection refused"}}
         return {
             "items": self.items,
             "active": self._active(),
             "state": {"running": bool(self.items), "paused": False, "session_id": "s1"},
             "summary": {"queued": sum(1 for i in self.items if i["status"] == "queued"), "done": 0, "error": 0, "total": len(self.items)},
             "bandwidth": {"source": "default", "downlink_mbps": 50, "cap_mbps": 40, "interface_name": "eth0"},
-            "backend": {"reachable": True, "version": "1.0", "pid": 9999},
+            "ariaflow": {"reachable": True, "version": "1.0", "pid": 9999},
         }
 
     def _active(self) -> dict | None:
@@ -133,7 +133,9 @@ class TestBackendTransitions:
     def test_offline_shows_unavailable(self, page: Page, web_server: str) -> None:
         backend.online = False
         _goto(page, f"{web_server}/")
-        refresh(page)
+        # Need 3 consecutive failures to trigger offline display (flicker prevention)
+        for _ in range(3):
+            refresh(page)
         text = queue_text(page)
         assert "offline" in text.lower() or "unavailable" in text.lower() or "unreachable" in text.lower()
         backend.online = True

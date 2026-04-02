@@ -82,7 +82,7 @@ class FakeBackend:
                 "total": len(self.items),
             },
             "bandwidth": {"source": "networkquality", "downlink_mbps": 100, "cap_mbps": 50},
-            "backend": {"reachable": True, "version": "0.1.34", "pid": 9999},
+            "ariaflow": {"reachable": True, "version": "0.1.34", "pid": 9999},
         }
 
     def _item_view(self, item: dict) -> dict:

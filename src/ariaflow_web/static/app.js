@@ -27,8 +27,6 @@ document.addEventListener('alpine:init', () => {
     actionFilter: 'all',
     targetFilter: 'all',
     sessionFilter: 'current',
-    _bwSaveTimer: null,
-    _simSaveTimer: null,
     fileSelectionItemId: null,
     fileSelectionFiles: [],
     fileSelectionLoading: false,
@@ -50,7 +48,7 @@ document.addEventListener('alpine:init', () => {
     get filteredItems() { return this.filterQueueItems(this.enrichedItems); },
     get backendReachable() {
       if (!this.lastStatus) return true;
-      return this.lastStatus?.ok !== false && this.lastStatus?.backend?.reachable !== false;
+      return this.lastStatus?.ok !== false && this.lastStatus?.ariaflow?.reachable !== false;
     },
     get filterCounts() {
       const items = this.enrichedItems;
@@ -117,11 +115,11 @@ document.addEventListener('alpine:init', () => {
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
-      return this.lastStatus?.backend?.version || 'unreported';
+      return this.lastStatus?.ariaflow?.version || 'unreported';
     },
     get backendPidText() {
       if (!this.backendReachable) return '-';
-      return this.lastStatus?.backend?.pid || 'unreported';
+      return this.lastStatus?.ariaflow?.pid || 'unreported';
     },
     get backendRunnerText() {
       if (!this.backendReachable) return 'offline';
@@ -136,7 +134,7 @@ document.addEventListener('alpine:init', () => {
       return bw?.cap_mbps ? this.humanCap(this.formatMbps(bw.cap_mbps)) : this.humanCap(bw?.limit || '-');
     },
     get backendErrorText() {
-      if (!this.backendReachable) return this.lastStatus?.backend?.error || 'connection refused';
+      if (!this.backendReachable) return this.lastStatus?.ariaflow?.error || 'connection refused';
       return this.state.last_error || this.lastStatus?.bandwidth?.reason || 'none';
     },
     get backendSessionText() {
@@ -412,7 +410,7 @@ document.addEventListener('alpine:init', () => {
     },
     _backendUnavailableLabel() {
       const data = this.lastStatus;
-      const error = data?.backend?.error || data?.error || 'backend unavailable';
+      const error = data?.ariaflow?.error || data?.error || 'backend unavailable';
       return `Backend unavailable · ${error}`;
     },
 
@@ -505,6 +503,13 @@ document.addEventListener('alpine:init', () => {
       this.applyTheme(next);
     },
 
+    // --- fetch with timeout ---
+    _fetch(url, opts = {}, timeout = 10000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(id));
+    },
+
     // --- backend management ---
     loadBackendState() {
       let backends = [];
@@ -563,7 +568,7 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh(0);
     },
     async discoverBackends() {
-      const r = await fetch('/api/discovery');
+      const r = await this._fetch('/api/discovery');
       const data = await r.json();
       this.lastResult = data;
       this.mergeDiscoveredBackends(data.items || []);
@@ -707,21 +712,28 @@ document.addEventListener('alpine:init', () => {
       this._deferTimer = setTimeout(() => { this._deferTimer = null; this.refresh(); }, delay);
     },
 
+    _consecutiveFailures: 0,
     async refresh() {
       if (this.refreshInFlight) return;
       this.refreshInFlight = true;
       try {
-        const r = await fetch(this.apiPath('/api/status'));
+        const r = await this._fetch(this.apiPath('/api/status'));
         const data = await r.json();
         if (data?._rev && this.lastRev === data._rev) return;
         this.lastRev = data?._rev || null;
-        this.lastStatus = data;
-        if (data?.ok === false || data?.backend?.reachable === false) {
+        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+          this._consecutiveFailures++;
+          // Show offline immediately if no prior data, or after 3 consecutive failures to avoid flicker
+          if (!this.lastStatus || this._consecutiveFailures >= 3) this.lastStatus = data;
           return;
         }
+        this._consecutiveFailures = 0;
+        this.lastStatus = data;
         const items = this.enrichedItems;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0);
+      } catch (e) {
+        this._consecutiveFailures++;
       } finally {
         this.refreshInFlight = false;
       }
@@ -733,10 +745,11 @@ document.addEventListener('alpine:init', () => {
       const pref = prefs.find((item) => item.name === name);
       return pref ? pref.value : undefined;
     },
-    async loadDeclaration() {
-      const r = await fetch(this.apiPath('/api/declaration'));
+    async loadDeclaration(force = false) {
+      if (!force && this.lastDeclaration && this.lastDeclaration.ok !== false) return;
+      const r = await this._fetch(this.apiPath('/api/declaration'));
       this.lastDeclaration = await r.json();
-      if (this.lastDeclaration?.ok === false || this.lastDeclaration?.backend?.reachable === false) return;
+      if (this.lastDeclaration?.ok === false || this.lastDeclaration?.ariaflow?.reachable === false) return;
       this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
     },
     async saveDeclaration() {
@@ -745,80 +758,64 @@ document.addEventListener('alpine:init', () => {
         this.resultText = `Invalid JSON: ${e.message}`;
         return;
       }
-      const r = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) });
+      const r = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = 'Declaration saved';
       this.resultJson = JSON.stringify(data, null, 2);
     },
 
+    // --- preference helpers ---
+    _prefQueue: [],
+    _prefTimer: null,
+    _prefSaving: false,
+    _queuePrefChange(name, value, options, rationale, delay = 0) {
+      // Queue the change; last write per name wins
+      this._prefQueue = this._prefQueue.filter((p) => p.name !== name);
+      this._prefQueue.push({ name, value, options, rationale });
+      if (this._prefTimer) clearTimeout(this._prefTimer);
+      this._prefTimer = setTimeout(() => this._flushPrefQueue(), delay);
+    },
+    async _flushPrefQueue() {
+      if (this._prefSaving || !this._prefQueue.length) return;
+      this._prefSaving = true;
+      try {
+        const changes = [...this._prefQueue];
+        this._prefQueue = [];
+        const r = await this._fetch(this.apiPath('/api/declaration'));
+        const data = await r.json();
+        const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
+        for (const change of changes) {
+          const idx = prefs.findIndex((p) => p.name === change.name);
+          const next = { name: change.name, value: change.value, options: change.options, rationale: change.rationale };
+          if (idx >= 0) prefs[idx] = next; else prefs.push(next);
+        }
+        data.uic = data.uic || {};
+        data.uic.preferences = prefs;
+        const save = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        this.lastDeclaration = await save.json();
+      } finally {
+        this._prefSaving = false;
+        if (this._prefQueue.length) this._flushPrefQueue();
+      }
+    },
+
     // --- bandwidth prefs ---
-    async setBandwidthPref(name, value, defaultValue) {
-      if (this._bwSaveTimer) clearTimeout(this._bwSaveTimer);
-      this._bwSaveTimer = setTimeout(async () => {
-        const r = await fetch(this.apiPath('/api/declaration'));
-        const data = await r.json();
-        const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-        const idx = prefs.findIndex((item) => item.name === name);
-        const next = { name, value, options: [defaultValue], rationale: `default ${defaultValue}` };
-        if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-        data.uic = data.uic || {};
-        data.uic.preferences = prefs;
-        const save = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        this.lastDeclaration = await save.json();
-      }, 400);
+    setBandwidthPref(name, value, defaultValue) {
+      this._queuePrefChange(name, value, [defaultValue], `default ${defaultValue}`, 400);
     },
-    async setSimultaneousLimit(value) {
-      if (this._simSaveTimer) clearTimeout(this._simSaveTimer);
-      this._simSaveTimer = setTimeout(async () => {
-        const r = await fetch(this.apiPath('/api/declaration'));
-        const data = await r.json();
-        const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-        const idx = prefs.findIndex((item) => item.name === 'max_simultaneous_downloads');
-        const limit = Math.max(1, parseInt(value, 10) || 1);
-        const next = { name: 'max_simultaneous_downloads', value: limit, options: [1], rationale: '1 preserves the sequential default' };
-        if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-        data.uic = data.uic || {};
-        data.uic.preferences = prefs;
-        const save = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        this.lastDeclaration = await save.json();
-      }, 400);
+    setSimultaneousLimit(value) {
+      const limit = Math.max(1, parseInt(value, 10) || 1);
+      this._queuePrefChange('max_simultaneous_downloads', limit, [1], '1 preserves the sequential default', 400);
     },
-    async setDuplicateAction(value) {
-      const r = await fetch(this.apiPath('/api/declaration'));
-      const data = await r.json();
-      const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-      const idx = prefs.findIndex((item) => item.name === 'duplicate_active_transfer_action');
-      const next = { name: 'duplicate_active_transfer_action', value, options: ['remove', 'pause', 'ignore'], rationale: 'remove duplicate live jobs by default' };
-      if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-      data.uic = data.uic || {};
-      data.uic.preferences = prefs;
-      const save = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      this.lastDeclaration = await save.json();
+    setDuplicateAction(value) {
+      this._queuePrefChange('duplicate_active_transfer_action', value, ['remove', 'pause', 'ignore'], 'remove duplicate live jobs by default');
     },
-    async setAutoPreflightPreference(enabled) {
-      const r = await fetch(this.apiPath('/api/declaration'));
-      const data = await r.json();
-      const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-      const idx = prefs.findIndex((item) => item.name === 'auto_preflight_on_run');
-      const next = { name: 'auto_preflight_on_run', value: !!enabled, options: [true, false], rationale: 'default off' };
-      if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-      data.uic = data.uic || {};
-      data.uic.preferences = prefs;
-      const save = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      this.lastDeclaration = await save.json();
+    setAutoPreflightPreference(enabled) {
+      this._queuePrefChange('auto_preflight_on_run', !!enabled, [true, false], 'default off');
     },
-    async setPostActionRule(value) {
-      const r = await fetch(this.apiPath('/api/declaration'));
-      const data = await r.json();
-      const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-      const idx = prefs.findIndex((item) => item.name === 'post_action_rule');
-      const next = { name: 'post_action_rule', value, options: ['pending'], rationale: 'default placeholder' };
-      if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-      data.uic = data.uic || {};
-      data.uic.preferences = prefs;
-      const save = await fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      this.lastDeclaration = await save.json();
+    setPostActionRule(value) {
+      this._queuePrefChange('post_action_rule', value, ['pending'], 'default placeholder');
     },
 
     // --- actions ---
@@ -834,7 +831,7 @@ document.addEventListener('alpine:init', () => {
         return item;
       });
       const payload = { items };
-      const r = await fetch(this.apiPath('/api/add'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const r = await this._fetch(this.apiPath('/api/add'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await r.json();
       this.lastResult = data;
       if (!r.ok || data.ok === false) {
@@ -856,7 +853,7 @@ document.addEventListener('alpine:init', () => {
     async runnerAction(action) {
       const payload = { action };
       if (action === 'start') payload.auto_preflight_on_run = this.autoPreflightEnabled;
-      const r = await fetch(this.apiPath('/api/run'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const r = await this._fetch(this.apiPath('/api/run'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await r.json();
       this.lastResult = data;
       if (!r.ok || data.ok === false) {
@@ -881,7 +878,7 @@ document.addEventListener('alpine:init', () => {
       return paused ? this.resumeQueue() : this.pauseQueue();
     },
     async pauseQueue() {
-      const r = await fetch(this.apiPath('/api/pause'), { method: 'POST' });
+      const r = await this._fetch(this.apiPath('/api/pause'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = data.paused ? 'Queue paused' : 'Pause requested';
@@ -890,7 +887,7 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh();
     },
     async resumeQueue() {
-      const r = await fetch(this.apiPath('/api/resume'), { method: 'POST' });
+      const r = await this._fetch(this.apiPath('/api/resume'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = data.resumed ? 'Queue resumed' : 'Resume requested';
@@ -899,7 +896,7 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh();
     },
     async newSession() {
-      const r = await fetch(this.apiPath('/api/session'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'new' }) });
+      const r = await this._fetch(this.apiPath('/api/session'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'new' }) });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = data.ok ? 'New session started' : 'Session change requested';
@@ -909,9 +906,10 @@ document.addEventListener('alpine:init', () => {
       if (this.page === 'log') this.refreshActionLog();
     },
     async moveToTop(itemId) {
-      const r = await fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/priority`), {
+      const maxPriority = (this.lastStatus?.items || []).reduce((max, i) => Math.max(max, i.priority || 0), 0);
+      const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/priority`), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priority: 0 }),
+        body: JSON.stringify({ priority: maxPriority + 1 }),
       });
       const data = await r.json();
       this.lastResult = data;
@@ -920,17 +918,8 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh();
     },
     async itemAction(itemId, action) {
-      const r = await fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
-      const data = await r.json();
-      this.lastResult = data;
-      if (!r.ok || data.ok === false) {
-        this.resultText = data.message || `${action} failed`;
-        this.resultJson = JSON.stringify(data, null, 2);
-        this.deferRefresh();
-        return;
-      }
-      this.resultText = `Item ${action} done`;
-      this.resultJson = JSON.stringify(data, null, 2);
+      // Snapshot for rollback
+      const prevItems = this.lastStatus?.items ? JSON.parse(JSON.stringify(this.lastStatus.items)) : null;
       // Optimistically update item status so buttons reflect new state immediately
       const statusMap = { pause: 'paused', resume: 'queued', retry: 'queued' };
       if (this.lastStatus?.items && statusMap[action]) {
@@ -940,6 +929,19 @@ document.addEventListener('alpine:init', () => {
       if (action === 'remove' && this.lastStatus?.items) {
         this.lastStatus.items = this.lastStatus.items.filter((i) => i.id !== itemId);
       }
+      const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
+      const data = await r.json();
+      this.lastResult = data;
+      if (!r.ok || data.ok === false) {
+        this.resultText = data.message || `${action} failed`;
+        this.resultJson = JSON.stringify(data, null, 2);
+        // Revert optimistic update on failure
+        if (prevItems && this.lastStatus) this.lastStatus.items = prevItems;
+        this.deferRefresh();
+        return;
+      }
+      this.resultText = `Item ${action} done`;
+      this.resultJson = JSON.stringify(data, null, 2);
       this.deferRefresh();
     },
 
@@ -948,7 +950,7 @@ document.addEventListener('alpine:init', () => {
       this.fileSelectionItemId = itemId;
       this.fileSelectionLoading = true;
       try {
-        const r = await fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/files`));
+        const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/files`));
         const data = await r.json();
         this.fileSelectionFiles = (data.files || []).map((f) => ({ ...f, selected: f.selected !== false }));
       } catch (e) {
@@ -958,7 +960,7 @@ document.addEventListener('alpine:init', () => {
     },
     async saveFileSelection() {
       const selected = this.fileSelectionFiles.filter((f) => f.selected).map((f) => f.index);
-      const r = await fetch(this.apiPath(`/api/item/${encodeURIComponent(this.fileSelectionItemId)}/files`), {
+      const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(this.fileSelectionItemId)}/files`), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ select: selected }),
       });
@@ -974,12 +976,12 @@ document.addEventListener('alpine:init', () => {
 
     // --- archive & cleanup ---
     async loadArchive() {
-      const r = await fetch(this.apiPath('/api/archive'));
+      const r = await this._fetch(this.apiPath('/api/archive'));
       const data = await r.json();
       this.archiveItems = data.items || [];
     },
     async cleanup() {
-      const r = await fetch(this.apiPath('/api/cleanup'), { method: 'POST' });
+      const r = await this._fetch(this.apiPath('/api/cleanup'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = data.ok ? `Cleanup complete — ${data.archived || 0} archived` : (data.message || 'Cleanup requested');
@@ -993,7 +995,7 @@ document.addEventListener('alpine:init', () => {
       this.probeRunning = true;
       this.resultText = 'Probe running...';
       try {
-        const r = await fetch(this.apiPath('/api/bandwidth/probe'), { method: 'POST' });
+        const r = await this._fetch(this.apiPath('/api/bandwidth/probe'), { method: 'POST' });
         const data = await r.json();
         this.lastResult = data;
         this.resultText = data.ok ? 'Probe complete' : (data.message || 'Probe finished');
@@ -1008,7 +1010,7 @@ document.addEventListener('alpine:init', () => {
     },
     async refreshBandwidth() {
       try {
-        const r = await fetch(this.apiPath('/api/bandwidth'));
+        const r = await this._fetch(this.apiPath('/api/bandwidth'));
         const data = await r.json();
         if (data && data.ok !== false) {
           this.lastStatus = this.lastStatus || {};
@@ -1019,10 +1021,10 @@ document.addEventListener('alpine:init', () => {
 
     // --- lifecycle ---
     async loadLifecycle() {
-      const r = await fetch(this.apiPath('/api/lifecycle'));
+      const r = await this._fetch(this.apiPath('/api/lifecycle'));
       const data = await r.json();
       this.lastLifecycle = data;
-      if (data?.ok === false || data?.backend?.reachable === false) {
+      if (data?.ok === false || data?.ariaflow?.reachable === false) {
         this.lifecycleRows = [];
         this.lifecycleSessionHtml = '';
         return;
@@ -1079,7 +1081,7 @@ document.addEventListener('alpine:init', () => {
       return lines.length ? lines.join(' · ') : 'No details';
     },
     async lifecycleAction(target, action) {
-      const r = await fetch(this.apiPath('/api/lifecycle/action'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target, action }) });
+      const r = await this._fetch(this.apiPath('/api/lifecycle/action'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target, action }) });
       const data = await r.json();
       const lifecycle = data.lifecycle || data;
       this.lastLifecycle = lifecycle;
@@ -1090,7 +1092,7 @@ document.addEventListener('alpine:init', () => {
 
     // --- log ---
     async preflightRun() {
-      const r = await fetch(this.apiPath('/api/preflight'), { method: 'POST' });
+      const r = await this._fetch(this.apiPath('/api/preflight'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
       this.resultText = data.status === 'pass' ? 'Preflight passed' : 'Preflight needs attention';
@@ -1099,7 +1101,7 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh();
     },
     async uccRun() {
-      const r = await fetch(this.apiPath('/api/ucc'), { method: 'POST' });
+      const r = await this._fetch(this.apiPath('/api/ucc'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
       const outcome = data.result?.outcome || 'unknown';
@@ -1129,9 +1131,9 @@ document.addEventListener('alpine:init', () => {
 
     async refreshActionLog() {
       if (this.page !== 'log') return;
-      const r = await fetch(this.apiPath('/api/log?limit=120'));
+      const r = await this._fetch(this.apiPath('/api/log?limit=120'));
       const data = await r.json();
-      if (data?.ok === false || data?.backend?.reachable === false) {
+      if (data?.ok === false || data?.ariaflow?.reachable === false) {
         this.actionLogEntries = [];
         return;
       }
@@ -1222,7 +1224,7 @@ document.addEventListener('alpine:init', () => {
       this.testResults = [];
       this.testRunning = true;
       try {
-        const r = await fetch(`${this.backendBaseUrl()}/api/tests`);
+        const r = await this._fetch(`${this.backendBaseUrl()}/api/tests`);
         const data = await r.json();
         const passed = data.passed ?? 0;
         const failed = data.failed ?? 0;
