@@ -155,7 +155,7 @@ INDEX_HTML = """<!doctype html>
         radial-gradient(circle at top right, rgba(194, 65, 12, 0.1), transparent 28%),
         linear-gradient(180deg, #fbf7f0 0%, var(--bg) 100%);
     }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 32px; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 32px; overflow-x: hidden; }
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
@@ -654,6 +654,10 @@ INDEX_HTML = """<!doctype html>
         justify-self: stretch;
         align-self: stretch;
       }
+      .chips { flex-wrap: wrap; }
+      .nav { flex-wrap: wrap; }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .queue-overview { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1163,7 +1167,7 @@ INDEX_HTML = """<!doctype html>
         btn.textContent = count > 0 ? `${label} (${count})` : label;
       });
     }
-    const path = window.location.pathname.replace(/\/+$/, "");
+    const path = window.location.pathname.replace(/[/]+$/, "");
     const page = path === "/bandwidth"
       ? "bandwidth"
       : path === "/lifecycle"
@@ -2226,12 +2230,12 @@ INDEX_HTML = """<!doctype html>
     }
     function openDocs() {
       const url = backendBaseUrl();
-      if (!/^https?:\/\//i.test(url)) return;
+      if (!/^https?:[/][/]/i.test(url)) return;
       window.open(`${url}/api/docs`, '_blank');
     }
     function openSpec() {
       const url = backendBaseUrl();
-      if (!/^https?:\/\//i.test(url)) return;
+      if (!/^https?:[/][/]/i.test(url)) return;
       window.open(`${url}/api/openapi.yaml`, '_blank');
     }
     async function runTests() {

@@ -399,6 +399,24 @@ class TestLogButtons:
 # Options page buttons/controls
 # ---------------------------------------------------------------------------
 
+class TestBackendButtons:
+    def test_remove_backend_button(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/")
+        # First add a backend with a unique address
+        page.fill("#backend-input", "http://172.16.99.1:8000")
+        page.click(".backend-add-button")
+        page.wait_for_timeout(300)
+        panel = page.inner_html("#backend-panel")
+        assert "172.16.99.1" in panel
+        # Count remove buttons, then click the last one (ours)
+        remove_btns = page.query_selector_all('#backend-panel button[title="Remove backend"]')
+        assert len(remove_btns) >= 1
+        remove_btns[-1].click()
+        page.wait_for_timeout(300)
+        panel = page.inner_html("#backend-panel")
+        assert "172.16.99.1" not in panel
+
+
 class TestOptionsButtons:
     def test_auto_preflight_toggle(self, page: Page, web_server: str) -> None:
         page.goto(f"{web_server}/options")
@@ -408,6 +426,18 @@ class TestOptionsButtons:
         if checkbox:
             mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
             checkbox.click()
+            page.wait_for_timeout(500)
+            assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
+
+
+    def test_post_action_rule_dropdown(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/options")
+        page.wait_for_selector(".show-options", state="visible", timeout=5000)
+        page.wait_for_timeout(500)
+        select = page.query_selector('select[onchange*="setPostActionRule"]')
+        if select:
+            mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
+            page.select_option('select[onchange*="setPostActionRule"]', "pending")
             page.wait_for_timeout(500)
             assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
 
@@ -445,6 +475,28 @@ class TestBandwidthConfigButtons:
         if input_el:
             mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
             input_el.fill("30")
+            page.wait_for_timeout(500)
+            assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
+
+    def test_bandwidth_free_absolute_input(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
+        page.wait_for_timeout(500)
+        input_el = page.query_selector('input[oninput*="bandwidth_free_absolute_mbps"]')
+        if input_el:
+            mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
+            input_el.fill("5")
+            page.wait_for_timeout(500)
+            assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
+
+    def test_bandwidth_floor_input(self, page: Page, web_server: str) -> None:
+        page.goto(f"{web_server}/bandwidth")
+        page.wait_for_selector(".show-bandwidth", state="visible", timeout=5000)
+        page.wait_for_timeout(500)
+        input_el = page.query_selector('input[oninput*="bandwidth_floor_mbps"]')
+        if input_el:
+            mock_tracker["ariaflow_web.webapp.save_declaration_from"].reset_mock()
+            input_el.fill("4")
             page.wait_for_timeout(500)
             assert mock_tracker["ariaflow_web.webapp.save_declaration_from"].called
 
