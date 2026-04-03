@@ -210,9 +210,14 @@
       border: 1px solid var(--line);
       background: var(--panel-2);
       color: var(--accent);
-      padding: 12px 14px;
+      padding: 8px 12px;
     }
-    textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
+    input.input-sm { width: 72px; padding: 6px 10px; text-align: center; }
+    input.input-search { border-radius: 999px; font-size: 0.88rem; }
+    textarea { min-height: 220px; resize: vertical; line-height: 1.45; padding: 12px 14px; }
+    textarea.textarea-sm { min-height: auto; }
+    input[type="checkbox"] { width: auto; }
+    input[type="file"] { width: auto; padding: 4px; font-size: 0.85rem; }
     input::placeholder, textarea::placeholder { color: #64748b; }
     input:focus, textarea:focus { border-color: rgba(125, 211, 252, 0.65); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12); }
 
