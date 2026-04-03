@@ -209,22 +209,25 @@
     /* --- form reset --- */
     input, textarea, select, button { font: inherit; outline: none; }
 
-    /* --- text inputs --- */
+    /* --- text inputs (shared base) --- */
     input, textarea {
       width: 100%;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 1px solid var(--line);
       background: var(--panel-2);
       color: var(--accent);
       padding: 8px 12px;
+      font-size: 0.9rem;
     }
-    input.input-sm { width: 72px; padding: 6px 10px; text-align: center; }
-    input.input-search { border-radius: 999px; font-size: 0.88rem; }
-    textarea { min-height: 220px; resize: vertical; line-height: 1.45; padding: 12px 14px; }
+    /* --- size variants --- */
+    input.input-sm { width: 72px; text-align: center; }
+    input.input-search { border-radius: 999px; }
+    textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
     textarea.textarea-sm { min-height: auto; }
-    .label-sm { font-size: 0.84rem; color: var(--muted); }
+    /* --- special types --- */
     input[type="checkbox"] { width: auto; }
-    input[type="file"] { width: auto; padding: 4px; font-size: 0.85rem; }
+    input[type="file"] { width: auto; font-size: 0.85rem; }
+    .label-sm { font-size: 0.84rem; color: var(--muted); }
     input::placeholder, textarea::placeholder { color: #64748b; }
     input:focus, textarea:focus { border-color: rgba(125, 211, 252, 0.65); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12); }
 

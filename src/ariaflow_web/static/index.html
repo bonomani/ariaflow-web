@@ -81,7 +81,7 @@
               <summary style="cursor:pointer;color:var(--muted);font-size:0.88rem;">Advanced options</summary>
               <div style="display:grid;gap:8px;margin-top:8px;">
                 <input x-model="addOutput" placeholder="Output filename (optional)">
-                <input x-model="addPriority" type="number" placeholder="Priority (optional, higher = first)">
+                <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
                 <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <label class="label-sm">.torrent file <input type="file" accept=".torrent" @change="handleFileUpload($event, 'torrent')"></label>
