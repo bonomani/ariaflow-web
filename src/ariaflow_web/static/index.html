@@ -261,50 +261,36 @@
       <div class="span-6" x-show="page === 'bandwidth'">
         <div class="panel">
           <div class="section-title">
-            <h2>Bandwidth Status</h2>
-            <div class="hint">Current download limits and network interface</div>
-          </div>
-          <div class="list" style="margin-bottom:12px;">
-            <div class="item">
-              <div class="item-top"><div class="item-url">Interface</div><span class="badge" x-text="bwInterfaceText">-</span></div>
-              <div class="meta"><span x-text="bwInterfaceDetailText">Detecting...</span></div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Download speed</div><span class="badge" x-text="bwDownBadgeText">-</span></div>
-              <div class="meta"><span x-text="bwDownDetailText">Measured downlink from last probe</span></div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Current cap</div><span class="badge" x-text="bwCapText">-</span></div>
-              <div class="meta"><span x-text="bwGlobalText">Configured limit unavailable</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="span-6" x-show="page === 'bandwidth'">
-        <div class="panel">
-          <div class="section-title">
-            <h2>Probe</h2>
-            <div class="hint">networkquality bandwidth measurement</div>
+            <h2>Bandwidth Probe</h2>
+            <div class="hint">networkquality measurement and current download limits</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
             <button class="secondary" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
           </div>
           <div class="list">
             <div class="item">
-              <div class="item-top"><div class="item-url">Probe result</div><span class="badge" x-text="bwSourceText">-</span></div>
-              <div class="meta"><span x-text="bwDownText">No probe yet</span></div>
+              <div class="item-top"><div class="item-url">Interface</div><span class="badge" x-text="bwInterfaceText">-</span></div>
+              <div class="meta"><span x-text="bwInterfaceDetailText">Detecting...</span></div>
             </div>
             <div class="item">
-              <div class="item-top"><div class="item-url">Upload speed</div><span class="badge" x-text="bwUpBadgeText">-</span></div>
+              <div class="item-top"><div class="item-url">Download</div><span class="badge" x-text="bwDownBadgeText">-</span></div>
+              <div class="meta"><span x-text="bwDownDetailText">Measured downlink from last probe</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Upload</div><span class="badge" x-text="bwUpBadgeText">-</span></div>
               <div class="meta"><span x-text="bwUpDetailText">Measured uplink from last probe</span></div>
             </div>
             <div class="item">
-              <div class="item-top"><div class="item-url">Probe details</div><span class="badge" x-text="bwProbeModeText">-</span></div>
+              <div class="item-top"><div class="item-url">Download cap</div><span class="badge" x-text="bwCapText">-</span></div>
+              <div class="meta"><span x-text="bwGlobalText">Configured limit unavailable</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Source</div><span class="badge" x-text="bwSourceText">-</span></div>
               <div class="meta"><span x-text="bwProbeDetailText">No probe yet</span></div>
             </div>
             <div class="item">
               <div class="item-top">
-                <div class="item-url">Probe interval</div>
+                <div class="item-url">Auto-probe interval</div>
                 <label class="refresh-control" style="justify-content:flex-start;">
                   <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
                     <option value="60">60s</option>
