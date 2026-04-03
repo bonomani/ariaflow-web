@@ -37,9 +37,11 @@ document.addEventListener('alpine:init', () => {
     fileSelectionLoading: false,
     archiveItems: [],
 
-    // computed-like getters
-    get backends() { return this.loadBackendState().backends; },
-    get selectedBackend() { return this.loadBackendState().selected; },
+    // cached backend state (updated on save, avoids localStorage parse per render)
+    _cachedBackends: null,
+    _cachedSelectedBackend: null,
+    get backends() { if (this._cachedBackends === null) { const s = this.loadBackendState(); this._cachedBackends = s.backends; this._cachedSelectedBackend = s.selected; } return this._cachedBackends; },
+    get selectedBackend() { if (this._cachedSelectedBackend === null) { const s = this.loadBackendState(); this._cachedBackends = s.backends; this._cachedSelectedBackend = s.selected; } return this._cachedSelectedBackend; },
     get state() { return this.lastStatus?.state || {}; },
     get active() { return this.lastStatus?.active || null; },
     get actives() {
@@ -450,9 +452,9 @@ document.addEventListener('alpine:init', () => {
     // --- sparklines ---
     recordSpeed(itemId, speed) {
       if (!itemId) return;
-      if (!this.speedHistory[itemId]) this.speedHistory[itemId] = [];
-      this.speedHistory[itemId].push(Number(speed || 0));
-      if (this.speedHistory[itemId].length > this.SPEED_HISTORY_MAX) this.speedHistory[itemId].shift();
+      const current = this.speedHistory[itemId] || [];
+      const updated = [...current, Number(speed || 0)];
+      this.speedHistory = { ...this.speedHistory, [itemId]: updated.length > this.SPEED_HISTORY_MAX ? updated.slice(-this.SPEED_HISTORY_MAX) : updated };
     },
     renderSparkline(itemId) {
       const data = this.speedHistory[itemId];
@@ -466,8 +468,8 @@ document.addEventListener('alpine:init', () => {
       </svg>`;
     },
     recordGlobalSpeed(speed) {
-      this.globalSpeedHistory.push(Number(speed || 0));
-      if (this.globalSpeedHistory.length > this.GLOBAL_SPEED_MAX) this.globalSpeedHistory.shift();
+      const updated = [...this.globalSpeedHistory, Number(speed || 0)];
+      this.globalSpeedHistory = updated.length > this.GLOBAL_SPEED_MAX ? updated.slice(-this.GLOBAL_SPEED_MAX) : updated;
     },
     get globalSparklineSvg() {
       const data = this.globalSpeedHistory;
@@ -559,6 +561,8 @@ document.addEventListener('alpine:init', () => {
       const nextSelected = selected === this.DEFAULT_BACKEND_URL || clean.includes(selected) ? selected : this.DEFAULT_BACKEND_URL;
       localStorage.setItem('ariaflow.backends', JSON.stringify(clean));
       localStorage.setItem('ariaflow.selected_backend', nextSelected);
+      this._cachedBackends = clean;
+      this._cachedSelectedBackend = nextSelected;
     },
     mergeDiscoveredBackends(items) {
       const discovered = Array.isArray(items)
@@ -761,7 +765,7 @@ document.addEventListener('alpine:init', () => {
             // Lightweight event with just rev — fetch full status
             this.refresh();
           }
-        } catch (err) {}
+        } catch (err) { /* SSE parse error — ignored to avoid noise */ }
       });
       es.onerror = () => {
         this._sseConnected = false;
@@ -979,8 +983,8 @@ document.addEventListener('alpine:init', () => {
         : (result.stopped ? 'Queue runner stopped' : 'Queue runner already stopped');
       this.resultJson = JSON.stringify(data, null, 2);
       if (this.lastStatus?.state) {
-        if (action === 'start' && result.started) this.lastStatus.state.running = true;
-        if (action === 'stop' && result.stopped) this.lastStatus.state.running = false;
+        if (action === 'start' && result.started) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true } };
+        if (action === 'stop' && result.stopped) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
       }
     },
     async toggleQueue() {
@@ -993,7 +997,7 @@ document.addEventListener('alpine:init', () => {
       this.lastResult = data;
       this.resultText = data.paused ? 'Queue paused' : 'Pause requested';
       this.resultJson = JSON.stringify(data, null, 2);
-      if (data.paused && this.lastStatus?.state) this.lastStatus.state.paused = true;
+      if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
     },
     async resumeQueue() {
       const r = await this._fetch(this.apiPath('/api/resume'), { method: 'POST' });
@@ -1001,7 +1005,7 @@ document.addEventListener('alpine:init', () => {
       this.lastResult = data;
       this.resultText = data.resumed ? 'Queue resumed' : 'Resume requested';
       this.resultJson = JSON.stringify(data, null, 2);
-      if (data.resumed && this.lastStatus?.state) this.lastStatus.state.paused = false;
+      if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
     },
     async newSession() {
       const r = await this._fetch(this.apiPath('/api/session'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'new' }) });
@@ -1026,14 +1030,13 @@ document.addEventListener('alpine:init', () => {
     async itemAction(itemId, action) {
       // Snapshot for rollback
       const prevItems = this.lastStatus?.items ? JSON.parse(JSON.stringify(this.lastStatus.items)) : null;
-      // Optimistically update item status so buttons reflect new state immediately
+      // Optimistically update item status via reassignment for Alpine reactivity
       const statusMap = { pause: 'paused', resume: 'queued', retry: 'queued' };
       if (this.lastStatus?.items && statusMap[action]) {
-        const item = this.lastStatus.items.find((i) => i.id === itemId);
-        if (item) item.status = statusMap[action];
+        this.lastStatus = { ...this.lastStatus, items: this.lastStatus.items.map((i) => i.id === itemId ? { ...i, status: statusMap[action] } : i) };
       }
       if (action === 'remove' && this.lastStatus?.items) {
-        this.lastStatus.items = this.lastStatus.items.filter((i) => i.id !== itemId);
+        this.lastStatus = { ...this.lastStatus, items: this.lastStatus.items.filter((i) => i.id !== itemId) };
       }
       const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
       const data = await r.json();
@@ -1042,7 +1045,7 @@ document.addEventListener('alpine:init', () => {
         this.resultText = data.message || `${action} failed`;
         this.resultJson = JSON.stringify(data, null, 2);
         // Revert optimistic update on failure
-        if (prevItems && this.lastStatus) this.lastStatus.items = prevItems;
+        if (prevItems && this.lastStatus) this.lastStatus = { ...this.lastStatus, items: prevItems };
         return;
       }
       this.resultText = `Item ${action} done`;
@@ -1079,9 +1082,13 @@ document.addEventListener('alpine:init', () => {
 
     // --- archive & cleanup ---
     async loadArchive() {
-      const r = await this._fetch(this.apiPath(`/api/archive?limit=${this.archiveLimit}`));
-      const data = await r.json();
-      this.archiveItems = data.items || [];
+      try {
+        const r = await this._fetch(this.apiPath(`/api/archive?limit=${this.archiveLimit}`));
+        const data = await r.json();
+        this.archiveItems = data.items || [];
+      } catch (e) {
+        this.archiveItems = [];
+      }
     },
     loadMoreArchive() {
       this.archiveLimit += 100;
@@ -1121,8 +1128,7 @@ document.addEventListener('alpine:init', () => {
         const r = await this._fetch(this.apiPath('/api/bandwidth'));
         const data = await r.json();
         if (data && data.ok !== false) {
-          this.lastStatus = this.lastStatus || {};
-          this.lastStatus.bandwidth = data;
+          this.lastStatus = { ...(this.lastStatus || {}), bandwidth: data };
         }
       } catch (e) {}
     },

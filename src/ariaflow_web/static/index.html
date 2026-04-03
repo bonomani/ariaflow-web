@@ -217,7 +217,7 @@
               <template x-if="!fileSelectionLoading">
                 <div>
                   <div class="list">
-                    <template x-for="(file, idx) in fileSelectionFiles" :key="idx">
+                    <template x-for="(file, idx) in fileSelectionFiles" :key="file.index ?? idx">
                       <div class="item compact">
                         <label style="display:flex;gap:8px;align-items:center;">
                           <input type="checkbox" x-model="file.selected">
@@ -495,7 +495,7 @@
                     <div class="meta"><span x-text="warning.message"></span></div>
                   </div>
                 </template>
-                <template x-for="failure in (preflightData.hard_failures || [])" :key="failure">
+                <template x-for="(failure, idx) in (preflightData.hard_failures || [])" :key="'hf-' + idx">
                   <div class="item">
                     <div class="item-top">
                       <div class="item-url" x-text="failure"></div>
