@@ -473,16 +473,15 @@
       text-decoration: none;
       padding: 8px 12px;
       border-radius: 999px;
-      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
-      color: #082f49;
-      border: 1px solid transparent;
-      font-weight: 700;
-    }
-    .nav a.active {
       background: rgba(8, 17, 31, 0.55);
       color: var(--text);
-      border-color: var(--line);
-      font-weight: 400;
+      border: 1px solid var(--line);
+    }
+    .nav a.active {
+      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
+      color: #082f49;
+      border-color: transparent;
+      font-weight: 700;
     }
     .nav button, .nav select {
       padding: 8px 12px;
