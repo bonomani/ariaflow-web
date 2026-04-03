@@ -9,6 +9,8 @@ document.addEventListener('alpine:init', () => {
     refreshInterval: 10000,
     _sse: null,
     _sseConnected: false,
+    _sseFallbackTimer: null,
+    _inBackoff: false,
     queueFilter: 'all',
     queueSearch: '',
     speedHistory: {},
@@ -288,7 +290,7 @@ document.addEventListener('alpine:init', () => {
       // Dashboard needs status immediately; other pages defer it
       if (this.page === 'dashboard') {
         this.refresh();
-        this.loadDeclaration().catch(() => {});
+        this.loadDeclaration().catch((e) => console.warn(e.message));
       } else {
         this.deferRefresh(1000);
       }
@@ -304,7 +306,7 @@ document.addEventListener('alpine:init', () => {
       this._initSSE();
 
       // Discovery is non-critical, defer it
-      setTimeout(() => this.discoverBackends().catch(() => {}), 2000);
+      setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2000);
     },
 
     navigateTo(target) {
@@ -315,7 +317,7 @@ document.addEventListener('alpine:init', () => {
       this._loadPageData(target);
     },
     _loadPageData(target) {
-      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch(() => {}); }
+      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
       if (target === 'lifecycle') this.loadLifecycle();
       if (target === 'bandwidth') this.loadDeclaration();
       if (target === 'options') this.loadDeclaration();
@@ -743,6 +745,7 @@ document.addEventListener('alpine:init', () => {
       this._sse = es;
       es.addEventListener('connected', () => {
         this._sseConnected = true;
+        if (this._sseFallbackTimer) { clearTimeout(this._sseFallbackTimer); this._sseFallbackTimer = null; }
         // Pause polling — SSE will push updates
         if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
       });
@@ -769,10 +772,14 @@ document.addEventListener('alpine:init', () => {
       });
       es.onerror = () => {
         this._sseConnected = false;
-        // Resume polling as fallback
-        if (!this.refreshTimer && this.refreshInterval > 0) {
-          this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
-        }
+        // Debounce: wait 2s before resuming polling (SSE auto-reconnects)
+        if (this._sseFallbackTimer) clearTimeout(this._sseFallbackTimer);
+        this._sseFallbackTimer = setTimeout(() => {
+          this._sseFallbackTimer = null;
+          if (!this._sseConnected && !this.refreshTimer && this.refreshInterval > 0) {
+            this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
+          }
+        }, 2000);
       };
     },
     _closeSSE() {
@@ -837,6 +844,17 @@ document.addEventListener('alpine:init', () => {
         this._consecutiveFailures++;
       } finally {
         this.refreshInFlight = false;
+        // Backoff: increase polling interval on consecutive failures, reset on recovery
+        if (this._consecutiveFailures > 0 && this.refreshTimer && !this._sseConnected) {
+          const backoff = Math.min(this.refreshInterval * Math.pow(2, this._consecutiveFailures), 60000);
+          clearInterval(this.refreshTimer);
+          this.refreshTimer = setInterval(() => this.refresh(), backoff);
+          this._inBackoff = true;
+        } else if (this._consecutiveFailures === 0 && this._inBackoff && this.refreshTimer) {
+          clearInterval(this.refreshTimer);
+          this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
+          this._inBackoff = false;
+        }
       }
     },
 
@@ -1038,13 +1056,19 @@ document.addEventListener('alpine:init', () => {
       if (action === 'remove' && this.lastStatus?.items) {
         this.lastStatus = { ...this.lastStatus, items: this.lastStatus.items.filter((i) => i.id !== itemId) };
       }
-      const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
-      const data = await r.json();
+      let r, data;
+      try {
+        r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
+        data = await r.json();
+      } catch (e) {
+        this.resultText = `${action} failed: ${e.message}`;
+        if (prevItems && this.lastStatus) this.lastStatus = { ...this.lastStatus, items: prevItems };
+        return;
+      }
       this.lastResult = data;
       if (!r.ok || data.ok === false) {
         this.resultText = data.message || `${action} failed`;
         this.resultJson = JSON.stringify(data, null, 2);
-        // Revert optimistic update on failure
         if (prevItems && this.lastStatus) this.lastStatus = { ...this.lastStatus, items: prevItems };
         return;
       }
