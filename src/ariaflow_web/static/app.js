@@ -918,6 +918,16 @@ document.addEventListener('alpine:init', () => {
       // Queue the change; last write per name wins
       this._prefQueue = this._prefQueue.filter((p) => p.name !== name);
       this._prefQueue.push({ name, value, options, rationale });
+      // Immediately update local declaration so getters reflect the new value
+      // (prevents :value bindings from reverting on next Alpine render)
+      if (this.lastDeclaration?.uic?.preferences) {
+        const prefs = this.lastDeclaration.uic.preferences;
+        const idx = prefs.findIndex((p) => p.name === name);
+        const next = { name, value, options, rationale };
+        const updated = [...prefs];
+        if (idx >= 0) updated[idx] = next; else updated.push(next);
+        this.lastDeclaration = { ...this.lastDeclaration, uic: { ...this.lastDeclaration.uic, preferences: updated } };
+      }
       if (this._prefTimer) clearTimeout(this._prefTimer);
       this._prefTimer = setTimeout(() => this._flushPrefQueue(), delay);
     },
