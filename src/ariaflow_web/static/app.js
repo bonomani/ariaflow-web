@@ -1461,13 +1461,15 @@ document.addEventListener('alpine:init', () => {
         const failed = data.failed ?? 0;
         const errors = data.errors ?? 0;
         const total = data.total ?? (passed + failed + errors);
-        const ok = failed === 0 && errors === 0;
-        this.testBadgeText = ok ? 'pass' : 'fail';
-        this.testBadgeClass = ok ? 'badge good' : 'badge bad';
-        this.testCountsText = `${passed} passed, ${failed} failed, ${errors} errors — ${total} total`;
+        const ok = failed === 0 && errors === 0 && total > 0;
+        this.testBadgeText = total === 0 ? 'no tests' : ok ? 'pass' : 'fail';
+        this.testBadgeClass = total === 0 ? 'badge warn' : ok ? 'badge good' : 'badge bad';
+        this.testCountsText = total === 0
+          ? 'No tests found — backend may be running from a packaged install without test files'
+          : `${passed} passed, ${failed} failed, ${errors} errors — ${total} total`;
         this.testResults = data.tests || data.results || [];
         if (!this.testResults.length) {
-          this.testResults = [{ name: ok ? 'All tests passed.' : 'No test details available.', _placeholder: true }];
+          this.testResults = [{ name: total === 0 ? 'No test files available.' : ok ? 'All tests passed.' : 'No test details available.', _placeholder: true }];
         }
       } catch (err) {
         this.testBadgeText = 'error';
