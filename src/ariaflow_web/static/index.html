@@ -425,6 +425,82 @@
         </div>
       </div>
 
+      <div class="span-6" x-show="page === 'options'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>aria2 Options</h2>
+            <div class="hint">Safe subset of aria2 global options. Changes take effect immediately.</div>
+          </div>
+          <div class="list">
+            <div class="item">
+              <div class="item-top"><div class="item-url">Max concurrent downloads</div></div>
+              <div class="meta"><span>Number of parallel downloads. Default: controlled by declaration preference.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConcurrent" placeholder="e.g. 5" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-concurrent-downloads', aria2OptMaxConcurrent)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Max connections per server</div></div>
+              <div class="meta"><span>Connections per server per download. Default: 1.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConnPerServer" placeholder="e.g. 4" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-connection-per-server', aria2OptMaxConnPerServer)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Split</div></div>
+              <div class="meta"><span>Number of segments per download. Default: 5.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="number" min="1" max="64" step="1" x-model="aria2OptSplit" placeholder="e.g. 5" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('split', aria2OptSplit)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Min split size</div></div>
+              <div class="meta"><span>Minimum segment size (e.g. 1M, 20M). Default: 20M.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="text" x-model="aria2OptMinSplitSize" placeholder="e.g. 20M" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('min-split-size', aria2OptMinSplitSize)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Max overall download limit</div></div>
+              <div class="meta"><span>Global speed limit (e.g. 0 = unlimited, 1M, 500K). Default: 0.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="text" x-model="aria2OptMaxOverallDlLimit" placeholder="e.g. 0" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-overall-download-limit', aria2OptMaxOverallDlLimit)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Max per-download limit</div></div>
+              <div class="meta"><span>Per-download speed limit (e.g. 0 = unlimited, 1M). Default: 0.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="text" x-model="aria2OptMaxDlLimit" placeholder="e.g. 0" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-download-limit', aria2OptMaxDlLimit)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Timeout</div></div>
+              <div class="meta"><span>Download timeout in seconds. Default: 60.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="number" min="1" max="600" step="1" x-model="aria2OptTimeout" placeholder="e.g. 60" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('timeout', aria2OptTimeout)">Apply</button>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top"><div class="item-url">Connect timeout</div></div>
+              <div class="meta"><span>Connection timeout in seconds. Default: 60.</span></div>
+              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+                <input type="number" min="1" max="300" step="1" x-model="aria2OptConnectTimeout" placeholder="e.g. 60" style="width:80px;padding:0 8px;height:32px;">
+                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('connect-timeout', aria2OptConnectTimeout)">Apply</button>
+              </div>
+            </div>
+          </div>
+          <div x-show="aria2OptionResult" style="color:var(--muted);font-size:0.88rem;margin-top:8px;" x-text="aria2OptionResult"></div>
+        </div>
+      </div>
+
       <!-- LOG -->
       <div class="span-6" x-show="page === 'log'">
         <div class="panel">
@@ -604,23 +680,9 @@
             <h2>API Documentation</h2>
             <div class="hint">Interactive Swagger UI and OpenAPI spec</div>
           </div>
-          <div class="row" style="margin-bottom:12px;">
+          <div class="row">
             <button class="secondary" @click="openDocs()">Open Swagger UI</button>
             <button class="secondary" @click="openSpec()">Download OpenAPI spec</button>
-          </div>
-          <div class="item">
-            <div class="item-top">
-              <div class="item-url">Swagger UI</div>
-              <span class="badge good">GET /api/docs</span>
-            </div>
-            <div class="meta"><span>Browse and try all backend API endpoints interactively.</span></div>
-          </div>
-          <div class="item" style="margin-top:10px;">
-            <div class="item-top">
-              <div class="item-url">OpenAPI Spec</div>
-              <span class="badge">GET /api/openapi.yaml</span>
-            </div>
-            <div class="meta"><span>Raw YAML spec for code generation and client SDKs.</span></div>
           </div>
         </div>
       </div>
@@ -684,81 +746,6 @@
             </div>
           </template>
           <div x-show="!apiEndpoints" style="color:var(--muted);">Loading...</div>
-        </div>
-      </div>
-      <div class="span-6" x-show="page === 'dev'">
-        <div class="panel">
-          <div class="section-title">
-            <h2>aria2 Options</h2>
-            <div class="hint">Safe subset of aria2 global options. Changes take effect immediately.</div>
-          </div>
-          <div class="list">
-            <div class="item">
-              <div class="item-top"><div class="item-url">Max concurrent downloads</div></div>
-              <div class="meta"><span>Number of parallel downloads. Default: controlled by declaration preference.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConcurrent" placeholder="e.g. 5" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-concurrent-downloads', aria2OptMaxConcurrent)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Max connections per server</div></div>
-              <div class="meta"><span>Connections per server per download. Default: 1.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConnPerServer" placeholder="e.g. 4" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-connection-per-server', aria2OptMaxConnPerServer)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Split</div></div>
-              <div class="meta"><span>Number of segments per download. Default: 5.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="number" min="1" max="64" step="1" x-model="aria2OptSplit" placeholder="e.g. 5" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('split', aria2OptSplit)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Min split size</div></div>
-              <div class="meta"><span>Minimum segment size (e.g. 1M, 20M). Default: 20M.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="text" x-model="aria2OptMinSplitSize" placeholder="e.g. 20M" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('min-split-size', aria2OptMinSplitSize)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Max overall download limit</div></div>
-              <div class="meta"><span>Global download speed limit (e.g. 0 = unlimited, 1M, 500K). Default: 0.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="text" x-model="aria2OptMaxOverallDlLimit" placeholder="e.g. 0" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-overall-download-limit', aria2OptMaxOverallDlLimit)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Max download limit</div></div>
-              <div class="meta"><span>Per-download speed limit (e.g. 0 = unlimited, 1M). Default: 0.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="text" x-model="aria2OptMaxDlLimit" placeholder="e.g. 0" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('max-download-limit', aria2OptMaxDlLimit)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Timeout</div></div>
-              <div class="meta"><span>Seconds before download timeout. Default: 60.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="number" min="1" max="600" step="1" x-model="aria2OptTimeout" placeholder="e.g. 60" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('timeout', aria2OptTimeout)">Apply</button>
-              </div>
-            </div>
-            <div class="item">
-              <div class="item-top"><div class="item-url">Connect timeout</div></div>
-              <div class="meta"><span>Seconds before connection timeout. Default: 60.</span></div>
-              <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
-                <input type="number" min="1" max="300" step="1" x-model="aria2OptConnectTimeout" placeholder="e.g. 60" style="width:80px;padding:0 8px;height:32px;">
-                <button class="secondary" style="font-size:0.85rem;" @click="setAria2Option('connect-timeout', aria2OptConnectTimeout)">Apply</button>
-              </div>
-            </div>
-          </div>
-          <div x-show="aria2OptionResult" style="color:var(--muted);font-size:0.88rem;margin-top:8px;" x-text="aria2OptionResult"></div>
         </div>
       </div>
 
