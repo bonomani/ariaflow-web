@@ -430,7 +430,7 @@ details.debug summary::-webkit-details-marker { display: none; }
 .text-sm { font-size: var(--font-sm); }
 .text-xs { font-size: var(--font-xs); }
 .text-center { text-align: center; }
-.text-mono { font-family: monospace; white-space: pre-wrap; word-break: break-word; }
+.text-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 .cursor-pointer { cursor: pointer; }
 .align-end { display: flex; gap: var(--gap-sm); align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .dimmed { opacity: 0.35; }
