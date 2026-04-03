@@ -274,9 +274,15 @@ document.addEventListener('alpine:init', () => {
     // api discovery
     apiEndpoints: null,
 
-    // aria2 options
-    aria2OptionKey: '',
-    aria2OptionValue: '',
+    // aria2 options (safe subset exposed by backend)
+    aria2OptMaxConcurrent: '',
+    aria2OptMaxConnPerServer: '',
+    aria2OptSplit: '',
+    aria2OptMinSplitSize: '',
+    aria2OptMaxOverallDlLimit: '',
+    aria2OptMaxDlLimit: '',
+    aria2OptTimeout: '',
+    aria2OptConnectTimeout: '',
     aria2OptionResult: '',
 
     // test suite
@@ -1420,17 +1426,16 @@ document.addEventListener('alpine:init', () => {
     },
 
     // --- aria2 options ---
-    async setAria2Option() {
-      const key = this.aria2OptionKey.trim();
-      const value = this.aria2OptionValue.trim();
-      if (!key || !value) { this.aria2OptionResult = 'Key and value required'; return; }
+    async setAria2Option(key, value) {
+      const v = String(value).trim();
+      if (!v) return;
       try {
         const r = await this._fetch(this.apiPath('/api/aria2/options'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [key]: value }),
+          body: JSON.stringify({ [key]: v }),
         });
         const data = await r.json();
-        this.aria2OptionResult = data.ok !== false ? `Set ${key} = ${value}` : (data.message || 'Failed');
+        this.aria2OptionResult = data.ok !== false ? `${key} set to ${v}` : (data.message || 'Failed');
       } catch (e) {
         this.aria2OptionResult = `Error: ${e.message}`;
       }
