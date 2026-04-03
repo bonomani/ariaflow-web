@@ -83,11 +83,14 @@ COVERAGE_MAP: dict[str, str] = {
     "toggleTheme": "test_theme_toggle_cycles",
     "uccRun": "test_run_contract_button",
     "cleanup": "test_cleanup",
-    "moveToTop": "test_move_to_top_button",
     "openFileSelection": "test_file_selection",
     "closeFileSelection": "test_file_selection",
     "saveFileSelection": "test_file_selection",
     "navigateTo": "test_nav_links",
+    "handleFileUpload": "test_api_params.test_valid_add (torrent_data/metalink_data path)",
+    "loadMoreArchive": "test_api_params.test_archive (archive pagination)",
+    "loadSessionStats": "test_api_params.test_session_stats",
+    "setAria2Option": "test_api_params.test_aria2_options",
 }
 
 

@@ -242,6 +242,10 @@ class TestPostMisc:
         data = _get(f"{web_server}/api/scheduler")
         assert isinstance(data, dict)
 
+    def test_api_discovery(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api")
+        assert isinstance(data, dict)
+
     def test_sessions(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/sessions")
         assert isinstance(data, dict)
@@ -311,6 +315,7 @@ class TestApiParamCoverage:
         "GET /api/archive": "test_archive",
         "GET /api/events": "test_events_endpoint_exists",
         "GET /api/scheduler": "test_scheduler",
+        "GET /api": "test_api_discovery",
         "GET /api/sessions": "test_sessions",
         "GET /api/session/stats": "test_session_stats",
         "POST /api/aria2/options": "test_aria2_options",
@@ -333,6 +338,7 @@ class TestApiParamCoverage:
         known = {v.split("/api/")[-1].split("?")[0] for v in self.ENDPOINT_COVERAGE if v.startswith("GET /api") or v.startswith("POST /api")}
         known.add("item/{param}/{param}")  # dynamic routes
         known.add("discovery")  # local-only
+        known.add("/api")  # root API discovery
 
         uncovered = []
         for fp in sorted(fetch_paths):
