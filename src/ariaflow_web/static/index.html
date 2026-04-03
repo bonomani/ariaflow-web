@@ -100,8 +100,8 @@
         <div class="panel toolbar">
           <div class="action-bar">
             <div class="action-buttons">
-              <button class="secondary" @click="toggleRunner()" x-text="runnerBtnText" :disabled="runnerBtnDisabled">Start engine</button>
-              <button class="secondary" @click="newSession()">New run</button>
+              <button class="secondary" @click="toggleRunner()" x-text="runnerBtnText" :disabled="runnerBtnDisabled">Start scheduler</button>
+              <button class="secondary" @click="newSession()">New session</button>
             </div>
           </div>
         </div>
@@ -110,34 +110,34 @@
         <div class="panel">
           <div class="section-title">
             <h2>Queue</h2>
-            <div class="hint">Jobs live inside the queue; pause or resume the flow without stopping the engine</div>
+            <div class="hint">Download items managed by the scheduler; pause or resume without stopping</div>
           </div>
           <div class="system-card" style="margin-bottom:12px;">
             <div class="queue-overview">
               <div class="queue-primary">
-                <div class="label">Queue status</div>
+                <div class="label">Scheduler status</div>
                 <div class="value"><span class="badge" x-text="queueStateLabelText">idle</span></div>
                 <div class="sub" x-text="queueDetailText">Waiting for state</div>
               </div>
               <div class="summary">
-                <div class="metric"><div class="label">Queued</div><div class="value" x-text="sumQueued">0</div><div class="sub">waiting jobs</div></div>
-                <div class="metric"><div class="label">Done</div><div class="value" x-text="sumDone">0</div><div class="sub">completed</div></div>
-                <div class="metric"><div class="label">Errors</div><div class="value" x-text="sumError">0</div><div class="sub">failed jobs</div></div>
+                <div class="metric"><div class="label">Queued</div><div class="value" x-text="sumQueued">0</div><div class="sub">pending items</div></div>
+                <div class="metric"><div class="label">Complete</div><div class="value" x-text="sumDone">0</div><div class="sub">finished</div></div>
+                <div class="metric"><div class="label">Errors</div><div class="value" x-text="sumError">0</div><div class="sub">failed items</div></div>
                 <div class="metric"><div class="label">Speed</div><div class="value" x-text="queueSpeedText">idle</div><div class="sub">current transfer rate</div><div x-html="globalSparklineSvg" style="margin-top:6px;"></div></div>
               </div>
             </div>
             <div class="system-head">
               <div class="system-copy">
-                <h3>Queue State</h3>
-                <div class="meta"><span>The shared workflow state. Jobs wait here and advance only when the engine is running.</span></div>
+                <h3>Scheduler State</h3>
+                <div class="meta"><span>The scheduler processes queued items and submits them to aria2 for download.</span></div>
               </div>
               <span class="badge" x-text="queueStateLabelText">idle</span>
             </div>
             <div class="system-facts">
-              <div class="system-fact"><span>Active job</span><strong x-text="queueActiveText">none</strong></div>
+              <div class="system-fact"><span>Active transfer</span><strong x-text="queueActiveText">none</strong></div>
             </div>
             <div class="system-actions">
-              <button class="secondary" @click="toggleQueue()" x-text="toggleBtnText">Pause queue</button>
+              <button class="secondary" @click="toggleQueue()" x-text="toggleBtnText">Pause downloads</button>
             </div>
           </div>
           <div style="margin-bottom:10px;">
@@ -189,12 +189,12 @@
                   </div>
                 </template>
                 <div x-show="item.id" class="action-strip" style="margin-top:8px;">
-                  <button x-show="itemCanPause(item)" class="secondary icon-btn" @click="itemAction(item.id, 'pause')" title="Pause">&#9646;&#9646;<span class="sr-only">Pause</span></button>
-                  <button x-show="itemCanDequeue(item)" class="secondary icon-btn" @click="itemAction(item.id, 'pause')" title="Dequeue">&#9723;<span class="sr-only">Dequeue</span></button>
-                  <button x-show="itemCanResume(item)" class="secondary icon-btn" @click="itemAction(item.id, 'resume')" title="Resume">&#9654;<span class="sr-only">Resume</span></button>
-                  <button x-show="itemCanRetry(item)" class="secondary icon-btn" @click="itemAction(item.id, 'retry')" title="Retry">&#8635;<span class="sr-only">Retry</span></button>
-                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" class="secondary icon-btn" @click="openFileSelection(item.id)" title="Select files">&#128193;<span class="sr-only">Files</span></button>
-                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" class="secondary icon-btn" @click="itemAction(item.id, 'remove')" title="Remove">&#10005;<span class="sr-only">Remove</span></button>
+                  <button x-show="itemCanPause(item)" class="secondary icon-btn" @click="itemAction(item.id, 'pause')" title="Pause transfer">&#9646;&#9646;<span class="sr-only">Pause transfer</span></button>
+                  <button x-show="itemCanDequeue(item)" class="secondary icon-btn" @click="itemAction(item.id, 'pause')" title="Remove from queue">&#9723;<span class="sr-only">Remove from queue</span></button>
+                  <button x-show="itemCanResume(item)" class="secondary icon-btn" @click="itemAction(item.id, 'resume')" title="Resume transfer">&#9654;<span class="sr-only">Resume transfer</span></button>
+                  <button x-show="itemCanRetry(item)" class="secondary icon-btn" @click="itemAction(item.id, 'retry')" title="Retry download">&#8635;<span class="sr-only">Retry download</span></button>
+                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" class="secondary icon-btn" @click="openFileSelection(item.id)" title="Select files to download">&#128193;<span class="sr-only">Select files</span></button>
+                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" class="secondary icon-btn" @click="itemAction(item.id, 'remove')" title="Remove and archive">&#10005;<span class="sr-only">Remove and archive</span></button>
                 </div>
               </div>
             </template>
@@ -229,7 +229,7 @@
           <div style="margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;">
             <label style="font-size:0.82rem;color:var(--muted);">Max age (days) <input type="number" x-model.number="cleanupMaxAge" min="1" max="365" style="width:60px;"></label>
             <label style="font-size:0.82rem;color:var(--muted);">Max count <input type="number" x-model.number="cleanupMaxCount" min="1" max="1000" style="width:60px;"></label>
-            <button class="secondary" @click="cleanup()" style="font-size:0.85rem;">Cleanup old items</button>
+            <button class="secondary" @click="cleanup()" style="font-size:0.85rem;">Archive completed items</button>
           </div>
         </div>
       </div>
@@ -262,7 +262,7 @@
         <div class="panel">
           <div class="section-title">
             <h2>Bandwidth</h2>
-            <div class="hint">Network probe, cap, and download concurrency</div>
+            <div class="hint">Network probe results from networkquality and current download limits</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
             <button class="secondary" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
@@ -387,7 +387,7 @@
         <div class="panel">
           <div class="section-title">
             <h2>Service Status</h2>
-            <div class="hint">Installed, current, autostart, and updater state</div>
+            <div class="hint">Component lifecycle: ariaflow, aria2, networkquality, launchd</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
             <button class="secondary" @click="loadLifecycle()">Refresh service status</button>
@@ -439,7 +439,7 @@
         <div class="panel">
           <div class="section-title">
             <h2>Options</h2>
-            <div class="hint">Operator policies and toggles</div>
+            <div class="hint">UIC declaration preferences</div>
           </div>
           <div class="list">
             <div class="item">
@@ -447,7 +447,7 @@
                 <div class="item-url">Auto preflight</div>
                 <label class="refresh-control"><input type="checkbox" :checked="autoPreflightEnabled" @change="setAutoPreflightPreference($el.checked)">Toggle</label>
               </div>
-              <div class="meta"><span>Run UIC preflight automatically before starting the queue.</span></div>
+              <div class="meta"><span>Run preflight gate checks automatically before starting the scheduler.</span></div>
             </div>
             <div class="item">
               <div class="item-top">
@@ -467,10 +467,10 @@
         <div class="panel">
           <div class="section-title">
             <h2>Log</h2>
-            <div class="hint">Action history and UCC trace</div>
+            <div class="hint">UCC contract execution and preflight checks</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
-            <button class="secondary" @click="uccRun()">Run contract</button>
+            <button class="secondary" @click="uccRun()">Run UCC</button>
             <button class="secondary" @click="preflightRun()">Preflight</button>
           </div>
           <div class="list">

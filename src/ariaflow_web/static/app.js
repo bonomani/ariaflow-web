@@ -98,9 +98,9 @@ document.addEventListener('alpine:init', () => {
     },
     get queueDetailText() {
       if (!this.backendReachable) return 'Backend unavailable';
-      if (this.state?.paused) return 'Queue is paused';
-      if (this.state?.running) return 'Queue can advance';
-      return 'Waiting for engine start';
+      if (this.state?.paused) return 'Downloads paused';
+      if (this.state?.running) return 'Scheduler running';
+      return 'Scheduler idle';
     },
     get queueActiveText() {
       if (!this.backendReachable) return 'none';
@@ -133,16 +133,16 @@ document.addEventListener('alpine:init', () => {
         : '-';
     },
     get runnerBtnText() {
-      if (!this.backendReachable) return 'Start engine';
+      if (!this.backendReachable) return 'Start scheduler';
       if (this.state?.stop_requested) return 'Stopping...';
-      return this.state?.running ? 'Stop engine' : 'Start engine';
+      return this.state?.running ? 'Stop scheduler' : 'Start scheduler';
     },
     get runnerBtnDisabled() {
       return !this.backendReachable || !!this.state?.stop_requested;
     },
     get toggleBtnText() {
-      if (!this.backendReachable) return 'Pause queue';
-      return this.state?.paused ? 'Resume queue' : 'Pause queue';
+      if (!this.backendReachable) return 'Pause downloads';
+      return this.state?.paused ? 'Resume downloads' : 'Pause downloads';
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
@@ -1030,14 +1030,14 @@ document.addEventListener('alpine:init', () => {
       const data = await r.json();
       this.lastResult = data;
       if (!r.ok || data.ok === false) {
-        this.resultText = data.message || 'Runner request failed';
+        this.resultText = data.message || 'Scheduler request failed';
         this.resultJson = JSON.stringify(data, null, 2);
         return;
       }
       const result = data.result || {};
       this.resultText = action === 'start'
-        ? (result.started ? 'Queue runner started' : 'Queue runner already running')
-        : (result.stopped ? 'Queue runner stopped' : 'Queue runner already stopped');
+        ? (result.started ? 'Scheduler started' : 'Scheduler already running')
+        : (result.stopped ? 'Scheduler stopped' : 'Scheduler already stopped');
       this.resultJson = JSON.stringify(data, null, 2);
       if (this.lastStatus?.state) {
         if (action === 'start' && result.started) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true } };
@@ -1052,7 +1052,7 @@ document.addEventListener('alpine:init', () => {
       const r = await this._fetch(this.apiPath('/api/pause'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
-      this.resultText = data.paused ? 'Queue paused' : 'Pause requested';
+      this.resultText = data.paused ? 'Downloads paused' : 'Pause requested';
       this.resultJson = JSON.stringify(data, null, 2);
       if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
     },
@@ -1060,7 +1060,7 @@ document.addEventListener('alpine:init', () => {
       const r = await this._fetch(this.apiPath('/api/resume'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
-      this.resultText = data.resumed ? 'Queue resumed' : 'Resume requested';
+      this.resultText = data.resumed ? 'Downloads resumed' : 'Resume requested';
       this.resultJson = JSON.stringify(data, null, 2);
       if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
     },
