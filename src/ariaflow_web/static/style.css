@@ -209,10 +209,10 @@
     /* --- form reset --- */
     input, textarea, select, button { font: inherit; outline: none; }
 
-    /* --- text inputs (shared base) --- */
+    /* --- text inputs (shared base — pill shape like search) --- */
     input, textarea {
       width: 100%;
-      border-radius: 8px;
+      border-radius: 999px;
       border: 1px solid var(--line);
       background: var(--panel-2);
       color: var(--accent);
@@ -221,8 +221,7 @@
     }
     /* --- size variants --- */
     input.input-sm { width: 72px; text-align: center; }
-    input.input-search { border-radius: 999px; }
-    textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
+    textarea { min-height: 220px; resize: vertical; line-height: 1.45; border-radius: 12px; }
     textarea.textarea-sm { min-height: auto; }
     /* --- special types --- */
     input[type="checkbox"] { width: auto; }
