@@ -194,7 +194,7 @@
                   <button x-show="itemCanResume(item)" class="icon-btn" @click="itemAction(item.id, 'resume')" title="Resume transfer">&#9654;<span class="sr-only">Resume transfer</span></button>
                   <button x-show="itemCanRetry(item)" class="icon-btn" @click="itemAction(item.id, 'retry')" title="Retry download">&#8635;<span class="sr-only">Retry download</span></button>
                   <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" class="icon-btn" @click="openFileSelection(item.id)" title="Select files to download">&#128193;<span class="sr-only">Select files</span></button>
-                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" class="secondary icon-btn" @click="itemAction(item.id, 'remove')" title="Remove and archive">&#10005;<span class="sr-only">Remove and archive</span></button>
+                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" class="icon-btn" @click="itemAction(item.id, 'remove')" title="Remove and archive">&#10005;<span class="sr-only">Remove and archive</span></button>
                 </div>
               </div>
             </template>
@@ -219,7 +219,7 @@
                       </div>
                     </template>
                   </div>
-                  <div class="system-actions"><button @click="saveFileSelection()">Save selection</button> <button class="secondary" @click="closeFileSelection()">Cancel</button></div>
+                  <div class="system-actions"><button @click="saveFileSelection()">Save selection</button> <button @click="closeFileSelection()">Cancel</button></div>
                 </div>
               </template>
             </div>
