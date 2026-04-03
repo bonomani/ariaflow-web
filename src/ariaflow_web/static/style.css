@@ -212,11 +212,13 @@
     }
     textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
     select {
+      width: auto;
       background: linear-gradient(180deg, #7dd3fc, #38bdf8);
       color: #082f49;
       border-color: transparent;
       font-weight: 700;
       cursor: pointer;
+      padding: 8px 12px;
     }
     input::placeholder, textarea::placeholder { color: #64748b; }
     input:focus, textarea:focus { border-color: rgba(125, 211, 252, 0.65); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12); }
@@ -486,6 +488,7 @@
     .nav button, .nav select {
       padding: 8px 12px;
       border-radius: 999px;
+      width: auto;
     }
     .refresh-control {
       display: inline-flex;
