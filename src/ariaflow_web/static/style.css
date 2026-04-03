@@ -200,43 +200,42 @@
       line-height: 1;
       box-shadow: none;
     }
-    input, textarea, button { font: inherit; }
-    input, textarea, select {
+    /* --- form reset --- */
+    input, textarea, select, button { font: inherit; outline: none; }
+
+    /* --- text inputs --- */
+    input, textarea {
       width: 100%;
       border-radius: 12px;
       border: 1px solid var(--line);
       background: var(--panel-2);
       color: var(--accent);
       padding: 12px 14px;
-      outline: none;
     }
     textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
-    select {
-      width: auto;
-      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
-      color: #082f49;
-      border-color: transparent;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 8px 12px;
-    }
     input::placeholder, textarea::placeholder { color: #64748b; }
     input:focus, textarea:focus { border-color: rgba(125, 211, 252, 0.65); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12); }
-    button {
+
+    /* --- actionable (buttons + selects share the same accent style) --- */
+    button, select {
       border: 1px solid transparent;
       border-radius: 12px;
-      padding: 11px 14px;
+      padding: 8px 14px;
       background: linear-gradient(180deg, #7dd3fc, #38bdf8);
       color: #082f49;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
+      width: auto;
     }
-    button.secondary {
+    button:hover, select:hover { filter: brightness(1.05); }
+
+    /* --- inactive/secondary state --- */
+    button.secondary, select.secondary {
       background: rgba(15, 23, 42, 0.85);
       color: var(--text);
       border-color: var(--line);
+      font-weight: 400;
     }
-    button:hover { filter: brightness(1.05); }
     .section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
     .section-title h2 { margin: 0; font-size: 1.05rem; letter-spacing: -0.02em; }
     .section-title .hint { color: var(--muted); font-size: 0.92rem; }
@@ -475,20 +474,16 @@
       text-decoration: none;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(8, 17, 31, 0.55);
-      color: var(--text);
-      border: 1px solid var(--line);
       font-weight: 600;
     }
     .nav a.active {
-      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
-      color: #082f49;
-      border-color: transparent;
+      background: rgba(8, 17, 31, 0.55);
+      color: var(--text);
+      border: 1px solid var(--line);
+      cursor: default;
     }
     .nav button, .nav select {
-      padding: 8px 12px;
       border-radius: 999px;
-      width: auto;
     }
     .refresh-control {
       display: inline-flex;
