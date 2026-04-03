@@ -906,6 +906,7 @@ document.addEventListener('alpine:init', () => {
       const r = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) });
       const data = await r.json();
       this.lastResult = data;
+      this.lastDeclaration = data.declaration || data;
       this.resultText = 'Declaration saved';
       this.resultJson = JSON.stringify(data, null, 2);
     },
@@ -948,7 +949,9 @@ document.addEventListener('alpine:init', () => {
         data.uic = data.uic || {};
         data.uic.preferences = prefs;
         const save = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        this.lastDeclaration = await save.json();
+        const saved = await save.json();
+        // POST returns {"saved": true, "declaration": {...}} — unwrap
+        this.lastDeclaration = saved.declaration || saved;
       } finally {
         this._prefSaving = false;
         if (this._prefQueue.length) this._flushPrefQueue();
