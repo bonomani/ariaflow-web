@@ -346,7 +346,7 @@ class TestDownloadLifecycle:
     def test_03_start_engine_begins_download(self, browser_context, web_server: str) -> None:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
-        page.click('button:has-text("engine")')
+        page.click('button:has-text("scheduler")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         text = queue_text(page)

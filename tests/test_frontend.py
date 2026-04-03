@@ -189,7 +189,7 @@ class TestDevPage:
         page.wait_for_selector("body.page-dev", timeout=8000)
         page.wait_for_timeout(300)
         text = page.inner_text("body")
-        assert "API Documentation" in text and "Test Runner" in text
+        assert "API Documentation" in text and "Test Suite" in text
 
     def test_dev_nav_active(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/dev")

@@ -64,7 +64,7 @@ class TestDashboardButtons:
 
     def test_start_stop_engine_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        page.click('button:has-text("engine")')
+        page.click('button:has-text("scheduler")')
         page.wait_for_timeout(500)
         page.wait_for_timeout(500)
 
