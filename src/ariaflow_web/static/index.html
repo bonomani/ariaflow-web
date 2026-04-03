@@ -75,7 +75,7 @@
           <div class="queue-add-row">
             <div class="queue-add-group">
               <textarea x-model="urlInput" rows="1" placeholder="Paste one or more URLs, one per line"></textarea>
-              <button class="queue-add-button" @click="add()">Add</button>
+              <button class="queue-add-button" :class="{ secondary: !urlInput.trim() }" @click="add()">Add</button>
             </div>
             <details style="margin-top:8px;">
               <summary style="cursor:pointer;color:var(--muted);font-size:0.88rem;">Advanced options</summary>
@@ -100,7 +100,7 @@
         <div class="panel toolbar">
           <div class="action-bar">
             <div class="action-buttons">
-              <button @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start scheduler</button>
+              <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start scheduler</button>
               <button class="secondary" @click="newSession()">New session</button>
             </div>
           </div>
@@ -137,7 +137,7 @@
               <div class="system-fact"><span>Active transfer</span><strong x-text="activeTransferText">none</strong></div>
             </div>
             <div class="system-actions">
-              <button @click="toggleDownloads()" x-text="downloadToggleBtnText">Pause downloads</button>
+              <button :class="{ secondary: !backendReachable || !state?.running }" @click="toggleDownloads()" x-text="downloadToggleBtnText" :disabled="!backendReachable">Pause downloads</button>
             </div>
           </div>
           <div style="margin-bottom:10px;">
@@ -277,7 +277,7 @@
               <div class="list">
                 <div class="item">
                   <div class="row">
-                    <button @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
+                    <button :class="{ secondary: probeRunning }" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
                   </div>
                 </div>
                 <div class="item">
@@ -433,8 +433,8 @@
             <div class="hint">UCC contract execution and preflight checks</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
-            <button @click="uccRun()">Run UCC</button>
-            <button @click="preflightRun()">Preflight</button>
+            <button :class="{ secondary: !backendReachable }" @click="uccRun()" :disabled="!backendReachable">Run UCC</button>
+            <button :class="{ secondary: !backendReachable }" @click="preflightRun()" :disabled="!backendReachable">Preflight</button>
           </div>
           <div class="list">
             <template x-if="contractTraceItems">
@@ -631,7 +631,7 @@
             <div class="hint">Run the backend test suite from the dashboard</div>
           </div>
           <div class="row" style="margin-bottom:12px;">
-            <button @click="runTests()">Run tests</button>
+            <button :class="{ secondary: testRunning }" @click="runTests()" :disabled="testRunning">Run tests</button>
           </div>
           <div class="item" x-show="testSummaryVisible">
             <div class="item-top">
