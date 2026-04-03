@@ -541,3 +541,10 @@
       .summary { grid-template-columns: repeat(2, 1fr); }
       .queue-overview { grid-template-columns: 1fr; }
     }
+
+    /* session history */
+    .queue-list { display: flex; flex-direction: column; gap: 6px; }
+    .queue-item { padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
+    .queue-item:hover { border-color: var(--accent); }
+    .queue-item-header { display: flex; align-items: center; gap: 8px; }
+    .queue-item-detail { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }

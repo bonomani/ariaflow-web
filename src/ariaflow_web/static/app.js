@@ -1169,27 +1169,31 @@ document.addEventListener('alpine:init', () => {
 
     // --- lifecycle ---
     async loadLifecycle() {
-      const r = await this._fetch(this.apiPath('/api/lifecycle'));
-      const data = await r.json();
-      this.lastLifecycle = data;
-      if (data?.ok === false || data?.ariaflow?.reachable === false) {
+      try {
+        const r = await this._fetch(this.apiPath('/api/lifecycle'));
+        const data = await r.json();
+        this.lastLifecycle = data;
+        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+          this.lifecycleRows = [];
+          this.lifecycleSessionHtml = '';
+          return;
+        }
+        this.lifecycleRows = [
+          { name: 'ariaflow', record: data.ariaflow, actions: [{ target: 'ariaflow', action: 'install', label: 'Install / Update' }, { target: 'ariaflow', action: 'uninstall', label: 'Remove' }] },
+          { name: 'aria2', record: data.aria2, actions: [] },
+          { name: 'networkquality', record: data.networkquality, actions: [] },
+          { name: 'aria2 auto-start (advanced)', record: data['aria2-launchd'], actions: [{ target: 'aria2-launchd', action: 'install', label: 'Load' }, { target: 'aria2-launchd', action: 'uninstall', label: 'Unload' }] },
+        ];
+        if (data?.session_id) {
+          this.lifecycleSessionHtml = 'has_session';
+          this._lifecycleSession = data;
+        } else {
+          this.lifecycleSessionHtml = '';
+          this._lifecycleSession = null;
+        }
+      } catch (e) {
         this.lifecycleRows = [];
         this.lifecycleSessionHtml = '';
-        return;
-      }
-      this.lifecycleRows = [
-        { name: 'ariaflow', record: data.ariaflow, actions: [{ target: 'ariaflow', action: 'install', label: 'Install / Update' }, { target: 'ariaflow', action: 'uninstall', label: 'Remove' }] },
-        { name: 'aria2', record: data.aria2, actions: [] },
-        { name: 'networkquality', record: data.networkquality, actions: [] },
-        { name: 'aria2 auto-start (advanced)', record: data['aria2-launchd'], actions: [{ target: 'aria2-launchd', action: 'install', label: 'Load' }, { target: 'aria2-launchd', action: 'uninstall', label: 'Unload' }] },
-      ];
-      // session info for lifecycle page
-      if (data?.session_id) {
-        this.lifecycleSessionHtml = 'has_session';
-        this._lifecycleSession = data;
-      } else {
-        this.lifecycleSessionHtml = '';
-        this._lifecycleSession = null;
       }
     },
     lifecycleStateLabel(name, record) {
@@ -1229,33 +1233,44 @@ document.addEventListener('alpine:init', () => {
       return lines.length ? lines.join(' · ') : 'No details';
     },
     async lifecycleAction(target, action) {
-      const r = await this._fetch(this.apiPath('/api/lifecycle/action'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target, action }) });
-      const data = await r.json();
-      const lifecycle = data.lifecycle || data;
-      this.lastLifecycle = lifecycle;
-      this.resultText = `${target} ${action} requested`;
-      this.resultJson = JSON.stringify(data, null, 2);
-      await this.loadLifecycle();
+      try {
+        const r = await this._fetch(this.apiPath('/api/lifecycle/action'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target, action }) });
+        const data = await r.json();
+        this.lastLifecycle = data.lifecycle || data;
+        this.resultText = `${target} ${action} requested`;
+        this.resultJson = JSON.stringify(data, null, 2);
+        await this.loadLifecycle();
+      } catch (e) {
+        this.resultText = `${target} ${action} failed: ${e.message}`;
+      }
     },
 
     // --- log ---
     async preflightRun() {
-      const r = await this._fetch(this.apiPath('/api/preflight'), { method: 'POST' });
-      const data = await r.json();
-      this.lastResult = data;
-      this.resultText = data.status === 'pass' ? 'Preflight passed' : 'Preflight needs attention';
-      this.resultJson = JSON.stringify(data, null, 2);
-      this.preflightData = data;
+      try {
+        const r = await this._fetch(this.apiPath('/api/preflight'), { method: 'POST' });
+        const data = await r.json();
+        this.lastResult = data;
+        this.resultText = data.status === 'pass' ? 'Preflight passed' : 'Preflight needs attention';
+        this.resultJson = JSON.stringify(data, null, 2);
+        this.preflightData = data;
+      } catch (e) {
+        this.resultText = `Preflight failed: ${e.message}`;
+      }
     },
     async uccRun() {
-      const r = await this._fetch(this.apiPath('/api/ucc'), { method: 'POST' });
-      const data = await r.json();
-      this.lastResult = data;
-      const outcome = data.result?.outcome || 'unknown';
-      this.resultText = `UCC result: ${outcome}`;
-      this.resultJson = JSON.stringify(data, null, 2);
-      this.contractTraceItems = data;
-      this.refreshActionLog();
+      try {
+        const r = await this._fetch(this.apiPath('/api/ucc'), { method: 'POST' });
+        const data = await r.json();
+        this.lastResult = data;
+        const outcome = data.result?.outcome || 'unknown';
+        this.resultText = `UCC result: ${outcome}`;
+        this.resultJson = JSON.stringify(data, null, 2);
+        this.contractTraceItems = data;
+        this.refreshActionLog();
+      } catch (e) {
+        this.resultText = `UCC failed: ${e.message}`;
+      }
     },
     contractTraceOutcome() {
       return this.contractTraceItems?.result?.outcome || 'unknown';
@@ -1277,13 +1292,17 @@ document.addEventListener('alpine:init', () => {
 
     async refreshActionLog() {
       if (this.page !== 'log') return;
-      const r = await this._fetch(this.apiPath(`/api/log?limit=${this.logLimit}`));
-      const data = await r.json();
-      if (data?.ok === false || data?.ariaflow?.reachable === false) {
+      try {
+        const r = await this._fetch(this.apiPath(`/api/log?limit=${this.logLimit}`));
+        const data = await r.json();
+        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+          this.actionLogEntries = [];
+          return;
+        }
+        this.actionLogEntries = data.items || [];
+      } catch (e) {
         this.actionLogEntries = [];
-        return;
       }
-      this.actionLogEntries = data.items || [];
     },
     get filteredActionLog() {
       const sessionId = this.state?.session_id || this.lastLifecycle?.session_id || this.lastDeclaration?.session_id || null;

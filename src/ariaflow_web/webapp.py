@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import threading
 from pathlib import Path
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,11 +29,13 @@ def _read_index_html(backend_url: str | None = None) -> str:
     text = text.replace("__ARIAFLOW_WEB_PID__", str(os.getpid()))
     url = backend_url or DEFAULT_BACKEND_URL
     if url != "http://127.0.0.1:8000":
-        text = text.replace("</head>", f'<script>window.__ARIAFLOW_BACKEND_URL__="{url}";</script></head>')
+        safe_url = json.dumps(url)
+        text = text.replace("</head>", f"<script>window.__ARIAFLOW_BACKEND_URL__={safe_url};</script></head>")
     return text
 
 
 INDEX_HTML = _read_index_html()
+_index_lock = threading.Lock()
 
 
 class AriaFlowHandler(BaseHTTPRequestHandler):
@@ -86,5 +89,6 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
 def serve(host: str = "127.0.0.1", port: int = 8000, backend_url: str | None = None) -> ThreadingHTTPServer:
     global INDEX_HTML  # noqa: PLW0603
     if backend_url:
-        INDEX_HTML = _read_index_html(backend_url)
+        with _index_lock:
+            INDEX_HTML = _read_index_html(backend_url)
     return ThreadingHTTPServer((host, port), AriaFlowHandler)

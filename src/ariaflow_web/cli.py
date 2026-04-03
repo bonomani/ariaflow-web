@@ -33,6 +33,11 @@ def main() -> int:
         ):
             server.serve_forever()
     except KeyboardInterrupt:
+        pass
+    except OSError as exc:
+        print(f"Server error: {exc}")
+        return 1
+    finally:
         server.server_close()
     return 0
 
