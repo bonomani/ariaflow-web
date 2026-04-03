@@ -211,6 +211,13 @@
       outline: none;
     }
     textarea { min-height: 220px; resize: vertical; line-height: 1.45; }
+    select {
+      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
+      color: #082f49;
+      border-color: transparent;
+      font-weight: 700;
+      cursor: pointer;
+    }
     input::placeholder, textarea::placeholder { color: #64748b; }
     input:focus, textarea:focus { border-color: rgba(125, 211, 252, 0.65); box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12); }
     button {
@@ -464,22 +471,22 @@
     }
     .nav a {
       text-decoration: none;
-      color: var(--text);
       padding: 8px 12px;
-      border: 1px solid var(--line);
       border-radius: 999px;
-      background: rgba(8, 17, 31, 0.55);
-    }
-    .nav a.active {
       background: linear-gradient(180deg, #7dd3fc, #38bdf8);
       color: #082f49;
-      border-color: transparent;
+      border: 1px solid transparent;
       font-weight: 700;
     }
-    .nav button {
+    .nav a.active {
+      background: rgba(8, 17, 31, 0.55);
+      color: var(--text);
+      border-color: var(--line);
+      font-weight: 400;
+    }
+    .nav button, .nav select {
       padding: 8px 12px;
       border-radius: 999px;
-      min-width: 110px;
     }
     .refresh-control {
       display: inline-flex;
