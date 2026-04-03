@@ -45,8 +45,8 @@
         <div class="chips" style="margin-top:8px;">
           <div class="chip">Backend version <strong x-text="backendVersionText">-</strong></div>
           <div class="chip">Backend PID <strong x-text="backendPidText">-</strong></div>
-          <div class="chip">Scheduler <strong x-text="backendRunnerText">idle</strong></div>
-          <div class="chip">Preflight mode <strong x-text="backendStartupText">manual</strong></div>
+          <div class="chip">Scheduler <strong x-text="schedulerStatusText">idle</strong></div>
+          <div class="chip">Preflight mode <strong x-text="preflightModeText">manual</strong></div>
           <div class="chip">Download cap <strong x-text="backendCapText">-</strong></div>
           <div class="chip">Last error <strong x-text="backendErrorText">none</strong></div>
           <div class="chip">Session <strong x-text="backendSessionText">-</strong></div>
@@ -100,7 +100,7 @@
         <div class="panel toolbar">
           <div class="action-bar">
             <div class="action-buttons">
-              <button class="secondary" @click="toggleRunner()" x-text="runnerBtnText" :disabled="runnerBtnDisabled">Start scheduler</button>
+              <button class="secondary" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start scheduler</button>
               <button class="secondary" @click="newSession()">New session</button>
             </div>
           </div>
@@ -116,8 +116,8 @@
             <div class="queue-overview">
               <div class="queue-primary">
                 <div class="label">Scheduler status</div>
-                <div class="value"><span class="badge" x-text="queueStateLabelText">idle</span></div>
-                <div class="sub" x-text="queueDetailText">Waiting for state</div>
+                <div class="value"><span class="badge" x-text="schedulerStateLabelText">idle</span></div>
+                <div class="sub" x-text="schedulerDetailText">Waiting for state</div>
               </div>
               <div class="summary">
                 <div class="metric"><div class="label">Queued</div><div class="value" x-text="sumQueued">0</div><div class="sub">pending items</div></div>
@@ -131,13 +131,13 @@
                 <h3>Scheduler State</h3>
                 <div class="meta"><span>The scheduler processes queued items and submits them to aria2 for download.</span></div>
               </div>
-              <span class="badge" x-text="queueStateLabelText">idle</span>
+              <span class="badge" x-text="schedulerStateLabelText">idle</span>
             </div>
             <div class="system-facts">
               <div class="system-fact"><span>Active transfer</span><strong x-text="queueActiveText">none</strong></div>
             </div>
             <div class="system-actions">
-              <button class="secondary" @click="toggleQueue()" x-text="toggleBtnText">Pause downloads</button>
+              <button class="secondary" @click="toggleDownloads()" x-text="toggleBtnText">Pause downloads</button>
             </div>
           </div>
           <div style="margin-bottom:10px;">

@@ -93,10 +93,10 @@ document.addEventListener('alpine:init', () => {
       });
       return counts;
     },
-    get queueStateLabelText() {
-      return this.queueStateLabel(this.state, this.enrichedItems, this.liveActive);
+    get schedulerStateLabelText() {
+      return this.schedulerOverviewLabel(this.state, this.enrichedItems, this.liveActive);
     },
-    get queueDetailText() {
+    get schedulerDetailText() {
       if (!this.backendReachable) return 'Backend unavailable';
       if (this.state?.paused) return 'Downloads paused';
       if (this.state?.running) return 'Scheduler running';
@@ -132,12 +132,12 @@ document.addEventListener('alpine:init', () => {
         ? `${this.state.session_closed_at}${this.state.session_closed_reason ? ` · ${this.state.session_closed_reason}` : ''}`
         : '-';
     },
-    get runnerBtnText() {
+    get schedulerBtnText() {
       if (!this.backendReachable) return 'Start scheduler';
       if (this.state?.stop_requested) return 'Stopping...';
       return this.state?.running ? 'Stop scheduler' : 'Start scheduler';
     },
-    get runnerBtnDisabled() {
+    get schedulerBtnDisabled() {
       return !this.backendReachable || !!this.state?.stop_requested;
     },
     get toggleBtnText() {
@@ -152,11 +152,11 @@ document.addEventListener('alpine:init', () => {
       if (!this.backendReachable) return '-';
       return this.lastStatus?.ariaflow?.pid || 'unreported';
     },
-    get backendRunnerText() {
+    get schedulerStatusText() {
       if (!this.backendReachable) return 'offline';
-      return this.runnerStateLabel(this.state);
+      return this.schedulerStateLabel(this.state);
     },
-    get backendStartupText() {
+    get preflightModeText() {
       return this.getDeclarationPreference('auto_preflight_on_run') ? 'auto-check' : 'manual';
     },
     get backendCapText() {
@@ -449,12 +449,12 @@ document.addEventListener('alpine:init', () => {
       if (state?.session_id && state?.session_closed_at) return `closed ${String(state.session_id).slice(0, 8)}`;
       return '-';
     },
-    runnerStateLabel(state, reachable = true) {
+    schedulerStateLabel(state, reachable = true) {
       if (!reachable) return 'offline';
       if (state?.stop_requested) return 'stopping';
       return state?.running ? 'running' : 'idle';
     },
-    queueStateLabel(state, items, active) {
+    schedulerOverviewLabel(state, items, active) {
       if (!state?.running) return 'waiting for engine';
       if (state?.paused) return 'paused';
       if (active && active.status && active.status !== 'idle') return active.status;
@@ -1020,10 +1020,10 @@ document.addEventListener('alpine:init', () => {
       };
       reader.readAsDataURL(file);
     },
-    async toggleRunner() {
-      return this.runnerAction(this.state?.running ? 'stop' : 'start');
+    async toggleScheduler() {
+      return this.schedulerAction(this.state?.running ? 'stop' : 'start');
     },
-    async runnerAction(action) {
+    async schedulerAction(action) {
       const payload = { action };
       if (action === 'start') payload.auto_preflight_on_run = this.autoPreflightEnabled;
       const r = await this._fetch(this.apiPath('/api/run'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -1044,11 +1044,11 @@ document.addEventListener('alpine:init', () => {
         if (action === 'stop' && result.stopped) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
       }
     },
-    async toggleQueue() {
+    async toggleDownloads() {
       const paused = this.state?.paused;
-      return paused ? this.resumeQueue() : this.pauseQueue();
+      return paused ? this.resumeDownloads() : this.pauseDownloads();
     },
-    async pauseQueue() {
+    async pauseDownloads() {
       const r = await this._fetch(this.apiPath('/api/pause'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
@@ -1056,7 +1056,7 @@ document.addEventListener('alpine:init', () => {
       this.resultJson = JSON.stringify(data, null, 2);
       if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
     },
-    async resumeQueue() {
+    async resumeDownloads() {
       const r = await this._fetch(this.apiPath('/api/resume'), { method: 'POST' });
       const data = await r.json();
       this.lastResult = data;
