@@ -46,9 +46,9 @@
     .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 32px; overflow-x: hidden; }
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      grid-template-columns: 25% 1fr;
       gap: 10px;
-      align-items: end;
+      align-items: start;
       margin-bottom: 10px;
     }
     .title h1 { margin: 0; font-size: clamp(1.45rem, 2.4vw, 2.1rem); letter-spacing: -0.04em; }

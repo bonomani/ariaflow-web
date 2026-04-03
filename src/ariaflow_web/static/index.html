@@ -42,36 +42,30 @@
           <div class="chip">Web UI <strong>__ARIAFLOW_WEB_VERSION__</strong></div>
           <div class="chip">PID <strong>__ARIAFLOW_WEB_PID__</strong></div>
         </div>
-      </div>
-    </div>
-    <div class="panel" style="margin-bottom:14px;">
-      <div class="section-title">
-        <h2>Backends</h2>
-        <div class="hint">Local default is 127.0.0.1:8000; manual backends stay browser-local</div>
-      </div>
-      <div class="backend-add-row">
-        <div class="backend-add-group">
-          <input x-model="backendInput" placeholder="http://127.0.0.1:8000" @keydown.enter="addBackend()">
-          <button class="secondary backend-add-button" @click="addBackend()">Add</button>
+        <div class="chips" style="margin-top:8px;">
+          <div class="chip">Version <strong x-text="backendVersionText">-</strong></div>
+          <div class="chip">PID <strong x-text="backendPidText">-</strong></div>
+          <div class="chip">Runner <strong x-text="backendRunnerText">idle</strong></div>
+          <div class="chip">Startup <strong x-text="backendStartupText">manual</strong></div>
+          <div class="chip">Cap <strong x-text="backendCapText">-</strong></div>
+          <div class="chip">Last issue <strong x-text="backendErrorText">none</strong></div>
+          <div class="chip">Run <strong x-text="backendSessionText">-</strong></div>
         </div>
-      </div>
-      <div class="chips" style="margin-top:12px;">
-        <div class="chip">Version <strong x-text="backendVersionText">-</strong></div>
-        <div class="chip">PID <strong x-text="backendPidText">-</strong></div>
-        <div class="chip">Runner <strong x-text="backendRunnerText">idle</strong></div>
-        <div class="chip">Startup <strong x-text="backendStartupText">manual</strong></div>
-        <div class="chip">Cap <strong x-text="backendCapText">-</strong></div>
-        <div class="chip">Last issue <strong x-text="backendErrorText">none</strong></div>
-        <div class="chip">Run <strong x-text="backendSessionText">-</strong></div>
-      </div>
-      <div class="chips" style="margin-top:12px;">
-        <button :class="selectedBackend === DEFAULT_BACKEND_URL ? '' : 'secondary'" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL"></button>
-        <template x-for="backend in backends" :key="backend">
-          <span class="chip">
-            <button :class="backend === selectedBackend ? '' : 'secondary'" @click="selectBackend(backend)" x-text="backend"></button>
-            <button class="secondary icon-btn" @click="removeBackend(backend)" title="Remove backend" aria-label="Remove backend">&times;<span class="sr-only">Remove backend</span></button>
-          </span>
-        </template>
+        <div class="backend-add-row" style="margin-top:8px;">
+          <div class="backend-add-group">
+            <input x-model="backendInput" placeholder="http://127.0.0.1:8000" @keydown.enter="addBackend()">
+            <button class="secondary backend-add-button" @click="addBackend()">Add</button>
+          </div>
+        </div>
+        <div class="chips" style="margin-top:8px;">
+          <button :class="selectedBackend === DEFAULT_BACKEND_URL ? '' : 'secondary'" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL"></button>
+          <template x-for="backend in backends" :key="backend">
+            <span class="chip">
+              <button :class="backend === selectedBackend ? '' : 'secondary'" @click="selectBackend(backend)" x-text="backend"></button>
+              <button class="secondary icon-btn" @click="removeBackend(backend)" title="Remove backend" aria-label="Remove backend">&times;<span class="sr-only">Remove backend</span></button>
+            </span>
+          </template>
+        </div>
       </div>
     </div>
     <div class="grid">
