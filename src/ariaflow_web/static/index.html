@@ -115,15 +115,15 @@
           <div class="system-card" class="mb-md">
             <div class="queue-overview">
               <div class="queue-primary">
-                <div class="label">Scheduler status</div>
-                <div class="value"><span class="badge" x-text="schedulerStateLabelText">idle</span></div>
-                <div class="sub" x-text="schedulerDetailText">Waiting for state</div>
+                <div class="stat-label">Scheduler status</div>
+                <div class="stat-value"><span class="badge" x-text="schedulerStateLabelText">idle</span></div>
+                <div class="stat-sub" x-text="schedulerDetailText">Waiting for state</div>
               </div>
               <div class="summary">
-                <div class="metric" :class="{ dimmed: !sumQueued }"><div class="label">Queued</div><div class="value" x-text="sumQueued">0</div><div class="sub">pending items</div></div>
-                <div class="metric" :class="{ dimmed: !sumDone }"><div class="label">Complete</div><div class="value" x-text="sumDone">0</div><div class="sub">finished</div></div>
-                <div class="metric" :class="{ dimmed: !sumError }"><div class="label">Errors</div><div class="value" x-text="sumError">0</div><div class="sub">failed items</div></div>
-                <div class="metric"><div class="label">Speed</div><div class="value" x-text="transferSpeedText">idle</div><div class="sub">current transfer rate</div><div x-html="globalSparklineSvg" class="mt-sm"></div></div>
+                <div class="metric" :class="{ dimmed: !sumQueued }"><div class="stat-label">Queued</div><div class="stat-value" x-text="sumQueued">0</div><div class="stat-sub">pending items</div></div>
+                <div class="metric" :class="{ dimmed: !sumDone }"><div class="stat-label">Complete</div><div class="stat-value" x-text="sumDone">0</div><div class="stat-sub">finished</div></div>
+                <div class="metric" :class="{ dimmed: !sumError }"><div class="stat-label">Errors</div><div class="stat-value" x-text="sumError">0</div><div class="stat-sub">failed items</div></div>
+                <div class="metric"><div class="stat-label">Speed</div><div class="stat-value" x-text="transferSpeedText">idle</div><div class="stat-sub">current transfer rate</div><div x-html="globalSparklineSvg" class="mt-sm"></div></div>
               </div>
             </div>
             <div class="system-head">
