@@ -121,7 +121,7 @@ input:focus, textarea:focus { border-color: var(--glow); box-shadow: 0 0 0 3px v
 /* --- buttons + selects (actionable) --- */
 button, select {
   border: var(--border-none);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   padding: var(--pad-btn);
   background: var(--btn-bg);
   color: var(--btn-text);
