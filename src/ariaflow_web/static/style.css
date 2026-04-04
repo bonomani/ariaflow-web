@@ -41,6 +41,7 @@
   --tracking-tight: -0.03em;
   --tracking-wide: 0.08em;
   --border: 1px solid var(--line);
+  --border-none: 1px solid transparent;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -116,7 +117,7 @@ input:focus, textarea:focus { border-color: var(--glow); box-shadow: 0 0 0 3px v
 
 /* --- buttons + selects (actionable) --- */
 button, select {
-  border: 1px solid transparent;
+  border: var(--border-none);
   border-radius: var(--radius);
   padding: 8px 14px;
   background: var(--btn-bg);
@@ -346,7 +347,7 @@ button.icon-btn { padding: 8px 10px; min-width: 38px; border-radius: var(--radiu
 .filter-btn {
   padding: var(--pad-xs);
   border-radius: var(--radius-pill);
-  border: 1px solid transparent;
+  border: var(--border-none);
   background: var(--btn-bg);
   color: var(--btn-text);
   font-size: var(--font-sm);
@@ -374,7 +375,7 @@ details.debug summary { cursor: pointer; color: var(--muted); font-size: var(--f
 details.debug summary::-webkit-details-marker { display: none; }
 .debug-box {
   margin-top: var(--gap-sm);
-  padding: 12px;
+  padding: var(--gap-md);
   background: var(--panel-2);
   border: var(--border);
   border-radius: var(--radius);
@@ -397,7 +398,7 @@ details.debug summary::-webkit-details-marker { display: none; }
   font-weight: 600;
   background: var(--btn-bg);
   color: var(--btn-text);
-  border: 1px solid transparent;
+  border: var(--border-none);
 }
 .nav a.active {
   background: var(--btn-inactive-bg);
