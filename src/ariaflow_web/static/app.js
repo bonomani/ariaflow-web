@@ -156,6 +156,7 @@ document.addEventListener('alpine:init', () => {
     },
     get schedulerStatusText() {
       if (!this.backendReachable) return 'offline';
+      if (this.lastScheduler?.status) return this.lastScheduler.status;
       return this.schedulerStateLabel(this.state);
     },
     get preflightModeText() {
@@ -276,6 +277,9 @@ document.addEventListener('alpine:init', () => {
     // api discovery
 
     // aria2 options (safe subset exposed by backend)
+    lastScheduler: null,
+    itemOptionsGid: null,
+    itemOptionsData: null,
     aria2Options: {},
     aria2Tiers: { managed: [], safe: [], unsafe_enabled: false },
     aria2OptionResult: '',
@@ -807,12 +811,17 @@ document.addEventListener('alpine:init', () => {
       });
       es.onerror = () => {
         this._sseConnected = false;
-        // Debounce: wait 2s before resuming polling (SSE auto-reconnects)
         if (this._sseFallbackTimer) clearTimeout(this._sseFallbackTimer);
-        this._sseFallbackTimer = setTimeout(() => {
+        this._sseFallbackTimer = setTimeout(async () => {
           this._sseFallbackTimer = null;
-          if (!this._sseConnected && !this.refreshTimer && this.refreshInterval > 0) {
-            this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
+          if (this._sseConnected) return;
+          try {
+            const r = await this._fetch(this.apiPath('/api/health'), {}, 3000);
+            if (r.ok && !this.refreshTimer && this.refreshInterval > 0) {
+              this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
+            }
+          } catch (e) {
+            this._sseFallbackTimer = setTimeout(() => this._initSSE(), 5000);
           }
         }, 2000);
       };
@@ -876,6 +885,7 @@ document.addEventListener('alpine:init', () => {
         }
         this._consecutiveFailures = 0;
         this.lastStatus = data;
+        this.loadScheduler();
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0);
@@ -1393,6 +1403,30 @@ document.addEventListener('alpine:init', () => {
         entry.observed_after ? `After: ${JSON.stringify(this.sanitizeLogValue(entry.observed_after))}` : null,
         entry.message ? `Message: ${entry.message}` : null,
       ].filter(Boolean).join(' · ');
+    },
+
+    // --- per-item aria2 options ---
+    async loadItemOptions(gid) {
+      if (!gid) return;
+      if (this.itemOptionsGid === gid) { this.itemOptionsGid = null; this.itemOptionsData = null; return; }
+      this.itemOptionsGid = gid;
+      this.itemOptionsData = null;
+      try {
+        const r = await this._fetch(this.apiPath(`/api/aria2/get_option?gid=${encodeURIComponent(gid)}`));
+        this.itemOptionsData = await r.json();
+      } catch (e) {
+        this.itemOptionsData = { error: e.message };
+      }
+    },
+
+    // --- scheduler ---
+    async loadScheduler() {
+      try {
+        const r = await this._fetch(this.apiPath('/api/scheduler'));
+        this.lastScheduler = await r.json();
+      } catch (e) {
+        this.lastScheduler = null;
+      }
     },
 
     // --- session history ---

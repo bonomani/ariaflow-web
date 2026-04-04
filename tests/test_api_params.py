@@ -254,6 +254,18 @@ class TestPostMisc:
         data = _get(f"{web_server}/api/session/stats")
         assert isinstance(data, dict)
 
+    def test_health(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/health")
+        assert isinstance(data, dict)
+
+    def test_scheduler(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/scheduler")
+        assert isinstance(data, dict)
+
+    def test_aria2_get_option(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/aria2/get_option?gid=dummy")
+        assert isinstance(data, dict)
+
     def test_aria2_get_global_option(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/aria2/get_global_option")
         assert isinstance(data, dict)
@@ -326,6 +338,9 @@ class TestApiParamCoverage:
         "GET /api": "test_api_discovery",
         "GET /api/sessions": "test_sessions",
         "GET /api/session/stats": "test_session_stats",
+        "GET /api/health": "test_health",
+        "GET /api/scheduler": "test_scheduler",
+        "GET /api/aria2/get_option": "test_aria2_get_option",
         "GET /api/aria2/get_global_option": "test_aria2_get_global_option",
         "GET /api/aria2/option_tiers": "test_aria2_option_tiers",
         "POST /api/aria2/options": "test_aria2_options",
