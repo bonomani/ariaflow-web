@@ -230,7 +230,6 @@ button.icon-btn { padding: 8px 10px; min-width: 38px; border-radius: var(--radiu
   border-radius: var(--radius-lg);
   padding: var(--pad);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
 }
 
 /* --- section title --- */
