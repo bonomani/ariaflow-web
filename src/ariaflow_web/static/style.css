@@ -110,6 +110,7 @@ input, textarea {
   font-size: var(--font-base);
 }
 input.input-sm { width: var(--input-sm-w); text-align: center; }
+input.input-md { width: 180px; }
 textarea { min-height: 220px; resize: vertical; line-height: 1.45; border-radius: var(--radius); }
 textarea.textarea-sm { min-height: auto; }
 input[type="checkbox"] { width: auto; }

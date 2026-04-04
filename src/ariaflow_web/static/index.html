@@ -60,7 +60,7 @@
           </template>
         </div>
         <div class="gap-sm mt-sm">
-          <input x-model="backendInput" placeholder="Add backend" class="input-sm" style="width:180px;text-align:left;" @keydown.enter="addBackend()">
+          <input x-model="backendInput" placeholder="Add backend" class="input-md" @keydown.enter="addBackend()">
           <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
         </div>
       </div>
@@ -70,14 +70,14 @@
       <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel toolbar">
           <div>
-            <div class="add-group">
-              <textarea x-model="urlInput" rows="1" placeholder="Paste one or more URLs, one per line"></textarea>
-              <button @click="add()">Add</button>
+            <div class="gap-sm">
+              <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
+              <button x-show="urlInput.trim()" @click="add()">Add</button>
             </div>
             <details class="mt-sm">
               <summary class="text-muted text-sm cursor-pointer">Advanced options</summary>
               <div class="gap-sm-grid mt-sm">
-                <input x-model="addOutput" placeholder="Output filename (optional)">
+                <input x-model="addOutput" placeholder="Output filename (optional)" class="input-md">
                 <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
                 <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
                 <div class="gap-sm">
@@ -120,7 +120,7 @@
             </div>
           </div>
           <div class="mb-md">
-            <input type="text" placeholder="Search by URL or filename..." x-model="queueSearch">
+            <input type="text" placeholder="Search queue..." x-model="queueSearch">
           </div>
           <div class="filter-bar">
             <template x-for="f in ['all','queued','waiting','discovering','downloading','paused','stopped','done','error','cancelled']" :key="f">
