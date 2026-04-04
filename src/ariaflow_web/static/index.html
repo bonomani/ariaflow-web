@@ -432,7 +432,7 @@
               </div>
             </template>
             <template x-if="!contractTraceItems">
-              <div>Idle</div>
+              <div class="text-muted text-sm">Run UCC to see results</div>
             </template>
           </div>
           <div class="section-title mt-md">
@@ -471,13 +471,13 @@
               </div>
             </template>
             <template x-if="!preflightData">
-              <div>Idle</div>
+              <div class="text-muted text-sm">Run Preflight to see results</div>
             </template>
           </div>
-          <div class="text-mono mt-md" x-text="resultText">Idle</div>
-          <details class="debug">
+          <div class="text-mono mt-md" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></div>
+          <details class="debug" x-show="resultJson && resultJson !== 'Idle'">
             <summary>Action JSON</summary>
-            <div class="debug-box" x-text="resultJson">Idle</div>
+            <div class="debug-box" x-text="resultJson"></div>
           </details>
         </div>
       </div>
