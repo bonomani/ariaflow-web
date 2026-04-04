@@ -333,7 +333,7 @@ class TestDownloadLifecycle:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
         page.fill('textarea[x-model="urlInput"]', "https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso")
-        page.click(".queue-add-button")
+        page.click('button:has-text("Add")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         items = queue_items(page)
@@ -404,7 +404,7 @@ class TestDownloadLifecycle:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
-        page.click('button:has-text("queue")')
+        page.click('button:has-text("Pause")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         assert item_has_badge(page, "paused")
@@ -416,7 +416,7 @@ class TestDownloadLifecycle:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
-        page.click('button:has-text("queue")')
+        page.click('button:has-text("Pause")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         text = queue_text(page)
@@ -498,7 +498,7 @@ class TestDownloadLifecycle:
         # Add 3 downloads
         for url in ["https://example.com/file-a.bin", "https://example.com/file-b.bin", "https://example.com/file-c.bin"]:
             page.fill('textarea[x-model="urlInput"]', url)
-            page.click(".queue-add-button")
+            page.click('button:has-text("Add")')
             page.wait_for_timeout(300)
         refresh_and_wait(page)
 

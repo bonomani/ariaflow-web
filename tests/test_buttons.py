@@ -58,7 +58,7 @@ class TestDashboardButtons:
     def test_add_url_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         page.fill('textarea[x-model="urlInput"]', "https://example.com/test.bin")
-        page.click(".queue-add-button")
+        page.click('button:has-text("Add")')
         page.wait_for_timeout(500)
         page.wait_for_timeout(500)  # wait for deferred refresh
 
@@ -76,14 +76,14 @@ class TestDashboardButtons:
 
     def test_pause_resume_queue_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        page.click('button:has-text("queue")')
+        page.click('button:has-text("Pause")')
         page.wait_for_timeout(500)
         page.wait_for_timeout(500)
 
     def test_add_backend_button(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")
         page.fill('input[x-model="backendInput"]', "http://192.168.1.100:8000")
-        page.click(".backend-add-button")
+        page.click('button:has-text("Add")')
         page.wait_for_timeout(1000)
         # Backend is stored in Alpine data + localStorage
         backends = page.evaluate("document.querySelector('[x-data]')._x_dataStack[0].loadBackendState().backends")
@@ -100,7 +100,7 @@ class TestBackendButtons:
     def test_remove_backend_button(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")
         page.fill('input[x-model="backendInput"]', "http://172.16.99.1:8000")
-        page.click(".backend-add-button")
+        page.click('button:has-text("Add")')
         page.wait_for_timeout(1000)
         # Use evaluate to find and click remove since template rendering may lag
         removed = page.evaluate('''(() => {
