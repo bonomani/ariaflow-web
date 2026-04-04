@@ -148,7 +148,7 @@
                     <span :class="badgeClass(itemLiveStatus(item))" x-text="'aria2: ' + itemLiveStatus(item)"></span>
                   </template>
                   <span x-show="itemDisplayUrl(item)" :title="itemDisplayUrl(item)" x-text="itemDisplayUrl(item)"></span>
-                  <span x-show="itemDetail(item)" class="mono" x-text="itemDetail(item)"></span>
+                  <span x-show="itemDetail(item)" x-text="itemDetail(item)"></span>
                 </div>
                 <template x-if="itemShowTransferPanel(item)">
                   <div>
@@ -161,7 +161,7 @@
                       <span x-show="itemTotalLength(item)" x-text="'Total ' + formatBytes(itemTotalLength(item))"></span>
                       <span x-show="itemCompletedLength(item)" x-text="'Done ' + formatBytes(itemCompletedLength(item))"></span>
                       <span x-show="item.recovered_at" x-text="'Recovered ' + (item.recovered_at || '')"></span>
-                      <span x-show="item.error_message" class="mono" x-text="item.error_message || ''"></span>
+                      <span x-show="item.error_message" x-text="item.error_message || ''"></span>
                     </div>
                     <div x-html="itemSparklineSvg(item)"></div>
                   </div>
@@ -193,7 +193,7 @@
                         <label class="gap-sm">
                           <input type="checkbox" x-model="file.selected">
                           <span x-text="file.path || file.name || ('File ' + file.index)"></span>
-                          <span x-show="file.length" class="mono" x-text="formatBytes(file.length)"></span>
+                          <span x-show="file.length" x-text="formatBytes(file.length)"></span>
                         </label>
                       </div>
                     </template>
@@ -318,7 +318,7 @@
                   <div class="item-url">Run</div>
                   <span class="badge" :class="{ warn: _lifecycleSession.session_closed_at, good: !_lifecycleSession.session_closed_at }" x-text="_lifecycleSession.session_closed_at ? 'closed' : 'current'"></span>
                 </div>
-                <div class="meta"><span class="mono" x-text="_lifecycleSession.session_id"></span></div>
+                <div class="meta"><span x-text="_lifecycleSession.session_id"></span></div>
                 <div class="meta">
                   <span x-text="_lifecycleSession.session_started_at ? 'Started ' + _lifecycleSession.session_started_at : 'Start time unknown'"></span>
                   <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + _lifecycleSession.session_last_seen_at : 'Last seen unknown'"></span>
@@ -474,7 +474,7 @@
               <div>Idle</div>
             </template>
           </div>
-          <div class="mono text-mono mt-md" x-text="resultText">Idle</div>
+          <div class="text-mono mt-md" x-text="resultText">Idle</div>
           <details class="debug">
             <summary>Action JSON</summary>
             <div class="debug-box" x-text="resultJson">Idle</div>
