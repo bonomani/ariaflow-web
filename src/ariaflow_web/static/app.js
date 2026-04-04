@@ -277,6 +277,7 @@ document.addEventListener('alpine:init', () => {
 
     // aria2 options (safe subset exposed by backend)
     aria2Options: {},
+    aria2Tiers: { managed: [], safe: [], unsafe_enabled: false },
     aria2OptionResult: '',
 
     // test suite
@@ -1432,6 +1433,11 @@ document.addEventListener('alpine:init', () => {
       } catch (e) {
         this.aria2Options = {};
       }
+      try {
+        const r = await this._fetch(this.apiPath('/api/aria2/option_tiers'));
+        const data = await r.json();
+        if (data && !data.error) this.aria2Tiers = data;
+      } catch (e) {}
     },
     get aria2UnsafeEnabled() { return !!this.getDeclarationPreference('aria2_unsafe_options'); },
     setAria2UnsafeOptions(enabled) {

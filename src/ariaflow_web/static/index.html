@@ -388,7 +388,7 @@
         <div class="panel">
           <div class="section-title">
             <h2>aria2 Options</h2>
-            <div class="hint">Current aria2 global options. Changes take effect immediately.</div>
+            <div class="hint" x-text="aria2Tiers.unsafe_enabled ? 'Unsafe mode: all options available' : aria2Tiers.safe.length + ' safe options · ' + aria2Tiers.managed.length + ' managed by ariaflow'">Current aria2 global options.</div>
           </div>
           <div class="list">
             <div class="item">

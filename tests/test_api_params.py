@@ -258,6 +258,10 @@ class TestPostMisc:
         data = _get(f"{web_server}/api/aria2/get_global_option")
         assert isinstance(data, dict)
 
+    def test_aria2_option_tiers(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/aria2/option_tiers")
+        assert isinstance(data, dict)
+
     def test_aria2_options(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/aria2/options", {"max-concurrent-downloads": "5"})
         assert isinstance(data, dict)
@@ -323,6 +327,7 @@ class TestApiParamCoverage:
         "GET /api/sessions": "test_sessions",
         "GET /api/session/stats": "test_session_stats",
         "GET /api/aria2/get_global_option": "test_aria2_get_global_option",
+        "GET /api/aria2/option_tiers": "test_aria2_option_tiers",
         "POST /api/aria2/options": "test_aria2_options",
         "POST /api/cleanup": "test_cleanup",
         # Error handling
