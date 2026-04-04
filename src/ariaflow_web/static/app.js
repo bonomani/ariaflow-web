@@ -16,6 +16,7 @@ document.addEventListener('alpine:init', () => {
     speedHistory: {},
     SPEED_HISTORY_MAX: 30,
     globalSpeedHistory: [],
+    globalUploadHistory: [],
     GLOBAL_SPEED_MAX: 40,
     previousItemStatuses: {},
     refreshInFlight: false,
@@ -500,21 +501,30 @@ document.addEventListener('alpine:init', () => {
         <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
       </svg>`;
     },
-    recordGlobalSpeed(speed) {
-      const updated = [...this.globalSpeedHistory, Number(speed || 0)];
-      this.globalSpeedHistory = updated.length > this.GLOBAL_SPEED_MAX ? updated.slice(-this.GLOBAL_SPEED_MAX) : updated;
+    recordGlobalSpeed(dlSpeed, ulSpeed) {
+      const dlUpdated = [...this.globalSpeedHistory, Number(dlSpeed || 0)];
+      this.globalSpeedHistory = dlUpdated.length > this.GLOBAL_SPEED_MAX ? dlUpdated.slice(-this.GLOBAL_SPEED_MAX) : dlUpdated;
+      const ulUpdated = [...this.globalUploadHistory, Number(ulSpeed || 0)];
+      this.globalUploadHistory = ulUpdated.length > this.GLOBAL_SPEED_MAX ? ulUpdated.slice(-this.GLOBAL_SPEED_MAX) : ulUpdated;
+    },
+    _sparklinePoints(data, max, w, h) {
+      const step = w / (data.length - 1);
+      return data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`).join(' ');
     },
     get globalSparklineSvg() {
-      const data = this.globalSpeedHistory;
-      if (data.length < 2) return '';
-      const max = Math.max(...data, 1);
+      const dl = this.globalSpeedHistory;
+      const ul = this.globalUploadHistory;
+      if (dl.length < 2) return '';
+      const max = Math.max(...dl, ...ul, 1);
       const w = 200, h = 40;
-      const step = w / (data.length - 1);
-      const points = data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`).join(' ');
-      const peakLabel = this.formatRate(max);
+      const dlPoints = this._sparklinePoints(dl, max, w, h);
+      const ulPoints = ul.length >= 2 ? this._sparklinePoints(ul, max, w, h) : '';
+      const peakDl = this.formatRate(Math.max(...dl));
+      const peakUl = Math.max(...ul) > 0 ? ` ↑ ${this.formatRate(Math.max(...ul))}` : '';
       return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;">
-        <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
-      </svg><span style="font-size:0.78rem;color:var(--muted);">peak ${peakLabel}</span>`;
+        <polyline points="${dlPoints}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+        ${ulPoints ? `<polyline points="${ulPoints}" fill="none" stroke="var(--accent-2)" stroke-width="1" stroke-linejoin="round" stroke-dasharray="3,2"/>` : ''}
+      </svg><span style="font-size:0.78rem;color:var(--muted);">peak ↓ ${peakDl}${peakUl}</span>`;
     },
 
     // --- notifications ---
@@ -810,7 +820,7 @@ document.addEventListener('alpine:init', () => {
             this.lastStatus = data;
             this.lastRev = data._rev || null;
             this.checkNotifications(this.itemsWithStatus);
-            this.recordGlobalSpeed(this.currentSpeed || 0);
+            this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
           } else if (data?.rev != null && data.rev !== this.lastRev) {
             // Lightweight event with just rev — fetch full status
             this.refresh();
@@ -896,7 +906,7 @@ document.addEventListener('alpine:init', () => {
         this.loadScheduler();
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
-        this.recordGlobalSpeed(this.currentSpeed || 0);
+        this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
       } catch (e) {
         this._consecutiveFailures++;
       } finally {
