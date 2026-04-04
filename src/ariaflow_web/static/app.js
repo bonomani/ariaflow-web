@@ -23,6 +23,7 @@ document.addEventListener('alpine:init', () => {
     page: 'dashboard',
     DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
     backendInput: '',
+    backendsDiscovered: null,
     urlInput: '',
     addOutput: '',
     addPriority: '',
@@ -634,7 +635,8 @@ document.addEventListener('alpine:init', () => {
       const data = await r.json();
       this.lastResult = data;
       this.mergeDiscoveredBackends(data.items || []);
-      this.resultText = Array.isArray(data.items) && data.items.length
+      this.backendsDiscovered = Array.isArray(data.items) && data.items.length > 0;
+      this.resultText = this.backendsDiscovered
         ? `Discovered ${data.items.length} backend service(s)`
         : 'No Bonjour backends discovered';
       this.resultJson = JSON.stringify(data, null, 2);

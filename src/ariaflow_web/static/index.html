@@ -63,7 +63,7 @@
           </div>
         </div>
         <div class="chips mt-sm">
-          <button :class="{ secondary: selectedBackend === DEFAULT_BACKEND_URL }" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL"></button>
+          <button :class="selectedBackend === DEFAULT_BACKEND_URL ? (backendsDiscovered === false ? 'badge warn' : 'secondary') : ''" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL + (backendsDiscovered === false ? ' (fallback)' : '')"></button>
           <template x-for="backend in backends" :key="backend">
             <span class="chip">
               <button :class="{ secondary: backend === selectedBackend }" @click="selectBackend(backend)" x-text="backend"></button>
