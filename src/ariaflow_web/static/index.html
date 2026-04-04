@@ -47,7 +47,6 @@
         <div class="chips mt-sm">
           <div class="chip">Backend <strong x-text="backendVersionText">-</strong></div>
           <div class="chip">PID <strong x-text="backendPidText">-</strong></div>
-          <div class="chip">Scheduler <strong x-text="schedulerStatusText">idle</strong></div>
           <div class="chip">Cap <strong x-text="downloadCapText">-</strong></div>
         </div>
         <!-- Session -->
@@ -62,8 +61,8 @@
             <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
           </div>
         </div>
-        <div class="chips mt-sm">
-          <button :class="selectedBackend === DEFAULT_BACKEND_URL ? (backendsDiscovered === false ? 'badge warn' : 'secondary') : ''" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL + (backendsDiscovered === false ? ' (fallback)' : '')"></button>
+        <div class="chips mt-sm" x-show="backends.length > 0 || backendsDiscovered !== null">
+          <button x-show="backends.length > 0" :class="selectedBackend === DEFAULT_BACKEND_URL ? 'secondary' : ''" @click="selectBackend(DEFAULT_BACKEND_URL)" x-text="DEFAULT_BACKEND_URL"></button>
           <template x-for="backend in backends" :key="backend">
             <span class="chip">
               <button :class="{ secondary: backend === selectedBackend }" @click="selectBackend(backend)" x-text="backend"></button>
