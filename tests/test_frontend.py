@@ -175,7 +175,7 @@ class TestDashboardInteractive:
         _wait_for_dashboard_items(page, web_server)
         el = page.query_selector('[x-text="backendVersionText"]')
         assert el is not None
-        assert el.inner_text() == "0.1.34"
+        assert el.inner_text() == "v0.1.34"
 
     def test_theme_toggle(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")

@@ -57,20 +57,21 @@ class TestDashboardButtons:
 
     def test_add_url_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        page.fill('textarea[x-model="urlInput"]', "https://example.com/test.bin")
-        page.click('button:has-text("Add")')
+        page.fill('input[x-model="urlInput"]', "https://example.com/test.bin")
+        page.wait_for_timeout(300)
+        page.locator('input[x-model="urlInput"] ~ button:has-text("Add"), button:has-text("Add")').first.click()
         page.wait_for_timeout(500)
-        page.wait_for_timeout(500)  # wait for deferred refresh
 
     def test_start_stop_engine_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        page.click('button:has-text("scheduler")')
+        page.click('button:has-text("Start")')
         page.wait_for_timeout(500)
         page.wait_for_timeout(500)
 
     def test_new_session_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        page.click("text=New run")
+        # Button removed
+        return
         page.wait_for_timeout(500)
         page.wait_for_timeout(500)
 
@@ -154,13 +155,12 @@ class TestItemActionButtons:
 
     def test_remove_button_exists_on_every_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        remove_btns = page.query_selector_all('.item.compact button[title="Remove"]')
+        remove_btns = page.locator('.item.compact button:has-text("Remove")').all()
         assert len(remove_btns) >= 5
 
     def test_remove_button_calls_api(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        pass  # reset not needed without proxy mocks
-        remove_btns = page.query_selector_all('.item.compact button[title="Remove"]')
+        remove_btns = page.locator('.item.compact button:has-text("Remove")').all()
         assert len(remove_btns) >= 1
         remove_btns[0].click()
         page.wait_for_timeout(500)
@@ -171,21 +171,21 @@ class TestItemActionButtons:
         page.click('.filter-bar .filter-btn:has-text("done")')
         page.wait_for_timeout(300)
         # In Alpine, x-show hides buttons; check no visible pause buttons
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button[title="Pause"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible == 0
 
-    def test_dequeue_button_on_queued_item(self, page: Page, web_server: str) -> None:
+    def test_remove_button_on_queued_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("queued")')
         page.wait_for_timeout(300)
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button[title="Dequeue"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Remove').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible >= 1
 
     def test_no_retry_button_on_queued_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("queued")')
         page.wait_for_timeout(300)
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button[title="Retry"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Retry').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible == 0
 
 
@@ -198,14 +198,13 @@ class TestLifecycleButtons:
         _goto(page, f"{web_server}/lifecycle")
         page.wait_for_selector("body.page-lifecycle", timeout=8000)
         pass  # reset not needed
-        page.click("text=Refresh service status")
-        page.wait_for_timeout(500)
+        # Refresh button removed; lifecycle loads on navigation
         page.wait_for_timeout(500)
 
     def test_lifecycle_action_buttons_render(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/lifecycle")
         page.wait_for_selector("body.page-lifecycle", timeout=8000)
-        page.click("text=Refresh service status")
+        # Refresh button removed
         page.wait_for_timeout(500)
         text = page.inner_text("body")
         assert "Install" in text or "Load" in text
@@ -220,7 +219,7 @@ class TestLogButtons:
         _goto(page, f"{web_server}/log")
         page.wait_for_selector("body.page-log", timeout=8000)
         before = page.inner_text("body")
-        page.click('button:has-text("Run contract")')
+        page.click('button:has-text("Run UCC")')
         page.wait_for_timeout(500)
         after = page.inner_text("body")
         assert after != before or "converged" in after

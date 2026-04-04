@@ -332,7 +332,7 @@ class TestDownloadLifecycle:
     def test_02_add_large_download(self, browser_context, web_server: str) -> None:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
-        page.fill('textarea[x-model="urlInput"]', "https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso")
+        page.fill('input[x-model="urlInput"]', "https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso")
         page.click('button:has-text("Add")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
@@ -346,7 +346,7 @@ class TestDownloadLifecycle:
     def test_03_start_engine_begins_download(self, browser_context, web_server: str) -> None:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
-        page.click('button:has-text("scheduler")')
+        page.click('button:has-text("Start")')
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         text = queue_text(page)
@@ -371,15 +371,15 @@ class TestDownloadLifecycle:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
-        pause_btn = page.query_selector('button[title="Pause"]')
+        pause_btn = page.query_selector('button:has-text("Pause")')
         assert pause_btn is not None, "Pause button should exist on downloading item"
         pause_btn.click()
         page.wait_for_timeout(300)
         refresh_and_wait(page)
         assert item_has_badge(page, "paused")
-        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button[title="Pause"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible_pause == 0
-        visible_resume = page.evaluate('''Array.from(document.querySelectorAll('button[title="Resume"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_resume = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Resume').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible_resume > 0
         page.close()
 
@@ -388,7 +388,7 @@ class TestDownloadLifecycle:
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
         resume_btn = page.evaluate('''(() => {
-            const btns = Array.from(document.querySelectorAll('button[title="Resume"]'));
+            const btns = Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Resume');
             const visible = btns.find(b => getComputedStyle(b).display !== 'none');
             if (visible) visible.click();
             return !!visible;
@@ -429,9 +429,9 @@ class TestDownloadLifecycle:
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
         assert item_has_badge(page, "error")
-        visible_retry = page.evaluate('''Array.from(document.querySelectorAll('button[title="Retry"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_retry = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Retry').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible_retry > 0
-        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button[title="Pause"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible_pause == 0
         page.close()
 
@@ -440,7 +440,7 @@ class TestDownloadLifecycle:
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
         page.evaluate('''(() => {
-            const btns = Array.from(document.querySelectorAll('button[title="Retry"]'));
+            const btns = Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Retry');
             const visible = btns.find(b => getComputedStyle(b).display !== 'none');
             if (visible) visible.click();
         })()''')
@@ -455,20 +455,20 @@ class TestDownloadLifecycle:
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
         assert item_has_badge(page, "done")
-        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button[title="Pause"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
-        visible_resume = page.evaluate('''Array.from(document.querySelectorAll('button[title="Resume"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
-        visible_retry = page.evaluate('''Array.from(document.querySelectorAll('button[title="Retry"]')).filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_pause = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_resume = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Resume').filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible_retry = page.evaluate('''Array.from(document.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Retry').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible_pause == 0
         assert visible_resume == 0
         assert visible_retry == 0
-        assert page.query_selector('button[title="Remove"]') is not None
+        assert page.query_selector('button:has-text("Remove")') is not None
         page.close()
 
     def test_12_remove_item(self, browser_context, web_server: str) -> None:
         page = browser_context.new_page()
         _goto(page, f"{web_server}/")
         refresh_and_wait(page)
-        remove_btn = page.query_selector('button[title="Remove"]')
+        remove_btn = page.query_selector('button:has-text("Remove")')
         assert remove_btn is not None
         remove_btn.click()
         page.wait_for_timeout(300)
@@ -497,7 +497,7 @@ class TestDownloadLifecycle:
 
         # Add 3 downloads
         for url in ["https://example.com/file-a.bin", "https://example.com/file-b.bin", "https://example.com/file-c.bin"]:
-            page.fill('textarea[x-model="urlInput"]', url)
+            page.fill('input[x-model="urlInput"]', url)
             page.click('button:has-text("Add")')
             page.wait_for_timeout(300)
         refresh_and_wait(page)
