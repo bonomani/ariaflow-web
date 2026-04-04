@@ -80,7 +80,7 @@ class TestHTMLStructure:
         assert len(devs) >= 2
 
     def test_queue_metrics_exist(self) -> None:
-        for attr in ("sumQueued", "sumDone", "sumError", "queueSpeedText"):
+        for attr in ("sumQueued", "sumDone", "sumError", "transferSpeedText"):
             assert self.soup.find(attrs={"x-text": attr}) is not None
 
 
@@ -168,7 +168,7 @@ class TestDashboardInteractive:
 
     def test_queue_speed_metric_element_exists(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")
-        el = page.wait_for_selector('[x-text="queueSpeedText"]', timeout=8000)
+        el = page.wait_for_selector('[x-text="transferSpeedText"]', timeout=8000)
         assert el is not None
 
     def test_backend_chips_populated(self, page: Page, web_server: str) -> None:

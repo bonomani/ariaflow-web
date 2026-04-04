@@ -261,7 +261,6 @@ document.addEventListener('alpine:init', () => {
 
     // lifecycle
     lifecycleRows: [],
-    lifecycleSessionHtml: '',
     _lifecycleSession: null,
 
     // cleanup & pagination
@@ -313,6 +312,7 @@ document.addEventListener('alpine:init', () => {
 
       this.initTheme();
       this.initNotifications();
+      window.addEventListener('beforeunload', () => { if (this._prefQueue.length) this._flushPrefQueue(); });
       window.addEventListener('popstate', () => {
         const path = window.location.pathname.replace(/[/]+$/, '');
         const target = path === '/bandwidth' ? 'bandwidth' : path === '/lifecycle' ? 'lifecycle' : path === '/options' ? 'options' : path === '/log' ? 'log' : path === '/dev' ? 'dev' : path === '/archive' ? 'archive' : 'dashboard';
@@ -991,8 +991,10 @@ document.addEventListener('alpine:init', () => {
         data.uic.preferences = prefs;
         const save = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
         const saved = await save.json();
-        // POST returns {"saved": true, "declaration": {...}} — unwrap
         this.lastDeclaration = saved.declaration || saved;
+      } catch (e) {
+        console.warn('Preference save failed:', e.message);
+        this.resultText = `Preference save failed: ${e.message}`;
       } finally {
         this._prefSaving = false;
         if (this._prefQueue.length) this._flushPrefQueue();
@@ -1225,7 +1227,7 @@ document.addEventListener('alpine:init', () => {
         if (data && data.ok !== false) {
           this.lastStatus = { ...(this.lastStatus || {}), bandwidth: data };
         }
-      } catch (e) {}
+      } catch (e) { console.warn('refreshBandwidth:', e.message); }
     },
 
     // --- lifecycle ---
@@ -1236,7 +1238,6 @@ document.addEventListener('alpine:init', () => {
         this.lastLifecycle = data;
         if (data?.ok === false || data?.ariaflow?.reachable === false) {
           this.lifecycleRows = [];
-          this.lifecycleSessionHtml = '';
           return;
         }
         this.lifecycleRows = [
@@ -1246,15 +1247,12 @@ document.addEventListener('alpine:init', () => {
           { name: 'aria2 auto-start (advanced)', record: data['aria2-launchd'], actions: [{ target: 'aria2-launchd', action: 'install', label: 'Load' }, { target: 'aria2-launchd', action: 'uninstall', label: 'Unload' }] },
         ];
         if (data?.session_id) {
-          this.lifecycleSessionHtml = 'has_session';
           this._lifecycleSession = data;
         } else {
-          this.lifecycleSessionHtml = '';
           this._lifecycleSession = null;
         }
       } catch (e) {
         this.lifecycleRows = [];
-        this.lifecycleSessionHtml = '';
       }
     },
     lifecycleStateLabel(name, record) {
@@ -1495,7 +1493,7 @@ document.addEventListener('alpine:init', () => {
         const r = await this._fetch(this.apiPath('/api/aria2/option_tiers'));
         const data = await r.json();
         if (data && !data.error) this.aria2Tiers = data;
-      } catch (e) {}
+      } catch (e) { console.warn('loadAria2Tiers:', e.message); }
     },
     get aria2UnsafeEnabled() { return !!this.getDeclarationPreference('aria2_unsafe_options'); },
     setAria2UnsafeOptions(enabled) {
