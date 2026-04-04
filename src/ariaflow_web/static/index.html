@@ -70,7 +70,8 @@
               <button class="icon-btn" @click="removeBackend(backend)" title="Remove backend" aria-label="Remove backend">&times;<span class="sr-only">Remove backend</span></button>
             </span>
           </template>
-          <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText.includes('Discovered')"></span>
+          <span x-show="backendsDiscovered === true" class="text-sm" style="color: var(--good);" x-text="resultText"></span>
+          <span x-show="backendsDiscovered === false" class="text-sm" style="color: var(--warn);">No Bonjour backends discovered</span>
         </div>
       </div>
     </div>
