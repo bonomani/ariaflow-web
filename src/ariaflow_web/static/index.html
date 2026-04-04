@@ -425,10 +425,14 @@
             <template x-if="contractTraceItems">
               <div class="item">
                 <div class="item-top">
-                  <div class="item-url">UCC execution</div>
+                  <div class="item-url" x-text="(contractTraceItems.meta?.contract || 'UCC') + ' v' + (contractTraceItems.meta?.version || '-')"></div>
                   <span :class="badgeClass(contractTraceOutcome())" x-text="contractTraceOutcome()"></span>
                 </div>
-                <div class="meta"><span x-text="contractTraceLines()"></span></div>
+                <div class="system-facts">
+                  <div class="system-fact" x-show="contractTraceItems.result?.message"><span>Message</span><strong x-text="contractTraceItems.result?.message"></strong></div>
+                  <div class="system-fact" x-show="contractTraceItems.result?.reason"><span>Reason</span><strong x-text="contractTraceItems.result?.reason"></strong></div>
+                  <div class="system-fact" x-show="contractTraceItems.preflight?.status"><span>Preflight</span><strong x-text="contractTraceItems.preflight?.status"></strong></div>
+                </div>
               </div>
             </template>
             <template x-if="!contractTraceItems">
@@ -474,9 +478,8 @@
               <div class="text-muted text-sm">Run Preflight to see results</div>
             </template>
           </div>
-          <div class="text-mono mt-md" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></div>
-          <details class="debug" x-show="resultJson && resultJson !== 'Idle'">
-            <summary>Action JSON</summary>
+          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
+            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
             <div class="debug-box" x-text="resultJson"></div>
           </details>
         </div>
