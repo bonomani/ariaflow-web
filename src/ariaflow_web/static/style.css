@@ -35,11 +35,9 @@
   --pad-sm: 8px 12px;
   --pad-xs: 5px 10px;
   --input-sm-w: 72px;
-  --font-xs: 0.75rem;
   --font-sm: 0.85rem;
-  --font-base: 0.9rem;
-  --font-lg: 1.05rem;
-  --font-xl: 1.45rem;
+  --font-base: 0.92rem;
+  --font-lg: 1.1rem;
   --tracking-tight: -0.03em;
   --tracking-wide: 0.08em;
   --border: 1px solid var(--line);
@@ -299,8 +297,8 @@ button.icon-btn { padding: 8px 10px; min-width: 38px; border-radius: var(--radiu
   align-content: start;
 }
 /* --- shared stat label/value/sub (used by queue-primary + metric) --- */
-.stat-label { color: var(--muted); font-size: var(--font-xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
-.stat-value { font-size: var(--font-xl); font-weight: 700; letter-spacing: var(--tracking-tight); }
+.stat-label { color: var(--muted); font-size: var(--font-sm); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+.stat-value { font-size: var(--font-lg); font-weight: 700; letter-spacing: var(--tracking-tight); }
 .stat-sub { color: var(--muted); font-size: var(--font-sm); }
 
 /* --- metric cards --- */
@@ -433,7 +431,6 @@ details.debug summary::-webkit-details-marker { display: none; }
 .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-md); }
 .text-muted { color: var(--muted); }
 .text-sm { font-size: var(--font-sm); }
-.text-xs { font-size: var(--font-xs); }
 .text-center { text-align: center; }
 .text-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 .cursor-pointer { cursor: pointer; }
