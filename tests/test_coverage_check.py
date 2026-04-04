@@ -70,6 +70,7 @@ COVERAGE_MAP: dict[str, str] = {
     "saveDeclaration": "test_save_declaration_button",
     "selectBackend": "test_select_default_backend_button",
     "setAutoPreflightPreference": "test_auto_preflight_toggle",
+    "setAria2UnsafeOptions": "test_aria2_options (unsafe toggle)",
     "setBandwidthPref": "test_bandwidth_free_percent_input / test_bandwidth_free_absolute_input / test_bandwidth_floor_input",
     "setDuplicateAction": "test_duplicate_action_dropdown",
     "setPostActionRule": "test_post_action_rule_dropdown",

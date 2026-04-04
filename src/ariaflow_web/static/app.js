@@ -276,14 +276,7 @@ document.addEventListener('alpine:init', () => {
     // api discovery
 
     // aria2 options (safe subset exposed by backend)
-    aria2OptMaxConcurrent: '',
-    aria2OptMaxConnPerServer: '',
-    aria2OptSplit: '',
-    aria2OptMinSplitSize: '',
-    aria2OptMaxOverallDlLimit: '',
-    aria2OptMaxDlLimit: '',
-    aria2OptTimeout: '',
-    aria2OptConnectTimeout: '',
+    aria2Options: {},
     aria2OptionResult: '',
 
     // test suite
@@ -325,7 +318,7 @@ document.addEventListener('alpine:init', () => {
 
       if (this.page === 'lifecycle') this.loadLifecycle();
       if (this.page === 'bandwidth') this.loadDeclaration();
-      if (this.page === 'options') this.loadDeclaration();
+      if (this.page === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
       if (this.page === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); }
       if (this.page === 'archive') this.loadArchive();
 
@@ -347,7 +340,7 @@ document.addEventListener('alpine:init', () => {
       if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
       if (target === 'lifecycle') this.loadLifecycle();
       if (target === 'bandwidth') this.loadDeclaration();
-      if (target === 'options') this.loadDeclaration();
+      if (target === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
       if (target === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); }
       if (target === 'archive') this.loadArchive();
     },
@@ -1431,6 +1424,19 @@ document.addEventListener('alpine:init', () => {
     },
 
     // --- aria2 options ---
+    async loadAria2Options() {
+      try {
+        const r = await this._fetch(this.apiPath('/api/aria2/get_global_option'));
+        const data = await r.json();
+        if (data && data.ok !== false) this.aria2Options = data;
+      } catch (e) {
+        this.aria2Options = {};
+      }
+    },
+    get aria2UnsafeEnabled() { return !!this.getDeclarationPreference('aria2_unsafe_options'); },
+    setAria2UnsafeOptions(enabled) {
+      this._queuePrefChange('aria2_unsafe_options', !!enabled, [false, true], 'allow setting any aria2 option via API');
+    },
     _aria2OptTimer: null,
     setAria2Option(key, value) {
       const v = String(value).trim();
@@ -1446,6 +1452,7 @@ document.addEventListener('alpine:init', () => {
         });
         const data = await r.json();
         this.aria2OptionResult = data.ok !== false ? `${key} = ${value}` : (data.message || 'Failed');
+        if (data.ok !== false) this.loadAria2Options();
       } catch (e) {
         this.aria2OptionResult = `Error: ${e.message}`;
       }

@@ -373,6 +373,13 @@
               </div>
               <div class="meta"><span>Placeholder policy used after a download finishes.</span></div>
             </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 unsafe mode</div>
+                <label><input type="checkbox" :checked="aria2UnsafeEnabled" @change="setAria2UnsafeOptions($el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Allow setting any aria2 option via API. Bypasses the safe subset. Use with caution.</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -381,73 +388,55 @@
         <div class="panel">
           <div class="section-title">
             <h2>aria2 Options</h2>
-            <div class="hint">Safe subset of aria2 global options. Changes take effect immediately.</div>
+            <div class="hint">Current aria2 global options. Changes take effect immediately.</div>
           </div>
           <div class="list">
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Max concurrent downloads</div>
-                <label >
-                  <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConcurrent" @input="setAria2Option('max-concurrent-downloads', aria2OptMaxConcurrent)" placeholder="e.g. 5" class="input-sm">
-                </label>
+                <label><input type="number" min="1" max="16" step="1" :value="aria2Options['max-concurrent-downloads'] || ''" @input="setAria2Option('max-concurrent-downloads', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Max connections per server</div>
-                <label >
-                  <input type="number" min="1" max="16" step="1" x-model="aria2OptMaxConnPerServer" @input="setAria2Option('max-connection-per-server', aria2OptMaxConnPerServer)" placeholder="e.g. 4" class="input-sm">
-                </label>
+                <label><input type="number" min="1" max="16" step="1" :value="aria2Options['max-connection-per-server'] || ''" @input="setAria2Option('max-connection-per-server', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Split segments</div>
-                <label >
-                  <input type="number" min="1" max="64" step="1" x-model="aria2OptSplit" @input="setAria2Option('split', aria2OptSplit)" placeholder="e.g. 5" class="input-sm">
-                </label>
+                <label><input type="number" min="1" max="64" step="1" :value="aria2Options['split'] || ''" @input="setAria2Option('split', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Min split size</div>
-                <label >
-                  <input type="text" x-model="aria2OptMinSplitSize" @input="setAria2Option('min-split-size', aria2OptMinSplitSize)" placeholder="e.g. 20M" class="input-sm">
-                </label>
+                <label><input type="text" :value="aria2Options['min-split-size'] || ''" @input="setAria2Option('min-split-size', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Global speed limit</div>
-                <label >
-                  <input type="text" x-model="aria2OptMaxOverallDlLimit" @input="setAria2Option('max-overall-download-limit', aria2OptMaxOverallDlLimit)" placeholder="e.g. 0" class="input-sm">
-                </label>
+                <label><input type="text" :value="aria2Options['max-overall-download-limit'] || ''" @input="setAria2Option('max-overall-download-limit', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Per-download speed limit</div>
-                <label >
-                  <input type="text" x-model="aria2OptMaxDlLimit" @input="setAria2Option('max-download-limit', aria2OptMaxDlLimit)" placeholder="e.g. 0" class="input-sm">
-                </label>
+                <label><input type="text" :value="aria2Options['max-download-limit'] || ''" @input="setAria2Option('max-download-limit', $el.value)" class="input-sm"></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Timeout</div>
-                <label >
-                  <input type="number" min="1" max="600" step="1" x-model="aria2OptTimeout" @input="setAria2Option('timeout', aria2OptTimeout)" placeholder="60" class="input-sm">
-                  <span>sec</span>
-                </label>
+                <label><input type="number" min="1" max="600" step="1" :value="aria2Options['timeout'] || ''" @input="setAria2Option('timeout', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Connect timeout</div>
-                <label >
-                  <input type="number" min="1" max="300" step="1" x-model="aria2OptConnectTimeout" @input="setAria2Option('connect-timeout', aria2OptConnectTimeout)" placeholder="60" class="input-sm">
-                  <span>sec</span>
-                </label>
+                <label><input type="number" min="1" max="300" step="1" :value="aria2Options['connect-timeout'] || ''" @input="setAria2Option('connect-timeout', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
             </div>
           </div>
