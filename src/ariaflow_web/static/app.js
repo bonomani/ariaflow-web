@@ -149,7 +149,8 @@ document.addEventListener('alpine:init', () => {
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
-      return this.lastStatus?.ariaflow?.version || 'unreported';
+      const v = this.lastStatus?.ariaflow?.version;
+      return v ? `v${v}` : 'unreported';
     },
     get backendPidText() {
       if (!this.backendReachable) return '-';
