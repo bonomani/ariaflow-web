@@ -173,13 +173,10 @@
                     <div x-html="itemSparklineSvg(item)"></div>
                   </div>
                 </template>
-                <div x-show="item.id" class="action-strip" class="mt-sm">
-                  <button x-show="itemCanPause(item)" class="icon-btn" @click="itemAction(item.id, 'pause')" title="Pause transfer">&#9646;&#9646;<span class="sr-only">Pause transfer</span></button>
-                  <button x-show="itemCanDequeue(item)" class="icon-btn" @click="itemAction(item.id, 'pause')" title="Remove from queue">&#9723;<span class="sr-only">Remove from queue</span></button>
-                  <button x-show="itemCanResume(item)" class="icon-btn" @click="itemAction(item.id, 'resume')" title="Resume transfer">&#9654;<span class="sr-only">Resume transfer</span></button>
-                  <button x-show="itemCanRetry(item)" class="icon-btn" @click="itemAction(item.id, 'retry')" title="Retry download">&#8635;<span class="sr-only">Retry download</span></button>
-                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" class="icon-btn" @click="openFileSelection(item.id)" title="Select files to download">&#128193;<span class="sr-only">Select files</span></button>
-                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" class="icon-btn" @click="itemAction(item.id, 'remove')" title="Remove and archive">&#10005;<span class="sr-only">Remove and archive</span></button>
+                <div x-show="item.id" class="action-strip mt-sm">
+                  <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
+                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" @click="openFileSelection(item.id)">Files</button>
+                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" @click="itemAction(item.id, 'remove')">Remove</button>
                 </div>
               </div>
             </template>

@@ -81,6 +81,7 @@ COVERAGE_MAP: dict[str, str] = {
     "toggleTheme": "test_theme_toggle_cycles",
     "uccRun": "test_run_contract_button",
     "cleanup": "test_cleanup",
+    "itemToggleAction": "test_pause_button / test_resume_button / test_retry_button (smart toggle)",
     "openFileSelection": "test_file_selection",
     "closeFileSelection": "test_file_selection",
     "saveFileSelection": "test_file_selection",

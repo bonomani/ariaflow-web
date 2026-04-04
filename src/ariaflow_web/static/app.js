@@ -756,6 +756,22 @@ document.addEventListener('alpine:init', () => {
     itemCanDequeue(item) { return this.itemNormalizedStatus(item) === 'queued'; },
     itemCanResume(item) { return this.itemNormalizedStatus(item) === 'paused'; },
     itemCanRetry(item) { return ['error', 'failed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
+    itemToggleAction(item) {
+      if (this.itemCanPause(item)) return this.itemAction(item.id, 'pause');
+      if (this.itemCanDequeue(item)) return this.itemAction(item.id, 'pause');
+      if (this.itemCanResume(item)) return this.itemAction(item.id, 'resume');
+      if (this.itemCanRetry(item)) return this.itemAction(item.id, 'retry');
+    },
+    itemToggleLabel(item) {
+      if (this.itemCanPause(item)) return 'Pause';
+      if (this.itemCanDequeue(item)) return 'Dequeue';
+      if (this.itemCanResume(item)) return 'Resume';
+      if (this.itemCanRetry(item)) return 'Retry';
+      return '';
+    },
+    itemCanToggle(item) {
+      return this.itemCanPause(item) || this.itemCanDequeue(item) || this.itemCanResume(item) || this.itemCanRetry(item);
+    },
     itemEta(item) { return this.formatEta(this.itemTotalLength(item), this.itemCompletedLength(item), this.itemSpeed(item)); },
     itemSparklineSvg(item) {
       if (!item.id) return '';
