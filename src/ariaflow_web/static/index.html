@@ -38,24 +38,28 @@
         <p>Headless download scheduler with a local dashboard.</p>
       </div>
       <div class="panel">
+        <!-- Web UI -->
         <div class="chips">
           <div class="chip">Web UI <strong>__ARIAFLOW_WEB_VERSION__</strong></div>
-          <div class="chip">Web PID <strong>__ARIAFLOW_WEB_PID__</strong></div>
+          <div class="chip">PID <strong>__ARIAFLOW_WEB_PID__</strong></div>
         </div>
-        <div class="chips" class="mt-sm">
-          <div class="chip">Backend version <strong x-text="backendVersionText">-</strong></div>
-          <div class="chip">Backend PID <strong x-text="backendPidText">-</strong></div>
+        <!-- Backend -->
+        <div class="chips mt-sm">
+          <div class="chip">Backend <strong x-text="backendVersionText">-</strong></div>
+          <div class="chip">PID <strong x-text="backendPidText">-</strong></div>
           <div class="chip">Scheduler <strong x-text="schedulerStatusText">idle</strong></div>
-          <div class="chip">Preflight mode <strong x-text="preflightModeText">manual</strong></div>
-          <div class="chip">Download cap <strong x-text="downloadCapText">-</strong></div>
-          <div class="chip">Last error <strong x-text="lastErrorText">none</strong></div>
-          <div class="chip">Session <strong x-text="sessionIdText">-</strong></div>
-          <div class="chip" x-show="sessionStartedText !== '-'">Started <strong x-text="sessionStartedText">-</strong></div>
+          <div class="chip">Cap <strong x-text="downloadCapText">-</strong></div>
         </div>
+        <!-- Session -->
+        <div class="chips mt-sm">
+          <div class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></div>
+          <div class="chip" :class="lastErrorText !== 'none' ? 'badge warn' : ''" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
+        </div>
+        <!-- Backend selection -->
         <div class="mt-sm">
           <div class="add-group">
             <input x-model="backendInput" placeholder="http://127.0.0.1:8000" @keydown.enter="addBackend()">
-            <button x-show="backendInput.trim()" class="add-btn" @click="addBackend()">Add</button>
+            <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
           </div>
         </div>
         <div class="chips mt-sm">
@@ -66,7 +70,7 @@
               <button class="icon-btn" @click="removeBackend(backend)" title="Remove backend" aria-label="Remove backend">&times;<span class="sr-only">Remove backend</span></button>
             </span>
           </template>
-          <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText.includes('Bonjour') || resultText.includes('Discovered')"></span>
+          <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText.includes('Discovered')"></span>
         </div>
       </div>
     </div>
