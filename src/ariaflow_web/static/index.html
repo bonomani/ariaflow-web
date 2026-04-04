@@ -111,9 +111,8 @@
                 <div class="stat-sub" x-text="schedulerDetailText">Waiting for state</div>
                 <div class="action-buttons mt-sm">
                   <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
-                  <button x-show="state?.running" @click="schedulerAction('stop')">Stop</button>
-                  <button :class="{ secondary: !backendReachable }" @click="newSession()" :disabled="!backendReachable">New session</button>
-                  <button :class="{ secondary: !backendReachable }" @click="cleanup()" :disabled="!backendReachable">Archive completed</button>
+                  <button :class="{ secondary: !state?.running }" @click="schedulerAction('stop')" :disabled="!state?.running">Stop</button>
+                  <button :class="{ secondary: !backendReachable || !(sumDone || sumError) }" @click="cleanup()" :disabled="!backendReachable || !(sumDone || sumError)">Archive completed</button>
                 </div>
                 <span class="text-muted text-sm mt-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
               </div>

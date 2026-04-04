@@ -60,7 +60,6 @@ COVERAGE_MAP: dict[str, str] = {
     "itemAction": "test_pause_button / test_resume_button / test_retry_button / test_remove_button",
     "lifecycleAction": "test_lifecycle_action_buttons_render",
     "loadDeclaration": "test_load_declaration_button",
-    "newSession": "test_new_session_button",
     "openDocs": "test_open_docs_button_exists",
     "openSpec": "test_open_spec_button_exists",
     "preflightRun": "test_preflight_button",
