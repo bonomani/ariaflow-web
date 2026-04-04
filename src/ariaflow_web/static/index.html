@@ -45,22 +45,17 @@
       </div>
       <div class="panel">
         <!-- Line 1: ariaflow-web identity -->
-        <div class="meta">
-          <span>Ariaflow-web</span>
-          <strong>__ARIAFLOW_WEB_VERSION__</strong>
-          <span>PID</span>
-          <strong>__ARIAFLOW_WEB_PID__</strong>
+        <div class="chips">
+          <div class="chip">Ariaflow-web <strong>__ARIAFLOW_WEB_VERSION__</strong></div>
+          <div class="chip">PID <strong>__ARIAFLOW_WEB_PID__</strong></div>
         </div>
         <!-- Line 2: backend identity + discovery -->
-        <div class="meta mt-sm">
-          <span>Backend:</span>
-          <strong x-text="selectedBackend"></strong>
-          <span>Ariaflow</span>
-          <strong x-text="backendVersionText">-</strong>
-          <span>PID</span>
-          <strong x-text="backendPidText">-</strong>
-          <span x-show="backendsDiscovered === false" style="color: var(--warn);">Warn: No backend discovered (local fallback)</span>
-          <span x-show="backendsDiscovered === true" style="color: var(--good);" x-text="resultText"></span>
+        <div class="chips mt-sm">
+          <div class="chip">Backend <strong x-text="selectedBackend"></strong></div>
+          <div class="chip">Ariaflow <strong x-text="backendVersionText">-</strong></div>
+          <div class="chip">PID <strong x-text="backendPidText">-</strong></div>
+          <div class="chip badge warn" x-show="backendsDiscovered === false">No backend discovered (local fallback)</div>
+          <div class="chip badge good" x-show="backendsDiscovered === true" x-text="resultText"></div>
         </div>
         <!-- Status chips -->
         <div class="chips mt-sm">
