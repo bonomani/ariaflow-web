@@ -50,6 +50,7 @@
           <div class="chip">Download cap <strong x-text="downloadCapText">-</strong></div>
           <div class="chip">Last error <strong x-text="lastErrorText">none</strong></div>
           <div class="chip">Session <strong x-text="sessionIdText">-</strong></div>
+          <div class="chip" x-show="sessionStartedText !== '-'">Started <strong x-text="sessionStartedText">-</strong></div>
         </div>
         <div class="mt-sm">
           <div class="add-group">
@@ -217,29 +218,6 @@
             <label class="label-sm">Max age (days) <input type="number" x-model.number="cleanupMaxAge" min="1" max="365" class="input-sm"></label>
             <label class="label-sm">Max count <input type="number" x-model.number="cleanupMaxCount" min="1" max="1000" class="input-sm"></label>
             <button :class="{ secondary: !backendReachable }" @click="cleanup()" :disabled="!backendReachable" class="text-xs">Archive completed items</button>
-          </div>
-        </div>
-      </div>
-      <div class="span-12" x-show="page === 'dashboard'">
-        <div class="panel">
-          <div class="section-title">
-            <h2>Session</h2>
-            <div class="hint">The current run context that groups queue activity, logs, and job history</div>
-          </div>
-          <div class="system-card">
-            <div class="system-head">
-              <div class="system-copy">
-                <h3>Current Session</h3>
-                <div class="meta"><span>The current run context. Jobs, logs, and queue activity are grouped under this session.</span></div>
-              </div>
-              <span class="badge" x-text="sessionStateLabelText">none</span>
-            </div>
-            <div class="system-facts">
-              <div class="system-fact"><span>Current session</span><strong x-text="sessionDetailText">-</strong></div>
-              <div class="system-fact"><span>Started</span><strong x-text="sessionStartedText">-</strong></div>
-              <div class="system-fact"><span>Last seen</span><strong x-text="sessionLastSeenText">-</strong></div>
-              <div class="system-fact"><span>Closed</span><strong x-text="sessionClosedText">-</strong></div>
-            </div>
           </div>
         </div>
       </div>
