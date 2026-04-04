@@ -54,18 +54,18 @@
   --line: rgba(148, 163, 184, 0.25);
   --text: #0f172a;
   --muted: #64748b;
-  --accent: #2563eb;
-  --accent-2: #7c3aed;
+  --accent: #475569;
+  --accent-2: #64748b;
   --good: #16a34a;
   --good-border: rgba(22, 163, 74, 0.25);
   --warn: #d97706;
   --warn-border: rgba(217, 119, 6, 0.25);
   --danger: #dc2626;
   --danger-border: rgba(220, 38, 38, 0.25);
-  --glow: rgba(37, 99, 235, 0.3);
-  --glow-soft: rgba(37, 99, 235, 0.1);
+  --glow: rgba(71, 85, 105, 0.35);
+  --glow-soft: rgba(71, 85, 105, 0.12);
   --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  --btn-bg: linear-gradient(180deg, #60a5fa, #3b82f6);
+  --btn-bg: linear-gradient(180deg, #64748b, #475569);
   --btn-text: #fff;
   --btn-inactive-bg: rgba(226, 232, 240, 0.8);
 }
@@ -85,10 +85,7 @@ body {
   min-height: 100vh;
 }
 :root[data-theme="light"] body {
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.06), transparent 32%),
-    radial-gradient(circle at top right, rgba(124, 58, 237, 0.04), transparent 28%),
-    linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+  background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
 }
 [x-cloak] { display: none !important; }
 .mono, .text-mono { font-family: var(--font-mono); }
