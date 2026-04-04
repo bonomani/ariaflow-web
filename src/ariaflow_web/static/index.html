@@ -98,22 +98,10 @@
         </div>
       </div>
       <div class="span-12" x-show="page === 'dashboard'">
-        <div class="panel toolbar">
-          <div class="action-bar">
-            <div class="action-buttons">
-              <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
-              <button x-show="state?.running" class="secondary" @click="schedulerAction('stop')">Stop</button>
-              <button :class="{ secondary: !backendReachable }" @click="newSession()" :disabled="!backendReachable">New session</button>
-            </div>
-            <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
-          </div>
-        </div>
-      </div>
-      <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel">
           <div class="section-title">
             <h2>Queue</h2>
-            <div class="hint">Download items managed by the scheduler; pause or resume without stopping</div>
+            <div class="hint">Download items managed by the scheduler</div>
           </div>
           <div class="system-card mb-md">
             <div class="queue-overview">
@@ -121,6 +109,13 @@
                 <div class="stat-label">Scheduler</div>
                 <div class="stat-value"><span class="badge" x-text="schedulerStateLabelText">idle</span></div>
                 <div class="stat-sub" x-text="schedulerDetailText">Waiting for state</div>
+                <div class="action-buttons mt-sm">
+                  <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
+                  <button x-show="state?.running" class="secondary" @click="schedulerAction('stop')">Stop</button>
+                  <button :class="{ secondary: !backendReachable }" @click="newSession()" :disabled="!backendReachable" class="text-xs">New session</button>
+                  <button :class="{ secondary: !backendReachable }" @click="cleanup()" :disabled="!backendReachable" class="text-xs">Archive completed</button>
+                </div>
+                <span class="text-muted text-sm mt-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
               </div>
               <div class="summary">
                 <div class="metric" :class="{ dimmed: !sumQueued }"><div class="stat-label">Queued</div><div class="stat-value" x-text="sumQueued">0</div><div class="stat-sub">pending items</div></div>
@@ -214,12 +209,6 @@
               </template>
             </div>
           </template>
-          <!-- Cleanup -->
-          <div class="mt-md align-end">
-            <label class="label-sm">Max age (days) <input type="number" x-model.number="cleanupMaxAge" min="1" max="365" class="input-sm"></label>
-            <label class="label-sm">Max count <input type="number" x-model.number="cleanupMaxCount" min="1" max="1000" class="input-sm"></label>
-            <button :class="{ secondary: !backendReachable }" @click="cleanup()" :disabled="!backendReachable" class="text-xs">Archive completed items</button>
-          </div>
         </div>
       </div>
 
