@@ -375,3 +375,88 @@ class TestApiParamCoverage:
             f"JS fetch() calls without endpoint tests:\n"
             + "\n".join(f"  - {p}" for p in uncovered)
         )
+
+    def test_every_api_endpoint_is_called(self) -> None:
+        """Verify every backend API endpoint is called at least once in app.js.
+
+        Ensures no endpoint is wired in tests but never actually used
+        by the frontend code.
+        """
+        js = APP_JS.read_text(encoding="utf-8")
+
+        # All endpoints the frontend should call
+        EXPECTED_ENDPOINTS = [
+            "/api/status",
+            "/api/events",
+            "/api/declaration",
+            "/api/add",
+            "/api/run",
+            "/api/pause",
+            "/api/resume",
+            "/api/session",
+            "/api/cleanup",
+            "/api/bandwidth",
+            "/api/bandwidth/probe",
+            "/api/lifecycle",
+            "/api/lifecycle/action",
+            "/api/preflight",
+            "/api/ucc",
+            "/api/log",
+            "/api/archive",
+            "/api/sessions",
+            "/api/session/stats",
+            "/api/health",
+            "/api/scheduler",
+            "/api/aria2/options",
+            "/api/aria2/get_global_option",
+            "/api/aria2/option_tiers",
+            "/api/aria2/get_option",
+            "/api/item/",
+            "/api/discovery",
+            "/api/docs",
+            "/api/openapi.yaml",
+            "/api/tests",
+        ]
+
+        missing = [ep for ep in EXPECTED_ENDPOINTS if ep not in js]
+        assert missing == [], (
+            f"Backend endpoints not called in app.js:\n"
+            + "\n".join(f"  - {p}" for p in missing)
+        )
+
+    def test_no_duplicate_endpoint_wiring(self) -> None:
+        """Verify no endpoint is called from multiple different methods.
+
+        Each endpoint should have exactly one caller method (except
+        /api/declaration which is used by load, save, and pref flush).
+        """
+        js = APP_JS.read_text(encoding="utf-8")
+
+        # Extract all apiPath calls with their line context
+        endpoint_callers: dict[str, list[str]] = {}
+        lines = js.splitlines()
+        for i, line in enumerate(lines):
+            for match in re.finditer(r"apiPath\(['\"](/api/[^'\"]+)['\"]", line):
+                path = match.group(1).split("?")[0]
+                path = re.sub(r"\$\{[^}]+\}", "{param}", path)
+                # Find enclosing method name
+                method = "unknown"
+                for j in range(i, max(0, i - 20), -1):
+                    m = re.match(r"\s+(?:async\s+)?(\w+)\s*\(", lines[j])
+                    if m:
+                        method = m.group(1)
+                        break
+                endpoint_callers.setdefault(path, set()).add(method)
+
+        # /api/declaration is expected to be called from multiple methods
+        MULTI_CALLER_ALLOWED = {"/api/declaration"}
+
+        duplicates = []
+        for path, callers in sorted(endpoint_callers.items()):
+            if len(callers) > 1 and path not in MULTI_CALLER_ALLOWED:
+                duplicates.append(f"{path}: called from {sorted(callers)}")
+
+        assert duplicates == [], (
+            f"Endpoints called from multiple methods (potential duplication):\n"
+            + "\n".join(f"  - {d}" for d in duplicates)
+        )
