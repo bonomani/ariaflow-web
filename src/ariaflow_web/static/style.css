@@ -200,7 +200,6 @@ a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
 
 .row { display: flex; gap: var(--gap-sm); flex-wrap: wrap; }
 .row > * { flex: 1 1 var(--row-basis); }
-.toolbar { display: grid; gap: var(--gap-md); }
 
 /* ========================================
    5. COMPONENTS

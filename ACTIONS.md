@@ -54,7 +54,7 @@ Complete inventory of all triggers in the UI.
 | Element | Handler | Endpoint |
 |---------|---------|----------|
 | Add URLs | `add()` | `POST /api/downloads/add` |
-| Start / Stop scheduler | `toggleScheduler()` | `POST /api/scheduler/start` or `/api/scheduler/stop` |
+| Start / Stop scheduler | `toggleScheduler()` | `POST /api/scheduler/resume` or `/api/scheduler/pause` |
 | Pause / Resume queue | `schedulerAction(action)` | `POST /api/scheduler/pause` or `/api/scheduler/resume` |
 | New session | `newSession()` | `POST /api/sessions/new` |
 | Cleanup | `cleanup()` | `POST /api/downloads/cleanup` |

@@ -523,7 +523,10 @@ document.addEventListener('alpine:init', () => {
       if (!discovered.length) return;
       const state = this.loadBackendState();
       const merged = [...new Set([...state.backends, ...discovered])];
-      this.saveBackendState(merged, state.selected || this.DEFAULT_BACKEND_URL);
+      // Auto-select if only one backend discovered and user hasn't manually picked one
+      const autoSelect = discovered.length === 1 && state.selected === this.DEFAULT_BACKEND_URL;
+      this.saveBackendState(merged, autoSelect ? discovered[0] : state.selected);
+      if (autoSelect) { this._closeSSE(); this._initSSE(); this.deferRefresh(0); }
     },
     apiPath(path) {
       const backend = this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;

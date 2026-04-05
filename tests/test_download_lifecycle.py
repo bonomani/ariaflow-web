@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import json
 import sys
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 import threading
 import time
 
 import pytest
-from playwright.sync_api import sync_playwright, Page
+from playwright.sync_api import Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ariaflow_web.webapp import serve  # noqa: E402
-from conftest import _allocate_port  # noqa: E402
+from conftest import _allocate_port, MockBackendHandler  # noqa: E402
 
 pytestmark = pytest.mark.slow
 _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
@@ -156,11 +156,14 @@ class FakeBackend:
         return {"paused": True}
 
     def resume_queue(self) -> dict:
+        self.running = True
         self.paused = False
         for item in self.items:
             if item["status"] == "paused":
-                item["status"] = "downloading" if self.running else "queued"
-        return {"resumed": True}
+                item["status"] = "downloading"
+            elif item["status"] == "queued" and not any(i["status"] == "downloading" for i in self.items):
+                item["status"] = "downloading"
+        return {"ok": True, "action": "resume", "result": {"started": True}}
 
     def force_error(self, item_id: str) -> None:
         item = self._find(item_id)
@@ -179,99 +182,52 @@ class FakeBackend:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-from conftest import _allocate_port  # noqa: E402
 from unittest.mock import patch  # noqa: E402
 
 backend = FakeBackend()
 
 
-class FakeBackendHandler(BaseHTTPRequestHandler):
-    """HTTP handler that delegates to the module-level FakeBackend."""
+class FakeBackendHandler(MockBackendHandler):
+    """Extends MockBackendHandler with stateful FakeBackend for lifecycle tests.
 
-    def _send(self, data: dict, status: int = 200) -> None:
-        body = json.dumps(data, separators=(",", ":")).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+    Overrides only: status (dynamic), add (stateful), scheduler (stateful),
+    and item actions (delegated to FakeBackend). All other routes inherited.
+    """
 
-    def do_OPTIONS(self) -> None:  # noqa: N802
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
+    # Routes handled by FakeBackend (checked before reading body)
+    _FAKE_POST_ROUTES = {
+        "/api/downloads/add", "/api/scheduler/pause", "/api/scheduler/resume",
+    }
 
     def do_GET(self) -> None:  # noqa: N802
         path = self.path.split("?")[0]
         if path == "/api/status":
             self._send(backend.status())
-        elif path == "/api/declaration" or path == "/api/options":
-            self._send({"uic": {"preferences": []}, "ucc": {}, "policy": {}})
-        elif path == "/api/lifecycle":
-            self._send({})
-        elif path == "/api/log":
-            self._send({"items": []})
-        elif path == "/api/bandwidth":
-            self._send({"source": "default", "downlink_mbps": 0, "cap_mbps": 2})
-        elif path == "/api" or path == "/api/":
-            self._send({"name": "ariaflow", "endpoints": {"GET": [], "POST": []}})
-        else:
-            self._send({"error": "not_found"}, status=404)
+            return
+        super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?")[0]
+        # Check if this is a FakeBackend route or a parameterized download action
+        if path not in self._FAKE_POST_ROUTES and not (path.startswith("/api/downloads/") and path.count("/") == 4):
+            super().do_POST()
+            return
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8") if length else "{}"
         payload = json.loads(raw or "{}")
 
         if path == "/api/downloads/add":
             self._send(backend.add_items(payload.get("items", [])))
-        elif path == "/api/scheduler/start":
-            self._send(backend.run_action("start", payload.get("auto_preflight_on_run")))
-        elif path == "/api/scheduler/stop":
-            self._send(backend.run_action("stop"))
         elif path == "/api/scheduler/pause":
             self._send(backend.pause_queue())
         elif path == "/api/scheduler/resume":
             self._send(backend.resume_queue())
-        elif path == "/api/sessions/new":
-            self._send({"ok": True, "session": "test-sess"})
-        elif path == "/api/scheduler/preflight":
-            self._send({"status": "pass", "gates": [], "warnings": [], "hard_failures": []})
-        elif path == "/api/scheduler/ucc":
-            self._send({"result": {"outcome": "converged"}})
-        elif path == "/api/declaration":
-            self._send({"uic": {"preferences": []}, "ucc": {}, "policy": {}})
-        elif path == "/api/bandwidth/probe":
-            self._send({"ok": True, "source": "default"})
-        elif path == "/api/downloads/cleanup":
-            self._send({"ok": True, "archived": 0, "remaining": 0})
         elif path.startswith("/api/downloads/"):
             parts = path.split("/")
             if len(parts) == 5:
                 self._send(backend.item_action(parts[3], parts[4]))
             else:
                 self._send({"error": "not_found"}, status=404)
-        elif path.startswith("/api/lifecycle/"):
-            self._send({"ok": True, "lifecycle": {}})
-        else:
-            self._send({"error": "not_found"}, status=404)
-
-    def do_PATCH(self) -> None:  # noqa: N802
-        path = self.path.split("?")[0]
-        length = int(self.headers.get("Content-Length", "0"))
-        self.rfile.read(length)
-        if path == "/api/declaration/preferences":
-            self._send({"ok": True, "applied": {}})
-        else:
-            self._send({"error": "not_found"}, status=404)
-
-    def log_message(self, format: str, *args: object) -> None:  # noqa: A003
-        return
 
 
 @pytest.fixture(scope="module")
