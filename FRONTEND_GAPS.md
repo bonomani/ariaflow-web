@@ -4,40 +4,35 @@ Remaining issues — features the backend provides but the frontend doesn't expo
 
 ---
 
-### FE-1: SSE receives rev-only, needs extra fetch
-
-SSE event only contains `{rev, server_version}`. Frontend must call `refresh()` per event.
+### FE-1: SSE receives rev-only
 
 **Blocked by:** Backend SSE full payload push
 
 ### FE-2: Preference writes use read-modify-write
 
-`_flushPrefQueue()` does GET → merge → POST. Race-prone with multiple tabs.
-
 **Blocked by:** Backend PATCH endpoint
 
-### FE-3: 9 new preferences not exposed
-
-Backend has retry + distribution preferences not in the UI:
-`max_retries`, `retry_backoff_seconds`, `aria2_max_tries`, `aria2_retry_wait`,
-`internal_tracker_url`, `distribute_completed_downloads`, `distribute_seed_ratio`,
-`distribute_max_seed_hours`, `distribute_max_active_seeds`
-
-### FE-4: Torrent distribution UI missing
+### FE-3: Torrent distribution UI missing
 
 Backend has: `GET /api/torrents`, `GET /api/torrents/{infohash}.torrent`,
-`POST /api/torrents/{infohash}/stop`. No frontend UI for listing/stopping seeds.
+`POST /api/torrents/{infohash}/stop`. No frontend panel for listing/stopping seeds.
 
-### FE-5: Item priority endpoint available but not wired
+### FE-4: aria2 per-download options (`POST /api/aria2/change_option`)
 
-Backend now has `POST /api/item/{id}/priority`. Could re-add move-to-top button.
+Backend supports changing options per-GID. Frontend only reads them.
+
+### FE-5: aria2 set_limits (`POST /api/aria2/set_limits`)
+
+Dedicated endpoint for speed/seed limits. Frontend uses change_global_option instead.
 
 ---
 
 ## Resolved
 
-| Commit | What |
-|--------|------|
-| Latest | Fixed broken scheduler endpoints (/api/run → /api/scheduler/start|stop) |
-| Latest | Fixed /api/aria2/options → /api/aria2/change_global_option |
-| Latest | Aligned Bonjour discovery (_ariaflow._tcp, multi-platform) |
+| What | When |
+|------|------|
+| Broken scheduler endpoints (/api/run → /api/scheduler/*) | Phase 1 |
+| Broken aria2 endpoint (/api/aria2/options → change_global_option) | Phase 1 |
+| Item priority (move to top) | Phase 2 |
+| 9 missing preferences (retry + distribution) | Phase 3 |
+| Bonjour discovery (_ariaflow._tcp, multi-platform) | Earlier |

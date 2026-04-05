@@ -677,6 +677,23 @@ document.addEventListener('alpine:init', () => {
     itemCanToggle(item) {
       return this.itemCanPause(item) || this.itemCanResume(item) || this.itemCanRetry(item);
     },
+    itemCanMoveToTop(item) {
+      return this.itemNormalizedStatus(item) === 'queued' && (item.priority || 0) < 999;
+    },
+    async moveToTop(itemId) {
+      try {
+        const maxPriority = (this.lastStatus?.items || []).reduce((max, i) => Math.max(max, i.priority || 0), 0);
+        const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/priority`), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priority: maxPriority + 1 }),
+        });
+        const data = await r.json();
+        this.resultText = data.ok ? 'Moved to top' : (data.message || 'Priority change failed');
+        this.resultJson = JSON.stringify(data, null, 2);
+      } catch (e) {
+        this.resultText = `Move to top failed: ${e.message}`;
+      }
+    },
     itemEta(item) { return this.formatEta(this.itemTotalLength(item), this.itemCompletedLength(item), this.itemSpeed(item)); },
     itemSparklineSvg(item) {
       if (!item.id) return '';
@@ -1362,8 +1379,25 @@ document.addEventListener('alpine:init', () => {
       } catch (e) { console.warn('loadAria2Tiers:', e.message); }
     },
     get aria2UnsafeEnabled() { return !!this.getDeclarationPreference('aria2_unsafe_options'); },
+    // retry preferences
+    get maxRetries() { return Number(this.getDeclarationPreference('max_retries') ?? 3); },
+    get retryBackoff() { return Number(this.getDeclarationPreference('retry_backoff_seconds') ?? 30); },
+    get aria2MaxTries() { return Number(this.getDeclarationPreference('aria2_max_tries') ?? 5); },
+    get aria2RetryWait() { return Number(this.getDeclarationPreference('aria2_retry_wait') ?? 3); },
+    // distribution preferences
+    get distributeEnabled() { return !!this.getDeclarationPreference('distribute_completed_downloads'); },
+    get distributeSeedRatio() { return Number(this.getDeclarationPreference('distribute_seed_ratio') ?? 1.0); },
+    get distributeMaxSeedHours() { return Number(this.getDeclarationPreference('distribute_max_seed_hours') ?? 24); },
+    get distributeMaxActiveSeeds() { return Number(this.getDeclarationPreference('distribute_max_active_seeds') ?? 3); },
+    get internalTrackerUrl() { return this.getDeclarationPreference('internal_tracker_url') || ''; },
     setAria2UnsafeOptions(enabled) {
       this._queuePrefChange('aria2_unsafe_options', !!enabled, [false, true], 'allow setting any aria2 option via API');
+    },
+    setRetryPref(name, value) {
+      this._queuePrefChange(name, Number(value), [], `retry preference`, 400);
+    },
+    setDistributePref(name, value) {
+      this._queuePrefChange(name, typeof value === 'boolean' ? value : value, [], `distribution preference`, 400);
     },
     _aria2OptTimer: null,
     setAria2Option(key, value) {

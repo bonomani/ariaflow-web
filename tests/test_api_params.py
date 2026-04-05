@@ -540,6 +540,15 @@ class TestApiParamCoverage:
             "bandwidth_up_free_absolute_mbps",
             "bandwidth_probe_interval_seconds",
             "aria2_unsafe_options",
+            "max_retries",
+            "retry_backoff_seconds",
+            "aria2_max_tries",
+            "aria2_retry_wait",
+            "internal_tracker_url",
+            "distribute_completed_downloads",
+            "distribute_seed_ratio",
+            "distribute_max_seed_hours",
+            "distribute_max_active_seeds",
         ]
 
         # Verify each preference is referenced in JS (getter or setter)
