@@ -45,7 +45,9 @@ def _run_timeout(cmd: list[str], timeout: float) -> str:
         completed = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
         return (completed.stdout or "") + "\n" + (completed.stderr or "")
     except subprocess.TimeoutExpired as exc:
-        return str(exc.stdout or "") + "\n" + str(exc.stderr or "")
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        return stdout + "\n" + stderr
 
 
 def _parse_txt(output: str) -> dict[str, str]:
@@ -164,7 +166,7 @@ def _avahi_discover(timeout: float) -> list[dict[str, object]]:
 # Public API
 # ---------------------------------------------------------------------------
 
-def discover_http_services(timeout: float = 1.5) -> dict[str, object]:
+def discover_http_services(timeout: float = 3.0) -> dict[str, object]:
     """Discover ariaflow backends on the local network via mDNS."""
     be = _backend()
     if be is None:
