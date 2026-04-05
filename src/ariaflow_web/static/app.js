@@ -958,38 +958,50 @@ document.addEventListener('alpine:init', () => {
       return this.pauseDownloads();
     },
     async schedulerAction(action) {
-      const payload = { action };
-      if (action === 'start') payload.auto_preflight_on_run = this.autoPreflightEnabled;
-      const r = await this._fetch(this.apiPath('/api/run'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (!r.ok || data.ok === false) {
-        this.resultText = data.message || 'Scheduler request failed';
+      const endpoint = action === 'start' ? '/api/scheduler/start' : '/api/scheduler/stop';
+      const payload = action === 'start' ? { auto_preflight_on_run: this.autoPreflightEnabled } : {};
+      try {
+        const r = await this._fetch(this.apiPath(endpoint), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await r.json();
+        if (!r.ok || data.ok === false) {
+          this.resultText = data.message || 'Scheduler request failed';
+          this.resultJson = JSON.stringify(data, null, 2);
+          return;
+        }
+        const result = data.result || {};
+        this.resultText = action === 'start'
+          ? (result.started ? 'Scheduler started' : 'Scheduler already running')
+          : (result.stopped ? 'Scheduler stopped' : 'Scheduler already stopped');
         this.resultJson = JSON.stringify(data, null, 2);
-        return;
-      }
-      const result = data.result || {};
-      this.resultText = action === 'start'
-        ? (result.started ? 'Scheduler started' : 'Scheduler already running')
-        : (result.stopped ? 'Scheduler stopped' : 'Scheduler already stopped');
-      this.resultJson = JSON.stringify(data, null, 2);
-      if (this.lastStatus?.state) {
-        if (action === 'start' && result.started) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true } };
-        if (action === 'stop' && result.stopped) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
+        if (this.lastStatus?.state) {
+          if (action === 'start' && result.started) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true } };
+          if (action === 'stop' && result.stopped) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
+        }
+      } catch (e) {
+        this.resultText = `Scheduler ${action} failed: ${e.message}`;
       }
     },
     async pauseDownloads() {
-      const r = await this._fetch(this.apiPath('/api/pause'), { method: 'POST' });
-      const data = await r.json();
-      this.resultText = data.paused ? 'Downloads paused' : 'Pause requested';
-      this.resultJson = JSON.stringify(data, null, 2);
-      if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
+      try {
+        const r = await this._fetch(this.apiPath('/api/scheduler/pause'), { method: 'POST' });
+        const data = await r.json();
+        this.resultText = data.paused ? 'Downloads paused' : 'Pause requested';
+        this.resultJson = JSON.stringify(data, null, 2);
+        if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
+      } catch (e) {
+        this.resultText = `Pause failed: ${e.message}`;
+      }
     },
     async resumeDownloads() {
-      const r = await this._fetch(this.apiPath('/api/resume'), { method: 'POST' });
-      const data = await r.json();
-      this.resultText = data.resumed ? 'Downloads resumed' : 'Resume requested';
-      this.resultJson = JSON.stringify(data, null, 2);
-      if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
+      try {
+        const r = await this._fetch(this.apiPath('/api/scheduler/resume'), { method: 'POST' });
+        const data = await r.json();
+        this.resultText = data.resumed ? 'Downloads resumed' : 'Resume requested';
+        this.resultJson = JSON.stringify(data, null, 2);
+        if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
+      } catch (e) {
+        this.resultText = `Resume failed: ${e.message}`;
+      }
     },
     async itemAction(itemId, action) {
       // Snapshot for rollback
@@ -1362,7 +1374,7 @@ document.addEventListener('alpine:init', () => {
     },
     async _sendAria2Option(key, value) {
       try {
-        const r = await this._fetch(this.apiPath('/api/aria2/options'), {
+        const r = await this._fetch(this.apiPath('/api/aria2/change_global_option'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ [key]: value }),
         });

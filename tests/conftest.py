@@ -141,14 +141,10 @@ class MockBackendHandler(BaseHTTPRequestHandler):
         if path == "/api/add":
             items = payload.get("items", [])
             self._send({"ok": True, "count": len(items), "added": [{"url": item.get("url", "")} for item in items]})
-        elif path == "/api/run":
-            action = payload.get("action", "")
-            if action == "start":
-                self._send({"ok": True, "action": "start", "result": {"started": True}})
-            elif action == "stop":
-                self._send({"ok": True, "action": "stop", "result": {"stopped": True}})
-            else:
-                self._send({"ok": False, "error": "invalid_action"}, status=400)
+        elif path == "/api/scheduler/start":
+            self._send({"ok": True, "action": "start", "result": {"started": True}})
+        elif path == "/api/scheduler/stop":
+            self._send({"ok": True, "action": "stop", "result": {"stopped": True}})
         elif path == "/api/preflight":
             self._send(self.preflight_data)
         elif path == "/api/ucc":
@@ -160,15 +156,15 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send({"ok": True, "lifecycle": self.lifecycle_data})
         elif path == "/api/session":
             self._send({"ok": True, "session": "sess-002"})
-        elif path == "/api/pause":
+        elif path == "/api/scheduler/pause":
             self._send({"paused": True})
-        elif path == "/api/resume":
+        elif path == "/api/scheduler/resume":
             self._send({"resumed": True})
         elif path == "/api/bandwidth/probe":
             self._send({"ok": True, "source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80})
         elif path == "/api/cleanup":
             self._send({"ok": True, "archived": 0, "remaining": 0})
-        elif path == "/api/aria2/options":
+        elif path == "/api/aria2/change_global_option":
             self._send({"ok": True})
         elif path.startswith("/api/item/"):
             parts = path.split("/")

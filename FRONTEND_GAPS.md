@@ -1,6 +1,6 @@
 # Frontend Gaps
 
-Remaining issues — all blocked by backend changes.
+Remaining issues — features the backend provides but the frontend doesn't expose.
 
 ---
 
@@ -8,31 +8,29 @@ Remaining issues — all blocked by backend changes.
 
 SSE event only contains `{rev, server_version}`. Frontend must call `refresh()` per event.
 
-**Blocked by:** Backend GAP-2
+**Blocked by:** Backend SSE full payload push
 
 ### FE-2: Preference writes use read-modify-write
 
 `_flushPrefQueue()` does GET → merge → POST. Race-prone with multiple tabs.
 
-**Blocked by:** Backend GAP-6
+**Blocked by:** Backend PATCH endpoint
 
-### FE-3: No bulk action UI
+### FE-3: 9 new preferences not exposed
 
-No multi-item buttons. Each action is a separate POST.
+Backend has retry + distribution preferences not in the UI:
+`max_retries`, `retry_backoff_seconds`, `aria2_max_tries`, `aria2_retry_wait`,
+`internal_tracker_url`, `distribute_completed_downloads`, `distribute_seed_ratio`,
+`distribute_max_seed_hours`, `distribute_max_active_seeds`
 
-**Blocked by:** Backend GAP-3
+### FE-4: Torrent distribution UI missing
 
-### FE-4: No pagination UI
+Backend has: `GET /api/torrents`, `GET /api/torrents/{infohash}.torrent`,
+`POST /api/torrents/{infohash}/stop`. No frontend UI for listing/stopping seeds.
 
-All items loaded at once. Backend lacks `offset`/`limit` on `/api/status`.
+### FE-5: Item priority endpoint available but not wired
 
-**Blocked by:** Backend GAP-4
-
-### FE-5: Speed sparklines lost on reload
-
-In-memory only. No server-side speed history.
-
-**Blocked by:** Backend GAP-11
+Backend now has `POST /api/item/{id}/priority`. Could re-add move-to-top button.
 
 ---
 
@@ -40,7 +38,6 @@ In-memory only. No server-side speed history.
 
 | Commit | What |
 |--------|------|
-| `91cb8c8` | Aligned preference names to backend, removed moveToTop (no endpoint), added waiting state, uplink controls, probe interval, backend summary for filter counts |
-| `68accf4` | itemAction timeout/rollback, exponential backoff, SSE/polling overlap guard, console.warn on errors |
-| `ddc503d` | Alpine reactivity fixes (spread reassignment), cached backend getters, stable x-for keys |
-| `b0437d1` | Wired 13 backend features: SSE, server-side filtering, ETag, sessions, aria2 options, torrent upload, etc. |
+| Latest | Fixed broken scheduler endpoints (/api/run → /api/scheduler/start|stop) |
+| Latest | Fixed /api/aria2/options → /api/aria2/change_global_option |
+| Latest | Aligned Bonjour discovery (_ariaflow._tcp, multi-platform) |

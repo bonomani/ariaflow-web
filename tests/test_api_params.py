@@ -128,19 +128,19 @@ class TestPostAdd:
 
 class TestPostRun:
     def test_valid_start(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", {"action": "start"})
+        data = _post(f"{web_server}/api/scheduler/start", {})
         assert data.get("ok") is True
 
     def test_valid_stop(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", {"action": "stop"})
+        data = _post(f"{web_server}/api/scheduler/stop", {})
         assert isinstance(data, dict)
 
     def test_run_with_auto_preflight_bool(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", {"action": "start", "auto_preflight_on_run": True})
+        data = _post(f"{web_server}/api/scheduler/start", {"auto_preflight_on_run": True})
         assert isinstance(data, dict)
 
     def test_run_missing_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/run", {})
+        data = _post(f"{web_server}/api/scheduler/start", {})
         assert isinstance(data, dict)  # action defaults to ""
 
 
@@ -217,11 +217,11 @@ class TestPostMisc:
         assert isinstance(data, dict)
 
     def test_pause(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/pause")
+        data = _post(f"{web_server}/api/scheduler/pause")
         assert isinstance(data, dict)
 
     def test_resume(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/resume")
+        data = _post(f"{web_server}/api/scheduler/resume")
         assert isinstance(data, dict)
 
     def test_bandwidth_probe(self, web_server: str) -> None:
@@ -276,7 +276,7 @@ class TestPostMisc:
         assert isinstance(data, dict)
 
     def test_aria2_options(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/aria2/options", {"max-concurrent-downloads": "5"})
+        data = _post(f"{web_server}/api/aria2/change_global_option", {"max-concurrent-downloads": "5"})
         assert isinstance(data, dict)
 
     def test_cleanup(self, web_server: str) -> None:
@@ -323,15 +323,16 @@ class TestApiParamCoverage:
         "GET /static/*": "test_static_serving.py (separate file)",
         # POST endpoints
         "POST /api/add": "test_valid_add + test_add_empty_items",
-        "POST /api/run": "test_valid_start + test_valid_stop + test_run_with_auto_preflight_bool + test_run_missing_action",
+        "POST /api/scheduler/start": "test_valid_start + test_run_with_auto_preflight_bool",
+        "POST /api/scheduler/stop": "test_valid_stop",
         "POST /api/session": "test_valid_new_session",
         "POST /api/declaration": "TestPostDeclaration",
         "POST /api/item/{id}/{action}": "TestPostItem",
         "POST /api/lifecycle/action": "TestPostLifecycle",
         "POST /api/preflight": "test_preflight",
         "POST /api/ucc": "test_ucc",
-        "POST /api/pause": "test_pause",
-        "POST /api/resume": "test_resume",
+        "POST /api/scheduler/pause": "test_pause",
+        "POST /api/scheduler/resume": "test_resume",
         "POST /api/bandwidth/probe": "test_bandwidth_probe",
         "GET /api/archive": "test_archive",
         "GET /api/events": "test_events_endpoint_exists",
@@ -344,7 +345,7 @@ class TestApiParamCoverage:
         "GET /api/aria2/get_option": "test_aria2_get_option",
         "GET /api/aria2/get_global_option": "test_aria2_get_global_option",
         "GET /api/aria2/option_tiers": "test_aria2_option_tiers",
-        "POST /api/aria2/options": "test_aria2_options",
+        "POST /api/aria2/change_global_option": "test_aria2_options",
         "POST /api/cleanup": "test_cleanup",
         # Error handling
         "POST invalid JSON": "test_invalid_json_body",
@@ -391,9 +392,10 @@ class TestApiParamCoverage:
             "/api/events",
             "/api/declaration",
             "/api/add",
-            "/api/run",
-            "/api/pause",
-            "/api/resume",
+            "/api/scheduler/start",
+            "/api/scheduler/stop",
+            "/api/scheduler/pause",
+            "/api/scheduler/resume",
             "/api/session",
             "/api/cleanup",
             "/api/bandwidth",
@@ -408,7 +410,11 @@ class TestApiParamCoverage:
             "/api/session/stats",
             "/api/health",
             "/api/scheduler",
-            "/api/aria2/options",
+            "/api/scheduler/start",
+            "/api/scheduler/stop",
+            "/api/scheduler/pause",
+            "/api/scheduler/resume",
+            "/api/aria2/change_global_option",
             "/api/aria2/get_global_option",
             "/api/aria2/option_tiers",
             "/api/aria2/get_option",
