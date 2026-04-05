@@ -71,7 +71,6 @@ COVERAGE_MAP: dict[str, str] = {
     "selectBackend": "test_select_default_backend_button",
     "setAutoPreflightPreference": "test_auto_preflight_toggle",
     "setAria2UnsafeOptions": "test_aria2_options (unsafe toggle)",
-    "moveToTop": "test_api_params (item priority)",
     "setRetryPref": "test_every_preference_has_ui_control (retry prefs)",
     "setDistributePref": "test_every_preference_has_ui_control (distribution prefs)",
     "setBandwidthPref": "test_bandwidth_free_percent_input / test_bandwidth_free_absolute_input / test_bandwidth_floor_input",
@@ -95,6 +94,9 @@ COVERAGE_MAP: dict[str, str] = {
     "loadMoreArchive": "test_api_params.test_archive (archive pagination)",
     "loadSessionStats": "test_api_params.test_session_stats",
     "setAria2Option": "test_api_params.test_aria2_options",
+    "loadTorrents": "test_api_params (torrent listing)",
+    "stopTorrent": "test_api_params (torrent stop)",
+    "newSession": "test_api_params (new session)",
 }
 
 

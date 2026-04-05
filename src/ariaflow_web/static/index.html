@@ -81,37 +81,12 @@
     <div class="grid">
       <!-- DASHBOARD -->
       <div class="span-12" x-show="page === 'dashboard'">
-        <div class="panel toolbar">
-          <div>
-            <div class="gap-sm">
-              <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
-              <button x-show="urlInput.trim()" @click="add()">Add</button>
-            </div>
-            <details class="mt-sm">
-              <summary class="text-muted text-sm cursor-pointer">Advanced options</summary>
-              <div class="gap-sm-grid mt-sm">
-                <input x-model="addOutput" placeholder="Output filename (optional)" class="input-md">
-                <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
-                <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
-                <div class="gap-sm">
-                  <label class="text-sm text-muted">.torrent file <input type="file" accept=".torrent" @change="handleFileUpload($event, 'torrent')"></label>
-                  <label class="text-sm text-muted">.metalink file <input type="file" accept=".metalink,.meta4" @change="handleFileUpload($event, 'metalink')"></label>
-                </div>
-                <select x-model="addPostActionRule">
-                  <option value="">Post-action rule (default)</option>
-                  <option value="pending">pending</option>
-                </select>
-              </div>
-            </details>
-          </div>
-        </div>
-      </div>
-      <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel">
           <div class="gap-sm mb-md">
             <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
             <button :class="{ secondary: !state?.running }" @click="schedulerAction('stop')" :disabled="!state?.running">Stop</button>
             <button x-show="sumDone || sumError" :class="{ secondary: !backendReachable }" @click="cleanup()" :disabled="!backendReachable">Archive</button>
+            <button class="secondary" @click="newSession()" :disabled="!backendReachable">New Session</button>
             <span class="badge" x-text="schedulerStateLabelText">idle</span>
             <span x-show="sumQueued" class="chip">Queued <strong x-text="sumQueued">0</strong></span>
             <span x-show="sumDone" class="chip">Done <strong x-text="sumDone">0</strong></span>
@@ -127,6 +102,31 @@
             </template>
           </div>
           <div class="list">
+            <!-- Add item card — same layout as queue items -->
+            <div class="item compact">
+              <div class="item-top">
+                <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
+              </div>
+              <div x-show="urlInput.trim()" class="action-strip mt-sm">
+                <button @click="add()">Add</button>
+                <details>
+                  <summary class="text-muted text-sm cursor-pointer">Advanced</summary>
+                  <div class="gap-sm-grid mt-sm">
+                    <input x-model="addOutput" placeholder="Output filename (optional)" class="input-md">
+                    <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
+                    <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
+                    <div class="gap-sm">
+                      <label class="text-sm text-muted">.torrent file <input type="file" accept=".torrent" @change="handleFileUpload($event, 'torrent')"></label>
+                      <label class="text-sm text-muted">.metalink file <input type="file" accept=".metalink,.meta4" @change="handleFileUpload($event, 'metalink')"></label>
+                    </div>
+                    <select x-model="addPostActionRule">
+                      <option value="">Post-action rule (default)</option>
+                      <option value="pending">pending</option>
+                    </select>
+                  </div>
+                </details>
+              </div>
+            </div>
             <template x-if="!backendReachable">
               <div class="item" x-text="_offlineStatusLabel()"></div>
             </template>
@@ -168,7 +168,6 @@
                 </template>
                 <div x-show="item.id" class="action-strip mt-sm">
                   <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
-                  <button x-show="itemCanMoveToTop(item)" @click="moveToTop(item.id)">Top</button>
                   <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" @click="openFileSelection(item.id)">Files</button>
                   <button x-show="item.gid" class="secondary" @click="loadItemOptions(item.gid)">Options</button>
                   <button x-show="itemNormalizedStatus(item) !== 'cancelled'" @click="itemAction(item.id, 'remove')">Remove</button>
@@ -464,6 +463,33 @@
             </template>
           </div>
           <div x-show="aria2OptionResult" class="text-muted text-sm mt-sm" x-text="aria2OptionResult"></div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'options' && distributeEnabled">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Active Seeds</h2>
+            <button @click="loadTorrents()">Refresh</button>
+          </div>
+          <div x-show="torrentLoading" class="text-muted text-sm">Loading…</div>
+          <div x-show="!torrentLoading && torrentList.length === 0" class="text-muted text-sm">No active seeds.</div>
+          <div class="list" x-show="!torrentLoading && torrentList.length > 0">
+            <template x-for="t in torrentList" :key="t.infohash">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="t.name || t.infohash"></div>
+                  <a href="#" :href="apiPath('/api/torrents/' + t.infohash + '.torrent')" download class="btn-link secondary">.torrent</a>
+                  <button @click="stopTorrent(t.infohash)">Stop</button>
+                </div>
+                <div class="meta">
+                  <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
+                  <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 

@@ -93,7 +93,7 @@ class MockBackendHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
@@ -115,15 +115,17 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send(data)
         elif path == "/api/lifecycle":
             self._send(self.lifecycle_data)
-        elif path == "/api/archive":
+        elif path == "/api/downloads/archive":
             self._send({"items": []})
         elif path == "/api/scheduler":
             self._send({"status": "running", "running": True, "paused": False, "session_id": "sess-001"})
         elif path == "/api/sessions":
             self._send({"sessions": []})
-        elif path == "/api/session/stats":
+        elif path == "/api/sessions/stats":
             self._send({"session_id": "sess-001", "total": 5, "done": 1})
-        elif path.startswith("/api/item/") and path.endswith("/files"):
+        elif path == "/api/torrents":
+            self._send({"torrents": []})
+        elif path.startswith("/api/downloads/") and path.endswith("/files"):
             self._send({"files": []})
         else:
             self._send({"error": "not_found"}, status=404)
@@ -138,23 +140,23 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send({"ok": False, "error": "invalid_json"}, status=400)
             return
 
-        if path == "/api/add":
+        if path == "/api/downloads/add":
             items = payload.get("items", [])
             self._send({"ok": True, "count": len(items), "added": [{"url": item.get("url", "")} for item in items]})
         elif path == "/api/scheduler/start":
             self._send({"ok": True, "action": "start", "result": {"started": True}})
         elif path == "/api/scheduler/stop":
             self._send({"ok": True, "action": "stop", "result": {"stopped": True}})
-        elif path == "/api/preflight":
+        elif path == "/api/scheduler/preflight":
             self._send(self.preflight_data)
-        elif path == "/api/ucc":
+        elif path == "/api/scheduler/ucc":
             self._send({"result": {"outcome": "converged", "observation": "ok"}, "meta": {"contract": "UCC", "version": "1.0"}})
         elif path == "/api/declaration":
             self.declaration_data = payload if isinstance(payload, dict) and payload.get("uic") else self.declaration_data
             self._send(self.declaration_data)
-        elif path == "/api/lifecycle/action":
+        elif path.startswith("/api/lifecycle/"):
             self._send({"ok": True, "lifecycle": self.lifecycle_data})
-        elif path == "/api/session":
+        elif path == "/api/sessions/new":
             self._send({"ok": True, "session": "sess-002"})
         elif path == "/api/scheduler/pause":
             self._send({"paused": True})
@@ -162,17 +164,21 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send({"resumed": True})
         elif path == "/api/bandwidth/probe":
             self._send({"ok": True, "source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 80})
-        elif path == "/api/cleanup":
+        elif path == "/api/downloads/cleanup":
             self._send({"ok": True, "archived": 0, "remaining": 0})
         elif path == "/api/aria2/change_global_option":
             self._send({"ok": True})
-        elif path.startswith("/api/item/"):
+        elif path == "/api/aria2/change_option":
+            self._send({"ok": True})
+        elif path == "/api/aria2/set_limits":
+            self._send({"ok": True})
+        elif path.startswith("/api/torrents/") and path.endswith("/stop"):
+            self._send({"ok": True})
+        elif path.startswith("/api/downloads/"):
             parts = path.split("/")
             if len(parts) == 5:
                 action = parts[4]
-                if action == "priority":
-                    self._send({"ok": True, "item": {"id": parts[3], "priority": payload.get("priority", 0)}})
-                elif action == "files":
+                if action == "files":
                     self._send({"ok": True, "selected": payload.get("select", [])})
                 elif action in {"pause", "resume", "remove", "retry"}:
                     self._send({"ok": True, "item": {"id": parts[3], "status": "paused"}})
@@ -180,6 +186,21 @@ class MockBackendHandler(BaseHTTPRequestHandler):
                     self._send({"error": "not_found"}, status=404)
             else:
                 self._send({"error": "not_found"}, status=404)
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+        try:
+            payload = json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            self._send({"ok": False, "error": "invalid_json"}, status=400)
+            return
+
+        if path == "/api/declaration/preferences":
+            self._send({"ok": True, "applied": payload})
         else:
             self._send({"error": "not_found"}, status=404)
 

@@ -1,7 +1,6 @@
 # ariaflow-web — Actionable Elements Reference
 
-Complete inventory of all triggers in the UI, based on a fresh scan of
-`app.js` (1445 lines) and `index.html` (789 lines).
+Complete inventory of all triggers in the UI.
 
 ---
 
@@ -13,7 +12,7 @@ Complete inventory of all triggers in the UI, based on a fresh scan of
 | `_initSSE()` | init + backend switch | `GET /api/events` |
 | `popstate` | Browser back/forward | varies via `_loadPageData()` |
 | Polling (`refresh()`) | Fallback every N seconds | `GET /api/status` (with ETag, backoff) |
-| `_flushPrefQueue()` | 400ms after pref change | `GET + POST /api/declaration` |
+| `_flushPrefQueue()` | 400ms after pref change | `PATCH /api/declaration/preferences` |
 | `discoverBackends()` | 2s after init | `GET /api/discovery` |
 | `checkNotifications()` | Every status update | Browser Notification API |
 | `recordSpeed()` / `recordGlobalSpeed()` | Every status update | — (in-memory sparklines) |
@@ -32,7 +31,7 @@ Complete inventory of all triggers in the UI, based on a fresh scan of
 
 ---
 
-## Global (34 @click, 10 @change, 5 @input, 19 x-model)
+## Global
 
 | Element | Handler | Endpoint |
 |---------|---------|----------|
@@ -51,50 +50,46 @@ Complete inventory of all triggers in the UI, based on a fresh scan of
 
 | Element | Handler | Endpoint |
 |---------|---------|----------|
-| Add URLs | `add()` | `POST /api/add` |
-| Start / Stop engine | `toggleRunner()` | `POST /api/run` |
-| New session | `newSession()` | `POST /api/session` |
-| Pause / Resume queue | `toggleQueue()` | `POST /api/pause` or `/api/resume` |
-| Cleanup | `cleanup()` | `POST /api/cleanup` |
+| Add URLs | `add()` | `POST /api/downloads/add` |
+| Start / Stop scheduler | `toggleScheduler()` | `POST /api/scheduler/start` or `/api/scheduler/stop` |
+| Pause / Resume queue | `schedulerAction(action)` | `POST /api/scheduler/pause` or `/api/scheduler/resume` |
+| New session | `newSession()` | `POST /api/sessions/new` |
+| Cleanup | `cleanup()` | `POST /api/downloads/cleanup` |
 
 ### Per-Item Actions
 
-| Element | Handler | Endpoint | Notes |
-|---------|---------|----------|-------|
-| Pause | `itemAction(id, 'pause')` | `POST /api/item/{id}/pause` | optimistic |
-| Dequeue | `itemAction(id, 'pause')` | `POST /api/item/{id}/pause` | same endpoint |
-| Resume | `itemAction(id, 'resume')` | `POST /api/item/{id}/resume` | optimistic |
-| Retry | `itemAction(id, 'retry')` | `POST /api/item/{id}/retry` | optimistic |
-| Remove | `itemAction(id, 'remove')` | `POST /api/item/{id}/remove` | optimistic |
-| File select (open) | `openFileSelection(id)` | `GET /api/item/{id}/files` | modal |
-| File select (save) | `saveFileSelection()` | `POST /api/item/{id}/files` | |
-| File select (close) | `closeFileSelection()` | — | |
+| Element | Handler | Endpoint |
+|---------|---------|----------|
+| Pause | `itemAction(id, 'pause')` | `POST /api/downloads/{id}/pause` |
+| Dequeue | `itemAction(id, 'pause')` | `POST /api/downloads/{id}/pause` |
+| Resume | `itemAction(id, 'resume')` | `POST /api/downloads/{id}/resume` |
+| Retry | `itemAction(id, 'retry')` | `POST /api/downloads/{id}/retry` |
+| Remove | `itemAction(id, 'remove')` | `POST /api/downloads/{id}/remove` |
+| File select (open) | `openFileSelection(id)` | `GET /api/downloads/{id}/files` |
+| File select (save) | `saveFileSelection()` | `POST /api/downloads/{id}/files` |
+| File select (close) | `closeFileSelection()` | — |
 
 ### Filtering & Search
 
 | Element | Handler | Notes |
 |---------|---------|-------|
-| Filter chips | `setQueueFilter(f)` | `?status=` mapped to backend names (downloading→active, done→complete) |
+| Filter chips | `setQueueFilter(f)` | `?status=` mapped to backend names |
 | Search input | `x-model="queueSearch"` | client-side |
-
-**Filter states:** all, queued, waiting, discovering, downloading, paused, stopped, done, error, cancelled
 
 ---
 
 ## Bandwidth
 
-| Element | Handler | Endpoint / Preference |
-|---------|---------|----------------------|
-| Run probe | `runProbe()` | `POST /api/bandwidth/probe` → `GET /api/bandwidth` |
-| Downlink free (%) | `setBandwidthPref(...)` | `bandwidth_down_free_percent` (default 20) |
-| Downlink free (abs) | `setBandwidthPref(...)` | `bandwidth_down_free_absolute_mbps` (default 0) |
-| Uplink free (%) | `setBandwidthPref(...)` | `bandwidth_up_free_percent` (default 50) |
-| Uplink free (abs) | `setBandwidthPref(...)` | `bandwidth_up_free_absolute_mbps` (default 0) |
-| Probe interval | `setBandwidthPref(...)` | `bandwidth_probe_interval_seconds` (default 180) |
-| Simultaneous downloads | `setSimultaneousLimit(...)` | `max_simultaneous_downloads` (default 1) |
-| Duplicate transfer | `setDuplicateAction(...)` | `duplicate_active_transfer_action` (default remove) |
-
-All preference inputs debounced 400ms via `_queuePrefChange()`.
+| Element | Handler | Preference |
+|---------|---------|------------|
+| Run probe | `runProbe()` | `POST /api/bandwidth/probe` |
+| Downlink free (%) | `setBandwidthPref(...)` | `bandwidth_down_free_percent` |
+| Downlink free (abs) | `setBandwidthPref(...)` | `bandwidth_down_free_absolute_mbps` |
+| Uplink free (%) | `setBandwidthPref(...)` | `bandwidth_up_free_percent` |
+| Uplink free (abs) | `setBandwidthPref(...)` | `bandwidth_up_free_absolute_mbps` |
+| Probe interval | `setBandwidthPref(...)` | `bandwidth_probe_interval_seconds` |
+| Simultaneous downloads | `setSimultaneousLimit(...)` | `max_simultaneous_downloads` |
+| Duplicate transfer | `setDuplicateAction(...)` | `duplicate_active_transfer_action` |
 
 ---
 
@@ -103,10 +98,10 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 | Element | Handler | Endpoint |
 |---------|---------|----------|
 | Refresh | `loadLifecycle()` | `GET /api/lifecycle` |
-| Install/Update ariaflow | `lifecycleAction('ariaflow', 'install')` | `POST /api/lifecycle/action` |
-| Remove ariaflow | `lifecycleAction('ariaflow', 'uninstall')` | `POST /api/lifecycle/action` |
-| Load aria2 autostart | `lifecycleAction('aria2-launchd', 'install')` | `POST /api/lifecycle/action` |
-| Unload aria2 autostart | `lifecycleAction('aria2-launchd', 'uninstall')` | `POST /api/lifecycle/action` |
+| Install/Update ariaflow | `lifecycleAction(...)` | `POST /api/lifecycle/ariaflow/install` |
+| Remove ariaflow | `lifecycleAction(...)` | `POST /api/lifecycle/ariaflow/uninstall` |
+| Load aria2 autostart | `lifecycleAction(...)` | `POST /api/lifecycle/aria2-launchd/install` |
+| Unload aria2 autostart | `lifecycleAction(...)` | `POST /api/lifecycle/aria2-launchd/uninstall` |
 
 ---
 
@@ -116,6 +111,15 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 |---------|---------|------------|
 | Auto preflight | `setAutoPreflightPreference(...)` | `auto_preflight_on_run` |
 | Post-action rule | `setPostActionRule(...)` | `post_action_rule` |
+| Max retries | `setRetryPref(...)` | `max_retries` |
+| Retry backoff | `setRetryPref(...)` | `retry_backoff_seconds` |
+| aria2 max tries | `setRetryPref(...)` | `aria2_max_tries` |
+| aria2 retry wait | `setRetryPref(...)` | `aria2_retry_wait` |
+| Distribute enabled | `setDistributePref(...)` | `distribute_completed_downloads` |
+| Seed ratio | `setDistributePref(...)` | `distribute_seed_ratio` |
+| Max seed hours | `setDistributePref(...)` | `distribute_max_seed_hours` |
+| Max active seeds | `setDistributePref(...)` | `distribute_max_active_seeds` |
+| Tracker URL | `setDistributePref(...)` | `internal_tracker_url` |
 
 ---
 
@@ -123,16 +127,16 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 
 | Element | Handler | Endpoint |
 |---------|---------|----------|
-| Run contract | `uccRun()` | `POST /api/ucc` |
-| Preflight | `preflightRun()` | `POST /api/preflight` |
-| Action filter | `x-model="actionFilter"` @change `refreshActionLog()` | — (client-side) |
-| Target filter | `x-model="targetFilter"` @change `refreshActionLog()` | — (client-side) |
-| Session filter | `x-model="sessionFilter"` @change `refreshActionLog()` | — (client-side) |
-| Log limit | `x-model="logLimit"` @change `refreshActionLog()` | `GET /api/log?limit=N` |
+| Run contract | `uccRun()` | `POST /api/scheduler/ucc` |
+| Preflight | `preflightRun()` | `POST /api/scheduler/preflight` |
+| Action filter | `refreshActionLog()` | — (client-side) |
+| Target filter | `refreshActionLog()` | — (client-side) |
+| Session filter | `refreshActionLog()` | — (client-side) |
+| Log limit | `refreshActionLog()` | `GET /api/log?limit=N` |
 | Load declaration | `loadDeclaration(true)` | `GET /api/declaration` |
 | Save declaration | `saveDeclaration()` | `POST /api/declaration` |
-| Session history | auto-loaded on navigation | `GET /api/sessions?limit=50` |
-| Session stats | `loadSessionStats(id)` on click | `GET /api/session/stats?session_id=X` |
+| Session history | auto-loaded | `GET /api/sessions?limit=50` |
+| Session stats | `loadSessionStats(id)` | `GET /api/sessions/stats?session_id=X` |
 
 ---
 
@@ -143,8 +147,8 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 | Swagger UI | `openDocs()` | opens `{backend}/api/docs` |
 | OpenAPI spec | `openSpec()` | opens `{backend}/api/openapi.yaml` |
 | Run tests | `runTests()` | `GET /api/tests` |
-| API catalog | auto-loaded on navigation | `GET /api` |
-| Set aria2 option | `setAria2Option()` | `POST /api/aria2/options` |
+| API catalog | auto-loaded | `GET /api` |
+| Set aria2 option | `setAria2Option()` | `POST /api/aria2/change_global_option` |
 
 ---
 
@@ -152,15 +156,15 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 
 | Element | Handler | Endpoint |
 |---------|---------|----------|
-| Auto-load | `loadArchive()` | `GET /api/archive?limit=N` |
-| Load more | `loadMoreArchive()` | `GET /api/archive?limit=N` (increased) |
+| Auto-load | `loadArchive()` | `GET /api/downloads/archive?limit=N` |
+| Load more | `loadMoreArchive()` | `GET /api/downloads/archive?limit=N` |
 
 ---
 
 ## Add Form (Advanced Options)
 
-| Element | Binding | Sent in `POST /api/add` |
-|---------|---------|------------------------|
+| Element | Binding | Sent in `POST /api/downloads/add` |
+|---------|---------|-----------------------------------|
 | URL textarea | `x-model="urlInput"` | `items[].url` |
 | Output filename | `x-model="addOutput"` | `items[].output` |
 | Priority | `x-model="addPriority"` | `items[].priority` |
@@ -171,23 +175,9 @@ All preference inputs debounced 400ms via `_queuePrefChange()`.
 
 ---
 
-## Totals
-
-| Category | Count |
-|----------|-------|
-| Async backend methods | 28 |
-| @click handlers | 34 |
-| @change handlers | 10 |
-| @input handlers (debounced) | 5 |
-| x-model bindings | 19 |
-| SSE event handlers | 2 (connected, state_changed) |
-| Timers | 3 (polling, defer, SSE fallback) |
-| Getters from lastStatus | ~50 |
-| Getters from lastDeclaration | 9 |
-
 ## Dropped Features
 
 | Feature | Reason |
 |---------|--------|
-| Move to top button | `POST /api/item/{id}/priority` does not exist in backend |
+| Move to top button | Backend removed `/api/item/{id}/priority` |
 | Bandwidth floor input | `bandwidth_floor_mbps` preference does not exist in backend |

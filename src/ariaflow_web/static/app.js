@@ -40,6 +40,8 @@ document.addEventListener('alpine:init', () => {
     fileSelectionFiles: [],
     fileSelectionLoading: false,
     archiveItems: [],
+    torrentList: [],
+    torrentLoading: false,
 
     // cached backend state (updated on save, avoids localStorage parse per render)
     _cachedBackends: null,
@@ -275,7 +277,7 @@ document.addEventListener('alpine:init', () => {
       if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
       if (target === 'lifecycle') this.loadLifecycle();
       if (target === 'bandwidth') this.loadDeclaration();
-      if (target === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
+      if (target === 'options') { this.loadDeclaration(); this.loadAria2Options(); this.loadTorrents(); }
       if (target === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); }
       if (target === 'archive') this.loadArchive();
     },
@@ -677,23 +679,6 @@ document.addEventListener('alpine:init', () => {
     itemCanToggle(item) {
       return this.itemCanPause(item) || this.itemCanResume(item) || this.itemCanRetry(item);
     },
-    itemCanMoveToTop(item) {
-      return this.itemNormalizedStatus(item) === 'queued' && (item.priority || 0) < 999;
-    },
-    async moveToTop(itemId) {
-      try {
-        const maxPriority = (this.lastStatus?.items || []).reduce((max, i) => Math.max(max, i.priority || 0), 0);
-        const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/priority`), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priority: maxPriority + 1 }),
-        });
-        const data = await r.json();
-        this.resultText = data.ok ? 'Moved to top' : (data.message || 'Priority change failed');
-        this.resultJson = JSON.stringify(data, null, 2);
-      } catch (e) {
-        this.resultText = `Move to top failed: ${e.message}`;
-      }
-    },
     itemEta(item) { return this.formatEta(this.itemTotalLength(item), this.itemCompletedLength(item), this.itemSpeed(item)); },
     itemSparklineSvg(item) {
       if (!item.id) return '';
@@ -886,19 +871,13 @@ document.addEventListener('alpine:init', () => {
       try {
         const changes = [...this._prefQueue];
         this._prefQueue = [];
-        const r = await this._fetch(this.apiPath('/api/declaration'));
+        const patch = {};
+        for (const c of changes) patch[c.name] = c.value;
+        const r = await this._fetch(this.apiPath('/api/declaration/preferences'), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+        });
         const data = await r.json();
-        const prefs = Array.isArray(data?.uic?.preferences) ? data.uic.preferences : [];
-        for (const change of changes) {
-          const idx = prefs.findIndex((p) => p.name === change.name);
-          const next = { name: change.name, value: change.value, options: change.options, rationale: change.rationale };
-          if (idx >= 0) prefs[idx] = next; else prefs.push(next);
-        }
-        data.uic = data.uic || {};
-        data.uic.preferences = prefs;
-        const save = await this._fetch(this.apiPath('/api/declaration'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        const saved = await save.json();
-        this.lastDeclaration = saved.declaration || saved;
+        if (data.declaration) this.lastDeclaration = data.declaration;
       } catch (e) {
         console.warn('Preference save failed:', e.message);
         this.resultText = `Preference save failed: ${e.message}`;
@@ -942,7 +921,7 @@ document.addEventListener('alpine:init', () => {
         return item;
       });
       const payload = { items };
-      const r = await this._fetch(this.apiPath('/api/add'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const r = await this._fetch(this.apiPath('/api/downloads/add'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (!r.ok || data.ok === false) {
         this.resultText = data.message || 'Add request failed';
@@ -1033,7 +1012,7 @@ document.addEventListener('alpine:init', () => {
       }
       let r, data;
       try {
-        r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
+        r = await this._fetch(this.apiPath(`/api/downloads/${encodeURIComponent(itemId)}/${encodeURIComponent(action)}`), { method: 'POST' });
         data = await r.json();
       } catch (e) {
         this.resultText = `${action} failed: ${e.message}`;
@@ -1055,7 +1034,7 @@ document.addEventListener('alpine:init', () => {
       this.fileSelectionItemId = itemId;
       this.fileSelectionLoading = true;
       try {
-        const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(itemId)}/files`));
+        const r = await this._fetch(this.apiPath(`/api/downloads/${encodeURIComponent(itemId)}/files`));
         const data = await r.json();
         this.fileSelectionFiles = (data.files || []).map((f) => ({ ...f, selected: f.selected !== false }));
       } catch (e) {
@@ -1065,7 +1044,7 @@ document.addEventListener('alpine:init', () => {
     },
     async saveFileSelection() {
       const selected = this.fileSelectionFiles.filter((f) => f.selected).map((f) => f.index);
-      const r = await this._fetch(this.apiPath(`/api/item/${encodeURIComponent(this.fileSelectionItemId)}/files`), {
+      const r = await this._fetch(this.apiPath(`/api/downloads/${encodeURIComponent(this.fileSelectionItemId)}/files`), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ select: selected }),
       });
@@ -1081,7 +1060,7 @@ document.addEventListener('alpine:init', () => {
     // --- archive & cleanup ---
     async loadArchive() {
       try {
-        const r = await this._fetch(this.apiPath(`/api/archive?limit=${this.archiveLimit}`));
+        const r = await this._fetch(this.apiPath(`/api/downloads/archive?limit=${this.archiveLimit}`));
         const data = await r.json();
         this.archiveItems = data.items || [];
       } catch (e) {
@@ -1093,7 +1072,7 @@ document.addEventListener('alpine:init', () => {
       this.loadArchive();
     },
     async cleanup() {
-      const r = await this._fetch(this.apiPath('/api/cleanup'), {
+      const r = await this._fetch(this.apiPath('/api/downloads/cleanup'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_done_age_days: 7, max_done_count: 100 }),
       });
@@ -1192,7 +1171,7 @@ document.addEventListener('alpine:init', () => {
     },
     async lifecycleAction(target, action) {
       try {
-        const r = await this._fetch(this.apiPath('/api/lifecycle/action'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target, action }) });
+        const r = await this._fetch(this.apiPath(`/api/lifecycle/${encodeURIComponent(target)}/${encodeURIComponent(action)}`), { method: 'POST' });
         const data = await r.json();
         this.lastLifecycle = data.lifecycle || data;
         this.resultText = `${target} ${action} requested`;
@@ -1206,7 +1185,7 @@ document.addEventListener('alpine:init', () => {
     // --- log ---
     async preflightRun() {
       try {
-        const r = await this._fetch(this.apiPath('/api/preflight'), { method: 'POST' });
+        const r = await this._fetch(this.apiPath('/api/scheduler/preflight'), { method: 'POST' });
         const data = await r.json();
         this.resultText = data.status === 'pass' ? 'Preflight passed' : 'Preflight needs attention';
         this.resultJson = JSON.stringify(data, null, 2);
@@ -1217,7 +1196,7 @@ document.addEventListener('alpine:init', () => {
     },
     async uccRun() {
       try {
-        const r = await this._fetch(this.apiPath('/api/ucc'), { method: 'POST' });
+        const r = await this._fetch(this.apiPath('/api/scheduler/ucc'), { method: 'POST' });
         const data = await r.json();
         const outcome = data.result?.outcome || 'unknown';
         this.resultText = `UCC result: ${outcome}`;
@@ -1348,10 +1327,22 @@ document.addEventListener('alpine:init', () => {
       this.selectedSessionId = sessionId;
       this.selectedSessionStats = null;
       try {
-        const r = await this._fetch(this.apiPath(`/api/session/stats?session_id=${encodeURIComponent(sessionId)}`));
+        const r = await this._fetch(this.apiPath(`/api/sessions/stats?session_id=${encodeURIComponent(sessionId)}`));
         this.selectedSessionStats = await r.json();
       } catch (e) {
         this.selectedSessionStats = { error: 'Failed to load stats' };
+      }
+    },
+
+    async newSession() {
+      try {
+        const r = await this._fetch(this.apiPath('/api/sessions/new'), { method: 'POST' });
+        const data = await r.json();
+        this.resultText = data.ok !== false ? `New session: ${data.session || 'created'}` : (data.message || 'Failed');
+        this.loadSessionHistory();
+        this.refresh();
+      } catch (e) {
+        this.resultText = `New session failed: ${e.message}`;
       }
     },
 
@@ -1417,6 +1408,60 @@ document.addEventListener('alpine:init', () => {
         if (data.ok !== false) this.loadAria2Options();
       } catch (e) {
         this.aria2OptionResult = `Error: ${e.message}`;
+      }
+    },
+
+    // --- per-item aria2 option editing ---
+    async setItemAria2Option(gid, key, value) {
+      if (!gid || !key) return;
+      try {
+        const r = await this._fetch(this.apiPath('/api/aria2/change_option'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gid, [key]: String(value) }),
+        });
+        const data = await r.json();
+        this.aria2OptionResult = data.ok !== false ? `${key} = ${value} (gid ${gid})` : (data.message || 'Failed');
+        if (data.ok !== false) this.loadItemOptions(gid);
+      } catch (e) {
+        this.aria2OptionResult = `Error: ${e.message}`;
+      }
+    },
+
+    // --- aria2 set_limits ---
+    async setAria2Limits(limits) {
+      try {
+        const r = await this._fetch(this.apiPath('/api/aria2/set_limits'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(limits),
+        });
+        const data = await r.json();
+        this.aria2OptionResult = data.ok !== false ? 'Limits applied' : (data.message || 'Failed');
+      } catch (e) {
+        this.aria2OptionResult = `Error: ${e.message}`;
+      }
+    },
+
+    // --- torrents ---
+    async loadTorrents() {
+      this.torrentLoading = true;
+      try {
+        const r = await this._fetch(this.apiPath('/api/torrents'));
+        const data = await r.json();
+        this.torrentList = data.torrents || data.items || [];
+      } catch (e) {
+        this.torrentList = [];
+      } finally {
+        this.torrentLoading = false;
+      }
+    },
+    async stopTorrent(infohash) {
+      try {
+        const r = await this._fetch(this.apiPath(`/api/torrents/${encodeURIComponent(infohash)}/stop`), { method: 'POST' });
+        const data = await r.json();
+        this.resultText = data.ok !== false ? `Stopped seeding ${infohash.slice(0, 8)}` : (data.message || 'Stop failed');
+        await this.loadTorrents();
+      } catch (e) {
+        this.resultText = `Stop failed: ${e.message}`;
       }
     },
 

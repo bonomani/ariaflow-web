@@ -1,35 +1,46 @@
 # Backend Gaps
 
-Features the frontend would benefit from but the backend doesn't provide yet.
+> **AI Agent Directive:** This file documents features the **backend** (`ariaflow`)
+> must implement. The frontend repo (`ariaflow-web`) must **never** implement
+> backend logic — only consume APIs. If you are an AI agent working on
+> `ariaflow-web`, treat every item below as **blocked/out-of-scope**. If you are
+> an AI agent working on `ariaflow`, treat each item as an actionable task.
 
 ---
 
-### BG-1: SSE pushes rev-only
-
-`_invalidate_status_cache()` publishes `{rev, server_version}` only.
-Frontend must fetch full status after each event.
-
-### BG-2: No PATCH for preferences
-
-Frontend does GET→merge→POST. Backend should support
-`PATCH /api/declaration/preferences` for atomic updates.
+*No open gaps — all previously identified gaps have been resolved.*
 
 ---
 
-## Backend Endpoint Inventory
+## Resolved
 
-**21 GET:** `/api`, `/api/health`, `/api/status`, `/api/events`, `/api/scheduler`,
-`/api/bandwidth`, `/api/declaration`, `/api/lifecycle`, `/api/log`, `/api/archive`,
-`/api/sessions`, `/api/session/stats`, `/api/item/{id}/files`, `/api/torrents`,
-`/api/torrents/{infohash}.torrent`, `/api/aria2/get_global_option`,
-`/api/aria2/get_option`, `/api/aria2/option_tiers`,
+| ID | What | Resolution |
+|----|------|------------|
+| BG-1 | SSE pushed rev-only | SSE now pushes full payload (items, state, summary) |
+| BG-2 | No PATCH for preferences | `PATCH /api/declaration/preferences` added |
+
+---
+
+## Backend Endpoint Inventory (current)
+
+**27 GET:**
+`/api`, `/api/health`, `/api/status`, `/api/events`, `/api/scheduler`,
+`/api/bandwidth`, `/api/declaration`, `/api/lifecycle`, `/api/log`,
+`/api/downloads/archive`, `/api/sessions`, `/api/sessions/stats`,
+`/api/downloads/{id}/files`, `/api/torrents`, `/api/torrents/{infohash}.torrent`,
+`/api/aria2/get_global_option`, `/api/aria2/get_option`, `/api/aria2/option_tiers`,
 `/api/docs`, `/api/openapi.yaml`, `/api/tests`
 
-**20 POST:** `/api/add`, `/api/scheduler/start`, `/api/scheduler/stop`,
-`/api/scheduler/pause`, `/api/scheduler/resume`, `/api/session`,
-`/api/declaration`, `/api/cleanup`, `/api/bandwidth/probe`, `/api/preflight`,
-`/api/ucc`, `/api/lifecycle/action`, `/api/aria2/change_global_option`,
-`/api/aria2/change_option`, `/api/aria2/set_limits`,
-`/api/item/{id}/pause`, `/api/item/{id}/resume`, `/api/item/{id}/remove`,
-`/api/item/{id}/retry`, `/api/item/{id}/priority`,
-`/api/item/{id}/files`, `/api/torrents/{infohash}/stop`
+**14 POST:**
+`/api/downloads/add`, `/api/scheduler/start`, `/api/scheduler/stop`,
+`/api/scheduler/pause`, `/api/scheduler/resume`, `/api/scheduler/preflight`,
+`/api/scheduler/ucc`, `/api/sessions/new`, `/api/declaration`,
+`/api/downloads/cleanup`, `/api/bandwidth/probe`,
+`/api/aria2/change_global_option`, `/api/aria2/change_option`,
+`/api/aria2/set_limits`, `/api/downloads/{id}/pause`,
+`/api/downloads/{id}/resume`, `/api/downloads/{id}/remove`,
+`/api/downloads/{id}/retry`, `/api/downloads/{id}/files`,
+`/api/lifecycle/{target}/{action}`, `/api/torrents/{infohash}/stop`
+
+**1 PATCH:**
+`/api/declaration/preferences`

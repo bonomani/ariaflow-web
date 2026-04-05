@@ -118,11 +118,11 @@ class TestGetEndpoints:
 
 class TestPostAdd:
     def test_valid_add(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/add", {"items": [{"url": "http://example.com/f"}]})
+        data = _post(f"{web_server}/api/downloads/add", {"items": [{"url": "http://example.com/f"}]})
         assert data.get("ok") is True
 
     def test_add_empty_items(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/add", {"items": []})
+        data = _post(f"{web_server}/api/downloads/add", {"items": []})
         assert isinstance(data, dict)
 
 
@@ -146,7 +146,7 @@ class TestPostRun:
 
 class TestPostSession:
     def test_valid_new_session(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/session", {"action": "new"})
+        data = _post(f"{web_server}/api/sessions/new", {"action": "new"})
         assert data.get("ok") is True
 
 
@@ -168,52 +168,52 @@ class TestPostDeclaration:
 
 class TestPostItem:
     def test_valid_pause(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/pause")
+        data = _post(f"{web_server}/api/downloads/abc123/pause")
         assert data.get("ok") is True
 
     def test_valid_resume(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/resume")
+        data = _post(f"{web_server}/api/downloads/abc123/resume")
         assert data.get("ok") is True
 
     def test_valid_remove(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/remove")
+        data = _post(f"{web_server}/api/downloads/abc123/remove")
         assert data.get("ok") is True
 
     def test_valid_retry(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/retry")
+        data = _post(f"{web_server}/api/downloads/abc123/retry")
         assert data.get("ok") is True
 
     def test_invalid_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/destroy", expect_status=404)
+        data = _post(f"{web_server}/api/downloads/abc123/destroy", expect_status=404)
         assert data.get("error") == "not_found"
 
     def test_missing_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/item/abc123/", expect_status=404)
+        data = _post(f"{web_server}/api/downloads/abc123/", expect_status=404)
 
     def test_empty_id_forwarded(self, web_server: str) -> None:
         # Empty ID is forwarded to backend (backend decides validity)
-        data = _post(f"{web_server}/api/item//pause")
+        data = _post(f"{web_server}/api/downloads//pause")
         assert isinstance(data, dict)
 
 
 class TestPostLifecycle:
     def test_valid_lifecycle_action(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/lifecycle/action", {"target": "ariaflow", "action": "install"})
+        data = _post(f"{web_server}/api/lifecycle/ariaflow/install")
         assert data.get("ok") is True
 
     def test_lifecycle_missing_fields(self, web_server: str) -> None:
         # Should still work — empty strings
-        data = _post(f"{web_server}/api/lifecycle/action", {})
+        data = _post(f"{web_server}/api/lifecycle/unknown/check")
         assert isinstance(data, dict)
 
 
 class TestPostMisc:
     def test_preflight(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/preflight")
+        data = _post(f"{web_server}/api/scheduler/preflight")
         assert isinstance(data, dict)
 
     def test_ucc(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/ucc")
+        data = _post(f"{web_server}/api/scheduler/ucc")
         assert isinstance(data, dict)
 
     def test_pause(self, web_server: str) -> None:
@@ -229,7 +229,7 @@ class TestPostMisc:
         assert data.get("ok") is True
 
     def test_archive(self, web_server: str) -> None:
-        data = _get(f"{web_server}/api/archive")
+        data = _get(f"{web_server}/api/downloads/archive")
         assert isinstance(data, dict)
 
     def test_events_endpoint_exists(self, web_server: str) -> None:
@@ -252,15 +252,11 @@ class TestPostMisc:
         assert isinstance(data, dict)
 
     def test_session_stats(self, web_server: str) -> None:
-        data = _get(f"{web_server}/api/session/stats")
+        data = _get(f"{web_server}/api/sessions/stats")
         assert isinstance(data, dict)
 
     def test_health(self, web_server: str) -> None:
         data = _get(f"{web_server}/api/health")
-        assert isinstance(data, dict)
-
-    def test_scheduler(self, web_server: str) -> None:
-        data = _get(f"{web_server}/api/scheduler")
         assert isinstance(data, dict)
 
     def test_aria2_get_option(self, web_server: str) -> None:
@@ -279,8 +275,24 @@ class TestPostMisc:
         data = _post(f"{web_server}/api/aria2/change_global_option", {"max-concurrent-downloads": "5"})
         assert isinstance(data, dict)
 
+    def test_aria2_change_option(self, web_server: str) -> None:
+        data = _post(f"{web_server}/api/aria2/change_option", {"gid": "abc", "max-download-limit": "1M"})
+        assert data.get("ok") is True
+
+    def test_aria2_set_limits(self, web_server: str) -> None:
+        data = _post(f"{web_server}/api/aria2/set_limits", {"max_download_speed": "5M"})
+        assert data.get("ok") is True
+
+    def test_torrents(self, web_server: str) -> None:
+        data = _get(f"{web_server}/api/torrents")
+        assert isinstance(data, dict)
+
+    def test_torrent_stop(self, web_server: str) -> None:
+        data = _post(f"{web_server}/api/torrents/abc123deadbeef/stop")
+        assert data.get("ok") is True
+
     def test_cleanup(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/cleanup")
+        data = _post(f"{web_server}/api/downloads/cleanup")
         assert isinstance(data, dict)
 
     def test_unknown_post_returns_404(self, web_server: str) -> None:
@@ -289,7 +301,7 @@ class TestPostMisc:
 
     def test_invalid_json_body(self, web_server: str) -> None:
         req = urllib.request.Request(
-            f"{web_server}/api/add",
+            f"{web_server}/api/downloads/add",
             data=b"not json {{{",
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -322,31 +334,35 @@ class TestApiParamCoverage:
         "GET /api/discovery": "test_web.py (web server only)",
         "GET /static/*": "test_static_serving.py (separate file)",
         # POST endpoints
-        "POST /api/add": "test_valid_add + test_add_empty_items",
+        "POST /api/downloads/add": "test_valid_add + test_add_empty_items",
         "POST /api/scheduler/start": "test_valid_start + test_run_with_auto_preflight_bool",
         "POST /api/scheduler/stop": "test_valid_stop",
-        "POST /api/session": "test_valid_new_session",
+        "POST /api/sessions/new": "test_valid_new_session",
         "POST /api/declaration": "TestPostDeclaration",
-        "POST /api/item/{id}/{action}": "TestPostItem",
-        "POST /api/lifecycle/action": "TestPostLifecycle",
-        "POST /api/preflight": "test_preflight",
-        "POST /api/ucc": "test_ucc",
+        "POST /api/downloads/{id}/{action}": "TestPostItem",
+        "POST /api/lifecycle/{target}/{action}": "TestPostLifecycle",
+        "POST /api/scheduler/preflight": "test_preflight",
+        "POST /api/scheduler/ucc": "test_ucc",
         "POST /api/scheduler/pause": "test_pause",
         "POST /api/scheduler/resume": "test_resume",
         "POST /api/bandwidth/probe": "test_bandwidth_probe",
-        "GET /api/archive": "test_archive",
+        "GET /api/downloads/archive": "test_archive",
         "GET /api/events": "test_events_endpoint_exists",
         "GET /api/scheduler": "test_scheduler",
         "GET /api": "test_api_discovery",
         "GET /api/sessions": "test_sessions",
-        "GET /api/session/stats": "test_session_stats",
+        "GET /api/sessions/stats": "test_session_stats",
         "GET /api/health": "test_health",
         "GET /api/scheduler": "test_scheduler",
         "GET /api/aria2/get_option": "test_aria2_get_option",
         "GET /api/aria2/get_global_option": "test_aria2_get_global_option",
         "GET /api/aria2/option_tiers": "test_aria2_option_tiers",
         "POST /api/aria2/change_global_option": "test_aria2_options",
-        "POST /api/cleanup": "test_cleanup",
+        "POST /api/aria2/change_option": "test_aria2_change_option",
+        "POST /api/aria2/set_limits": "test_aria2_set_limits",
+        "GET /api/torrents": "test_torrents",
+        "POST /api/torrents/{infohash}/stop": "test_torrent_stop",
+        "POST /api/downloads/cleanup": "test_cleanup",
         # Error handling
         "POST invalid JSON": "test_invalid_json_body",
         "GET unknown": "test_unknown_get_returns_404",
@@ -391,34 +407,35 @@ class TestApiParamCoverage:
             "/api/status",
             "/api/events",
             "/api/declaration",
-            "/api/add",
+            "/api/downloads/add",
             "/api/scheduler/start",
             "/api/scheduler/stop",
             "/api/scheduler/pause",
             "/api/scheduler/resume",
-            "/api/session",
-            "/api/cleanup",
+            "/api/scheduler/preflight",
+            "/api/scheduler/ucc",
+            "/api/downloads/cleanup",
             "/api/bandwidth",
             "/api/bandwidth/probe",
             "/api/lifecycle",
-            "/api/lifecycle/action",
-            "/api/preflight",
-            "/api/ucc",
+            "/api/lifecycle/",
             "/api/log",
-            "/api/archive",
+            "/api/downloads/archive",
             "/api/sessions",
-            "/api/session/stats",
+            "/api/sessions/stats",
             "/api/health",
             "/api/scheduler",
-            "/api/scheduler/start",
-            "/api/scheduler/stop",
-            "/api/scheduler/pause",
-            "/api/scheduler/resume",
             "/api/aria2/change_global_option",
             "/api/aria2/get_global_option",
             "/api/aria2/option_tiers",
             "/api/aria2/get_option",
-            "/api/item/",
+            "/api/downloads/",
+            "/api/declaration/preferences",
+            "/api/torrents",
+            "/api/aria2/change_option",
+            "/api/aria2/set_limits",
+            "/api/sessions/new",
+            "/api/torrents/",
             "/api/discovery",
             "/api/docs",
             "/api/openapi.yaml",
@@ -492,7 +509,7 @@ class TestApiParamCoverage:
         INTERNAL_METHODS = {
             "_fetch", "_sendAria2Option", "_flushPrefQueue", "refresh",
             "_statusUrl", "_closeSSE", "_initSSE",
-            "schedulerAction", "loadScheduler", "loadAria2Options",
+            "schedulerAction", "loadScheduler", "loadAria2Options", "setAria2Limits",
             "loadDeclaration", "loadSessionHistory", "loadArchive",
             "refreshActionLog", "refreshBandwidth", "discoverBackends",
             "annotateQueueItems", "recordGlobalSpeed", "recordSpeed",
@@ -585,7 +602,7 @@ class TestApiParamCoverage:
         """Verify every item action in the UI maps to a real backend endpoint.
 
         Each action (pause, resume, retry, remove) called via itemAction()
-        or itemToggleAction() must correspond to POST /api/item/{id}/{action}.
+        or itemToggleAction() must correspond to POST /api/downloads/{id}/{action}.
         """
         js = APP_JS.read_text(encoding="utf-8")
 
@@ -614,4 +631,145 @@ class TestApiParamCoverage:
         assert unreachable == set(), (
             f"Backend item actions not reachable from UI:\n"
             + "\n".join(f"  - {a}" for a in sorted(unreachable))
+        )
+
+
+class TestBackendFieldCoverage:
+    """Verify every data field the backend returns is consumed by the frontend."""
+
+    # Expected response fields per endpoint.
+    # Notation: "parent.child" for nested, "arr[].field" for array items.
+    # Only leaf fields that carry user-visible data are listed.
+    EXPECTED_FIELDS: dict[str, set[str]] = {
+        "/api/status": {
+            # items[]
+            "id", "url", "output", "status", "gid", "created_at",
+            "error_message", "error_code", "priority", "mode",
+            "mirrors", "torrent_data", "metalink_data",
+            "live_status", "paused_at", "completed_at",
+            "completed_length", "total_length", "allowed_actions",
+            "post_action_rule", "session_id",
+            "distribute_status", "distribute_infohash",
+            # active
+            "download_speed", "percent", "files",
+            # state
+            "running", "paused", "session_started_at", "stop_requested",
+            # summary
+            "queued", "done", "error", "total",
+            "active", "complete", "discovering", "waiting",
+            "stopped", "cancelled",
+            # bandwidth (inline)
+            "downlink_mbps", "uplink_mbps", "cap_mbps",
+            # ariaflow
+            "reachable", "version", "pid",
+        },
+        "/api/declaration": {
+            "name", "value", "options", "rationale",
+            "uic", "preferences",
+        },
+        "/api/lifecycle": {
+            "target", "outcome", "observation", "reason",
+            "detail", "completion",
+        },
+        "/api/bandwidth": {
+            "downlink_mbps", "uplink_mbps",
+            "down_cap_mbps", "up_cap_mbps", "cap_mbps",
+            "current_limit", "interface",
+            "responsiveness_rpm",
+        },
+        "/api/log": {
+            "action", "target", "outcome", "timestamp",
+            "session_id", "observation", "reason",
+        },
+        "/api/sessions": {
+            "session_id", "started_at", "closed_at", "closed_reason",
+            "items_total", "items_done", "items_error",
+        },
+        "/api/sessions/stats": {
+            "session_id", "items_total", "items_done", "items_error",
+            "items_queued", "items_active", "bytes_completed",
+        },
+        "/api/scheduler": {
+            "status", "running", "paused", "stop_requested",
+            "session_id", "session_started_at",
+        },
+        "/api/torrents": {
+            "infohash", "name", "seed_gid", "started_at", "item_id",
+        },
+    }
+
+    # Fields that are generic wire format or internal — skip checking.
+    SKIP_FIELDS = {
+        "ok", "error", "message", "_rev", "_schema", "_request_id",
+        "count", "meta", "contract",
+    }
+
+    # Backend fields the frontend intentionally does not use (yet).
+    # Each entry documents why. Remove from here when wired into the UI.
+    KNOWN_UNUSED: dict[str, str] = {
+        "/api/status: allowed_actions": "FE-12: could enable/disable action buttons dynamically",
+        "/api/status: distribute_status": "FE-12: seeding status per item not shown",
+        "/api/status: distribute_infohash": "FE-12: infohash per item not shown",
+        "/api/status: error_code": "FE-12: only error_message is displayed",
+        "/api/status: live_status": "FE-12: only normalized status shown",
+        "/api/status: paused_at": "FE-12: timestamp not displayed",
+        "/api/bandwidth: current_limit": "FE-12: raw limit bytes not shown",
+        "/api/bandwidth: down_cap_mbps": "FE-12: cap_mbps used instead",
+        "/api/bandwidth: up_cap_mbps": "FE-12: not shown separately",
+        "/api/bandwidth: responsiveness_rpm": "FE-12: not displayed",
+        "/api/lifecycle: observation": "FE-12: only outcome/reason shown",
+        "/api/log: observation": "FE-12: only action/outcome shown in log",
+        "/api/sessions: items_done": "FE-12: session list shows ID/dates only",
+        "/api/sessions: items_error": "FE-12: session list shows ID/dates only",
+        "/api/sessions: items_total": "FE-12: session list shows ID/dates only",
+        "/api/sessions/stats: bytes_completed": "FE-12: not displayed in stats",
+        "/api/sessions/stats: items_active": "FE-12: not displayed in stats",
+        "/api/sessions/stats: items_done": "FE-12: not displayed in stats",
+        "/api/sessions/stats: items_error": "FE-12: not displayed in stats",
+        "/api/sessions/stats: items_queued": "FE-12: not displayed in stats",
+        "/api/sessions/stats: items_total": "FE-12: not displayed in stats",
+        "/api/torrents: seed_gid": "FE-12: GID not shown in torrent panel",
+    }
+
+    @staticmethod
+    def _snake_to_camel(name: str) -> str:
+        """Convert snake_case to camelCase."""
+        parts = name.split("_")
+        return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+    def _field_present(self, field: str, text: str) -> bool:
+        """Check if field is referenced in text (snake_case or camelCase)."""
+        if field in text:
+            return True
+        camel = self._snake_to_camel(field)
+        if camel != field and camel in text:
+            return True
+        return False
+
+    def test_all_backend_fields_consumed(self) -> None:
+        """Every meaningful backend response field must appear in app.js or index.html."""
+        js = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        combined = js + "\n" + html
+
+        missing: list[str] = []
+        for endpoint, fields in sorted(self.EXPECTED_FIELDS.items()):
+            for field in sorted(fields - self.SKIP_FIELDS):
+                key = f"{endpoint}: {field}"
+                if key in self.KNOWN_UNUSED:
+                    continue
+                if not self._field_present(field, combined):
+                    missing.append(key)
+
+        assert missing == [], (
+            f"Backend response fields not referenced in frontend:\n"
+            + "\n".join(f"  - {f}" for f in missing)
+            + "\n\nIf intentionally unused, add to KNOWN_UNUSED with a reason."
+        )
+
+    def test_known_unused_count_is_stable(self) -> None:
+        """Guard: track how many fields are intentionally unused."""
+        assert len(self.KNOWN_UNUSED) == 22, (
+            f"KNOWN_UNUSED has {len(self.KNOWN_UNUSED)} entries (expected 22). "
+            "Update this count when wiring new fields or adding new gaps."
         )

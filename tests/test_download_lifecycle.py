@@ -201,7 +201,7 @@ class FakeBackendHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
@@ -228,30 +228,45 @@ class FakeBackendHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length).decode("utf-8") if length else "{}"
         payload = json.loads(raw or "{}")
 
-        if path == "/api/add":
+        if path == "/api/downloads/add":
             self._send(backend.add_items(payload.get("items", [])))
-        elif path == "/api/run":
-            self._send(backend.run_action(payload.get("action", ""), payload.get("auto_preflight_on_run")))
-        elif path == "/api/pause":
+        elif path == "/api/scheduler/start":
+            self._send(backend.run_action("start", payload.get("auto_preflight_on_run")))
+        elif path == "/api/scheduler/stop":
+            self._send(backend.run_action("stop"))
+        elif path == "/api/scheduler/pause":
             self._send(backend.pause_queue())
-        elif path == "/api/resume":
+        elif path == "/api/scheduler/resume":
             self._send(backend.resume_queue())
-        elif path == "/api/session":
+        elif path == "/api/sessions/new":
             self._send({"ok": True, "session": "test-sess"})
-        elif path == "/api/preflight":
+        elif path == "/api/scheduler/preflight":
             self._send({"status": "pass", "gates": [], "warnings": [], "hard_failures": []})
-        elif path == "/api/ucc":
+        elif path == "/api/scheduler/ucc":
             self._send({"result": {"outcome": "converged"}})
         elif path == "/api/declaration":
             self._send({"uic": {"preferences": []}, "ucc": {}, "policy": {}})
         elif path == "/api/bandwidth/probe":
             self._send({"ok": True, "source": "default"})
-        elif path.startswith("/api/item/"):
+        elif path == "/api/downloads/cleanup":
+            self._send({"ok": True, "archived": 0, "remaining": 0})
+        elif path.startswith("/api/downloads/"):
             parts = path.split("/")
             if len(parts) == 5:
                 self._send(backend.item_action(parts[3], parts[4]))
             else:
                 self._send({"error": "not_found"}, status=404)
+        elif path.startswith("/api/lifecycle/"):
+            self._send({"ok": True, "lifecycle": {}})
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", "0"))
+        self.rfile.read(length)
+        if path == "/api/declaration/preferences":
+            self._send({"ok": True, "applied": {}})
         else:
             self._send({"error": "not_found"}, status=404)
 
