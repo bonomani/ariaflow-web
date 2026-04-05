@@ -167,9 +167,22 @@ document.addEventListener('alpine:init', () => {
       if (!this.backendReachable) return '-';
       return this.bw.uplink_mbps ? this.formatMbps(this.bw.uplink_mbps) : '-';
     },
-    get bwCapText() {
+    get bwDownCapText() {
       if (!this.backendReachable) return '-';
-      return this.bw.cap_mbps ? this.humanCap(this.formatMbps(this.bw.cap_mbps)) : this.humanCap(this.bw.limit || '-');
+      return this.bw.down_cap_mbps ? this.formatMbps(this.bw.down_cap_mbps) : (this.bw.cap_mbps ? this.formatMbps(this.bw.cap_mbps) : '-');
+    },
+    get bwUpCapText() {
+      if (!this.backendReachable) return '-';
+      return this.bw.up_cap_mbps ? this.formatMbps(this.bw.up_cap_mbps) : '-';
+    },
+    get bwCurrentLimitText() {
+      if (!this.backendReachable) return '-';
+      const limit = this.bw.current_limit;
+      return limit ? this.formatBytes(limit) + '/s' : '-';
+    },
+    get bwResponsivenessText() {
+      if (!this.backendReachable) return '-';
+      return this.bw.responsiveness_rpm ? Math.round(this.bw.responsiveness_rpm) + ' RPM' : '-';
     },
 
     // bandwidth config getters (names must match backend contracts.py)
@@ -662,9 +675,11 @@ document.addEventListener('alpine:init', () => {
       const ls = this.itemLiveStatus(item);
       return ls ? `${ns} · aria2:${ls}` : ns;
     },
-    itemCanPause(item) { return ['downloading', 'active'].includes(this.itemNormalizedStatus(item)); },
-    itemCanResume(item) { return this.itemNormalizedStatus(item) === 'paused'; },
-    itemCanRetry(item) { return ['error', 'failed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
+    itemAllowedActions(item) { return item.allowed_actions || []; },
+    itemCanPause(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('pause') : ['downloading', 'active'].includes(this.itemNormalizedStatus(item)); },
+    itemCanResume(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('resume') : this.itemNormalizedStatus(item) === 'paused'; },
+    itemCanRetry(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('retry') : ['error', 'failed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
+    itemCanRemove(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('remove') : this.itemNormalizedStatus(item) !== 'cancelled'; },
     itemToggleAction(item) {
       if (this.itemCanPause(item)) return this.itemAction(item.id, 'pause');
       if (this.itemCanResume(item)) return this.itemAction(item.id, 'resume');
@@ -1165,6 +1180,7 @@ document.addEventListener('alpine:init', () => {
       const result = record?.result || {};
       const lines = [];
       if (result.message) lines.push(result.message);
+      if (result.observation && result.observation !== 'ok') lines.push(`Observation: ${result.observation}`);
       if (result.reason) lines.push(`Reason: ${result.reason}`);
       if (result.completion) lines.push(`Completion: ${result.completion}`);
       return lines.length ? lines.join(' · ') : 'No details';

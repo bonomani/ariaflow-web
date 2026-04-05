@@ -706,30 +706,7 @@ class TestBackendFieldCoverage:
 
     # Backend fields the frontend intentionally does not use (yet).
     # Each entry documents why. Remove from here when wired into the UI.
-    KNOWN_UNUSED: dict[str, str] = {
-        "/api/status: allowed_actions": "FE-12: could enable/disable action buttons dynamically",
-        "/api/status: distribute_status": "FE-12: seeding status per item not shown",
-        "/api/status: distribute_infohash": "FE-12: infohash per item not shown",
-        "/api/status: error_code": "FE-12: only error_message is displayed",
-        "/api/status: live_status": "FE-12: only normalized status shown",
-        "/api/status: paused_at": "FE-12: timestamp not displayed",
-        "/api/bandwidth: current_limit": "FE-12: raw limit bytes not shown",
-        "/api/bandwidth: down_cap_mbps": "FE-12: cap_mbps used instead",
-        "/api/bandwidth: up_cap_mbps": "FE-12: not shown separately",
-        "/api/bandwidth: responsiveness_rpm": "FE-12: not displayed",
-        "/api/lifecycle: observation": "FE-12: only outcome/reason shown",
-        "/api/log: observation": "FE-12: only action/outcome shown in log",
-        "/api/sessions: items_done": "FE-12: session list shows ID/dates only",
-        "/api/sessions: items_error": "FE-12: session list shows ID/dates only",
-        "/api/sessions: items_total": "FE-12: session list shows ID/dates only",
-        "/api/sessions/stats: bytes_completed": "FE-12: not displayed in stats",
-        "/api/sessions/stats: items_active": "FE-12: not displayed in stats",
-        "/api/sessions/stats: items_done": "FE-12: not displayed in stats",
-        "/api/sessions/stats: items_error": "FE-12: not displayed in stats",
-        "/api/sessions/stats: items_queued": "FE-12: not displayed in stats",
-        "/api/sessions/stats: items_total": "FE-12: not displayed in stats",
-        "/api/torrents: seed_gid": "FE-12: GID not shown in torrent panel",
-    }
+    KNOWN_UNUSED: dict[str, str] = {}
 
     @staticmethod
     def _snake_to_camel(name: str) -> str:
@@ -769,7 +746,7 @@ class TestBackendFieldCoverage:
 
     def test_known_unused_count_is_stable(self) -> None:
         """Guard: track how many fields are intentionally unused."""
-        assert len(self.KNOWN_UNUSED) == 22, (
-            f"KNOWN_UNUSED has {len(self.KNOWN_UNUSED)} entries (expected 22). "
+        assert len(self.KNOWN_UNUSED) == 0, (
+            f"KNOWN_UNUSED has {len(self.KNOWN_UNUSED)} entries (expected 0). "
             "Update this count when wiring new fields or adding new gaps."
         )

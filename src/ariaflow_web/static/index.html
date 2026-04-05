@@ -161,7 +161,10 @@
                       <span x-show="itemTotalLength(item)" x-text="'Total ' + formatBytes(itemTotalLength(item))"></span>
                       <span x-show="itemCompletedLength(item)" x-text="'Done ' + formatBytes(itemCompletedLength(item))"></span>
                       <span x-show="item.recovered_at" x-text="'Recovered ' + (item.recovered_at || '')"></span>
-                      <span x-show="item.error_message" x-text="item.error_message || ''"></span>
+                      <span x-show="item.paused_at" x-text="'Paused ' + relativeTime(item.paused_at)"></span>
+                      <span x-show="item.error_message" x-text="(item.error_code ? '[' + item.error_code + '] ' : '') + (item.error_message || '')"></span>
+                      <span x-show="item.live_status && item.live_status !== itemNormalizedStatus(item)" class="text-muted" x-text="'live: ' + item.live_status"></span>
+                      <span x-show="item.distribute_status" class="text-muted" x-text="'seed: ' + item.distribute_status + (item.distribute_infohash ? ' ' + item.distribute_infohash.slice(0, 8) : '')"></span>
                     </div>
                     <div x-html="itemSparklineSvg(item)"></div>
                   </div>
@@ -170,7 +173,7 @@
                   <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
                   <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" @click="openFileSelection(item.id)">Files</button>
                   <button x-show="item.gid" class="secondary" @click="loadItemOptions(item.gid)">Options</button>
-                  <button x-show="itemNormalizedStatus(item) !== 'cancelled'" @click="itemAction(item.id, 'remove')">Remove</button>
+                  <button x-show="itemCanRemove(item)" @click="itemAction(item.id, 'remove')">Remove</button>
                 </div>
                 <template x-if="item.gid && itemOptionsGid === item.gid && itemOptionsData">
                   <div class="meta mt-sm text-mono" x-text="JSON.stringify(itemOptionsData, null, 2)"></div>
@@ -217,7 +220,10 @@
             <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
             <div class="chip">Download <strong x-text="bwDownBadgeText">-</strong></div>
             <div class="chip">Upload <strong x-text="bwUpBadgeText">-</strong></div>
-            <div class="chip">Cap <strong x-text="bwCapText">-</strong></div>
+            <div class="chip">Down cap <strong x-text="bwDownCapText">-</strong></div>
+            <div class="chip">Up cap <strong x-text="bwUpCapText">-</strong></div>
+            <div class="chip">Limit <strong x-text="bwCurrentLimitText">-</strong></div>
+            <div class="chip" x-show="bwResponsivenessText !== '-'">RPM <strong x-text="bwResponsivenessText">-</strong></div>
             <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
           </div>
           <div class="grid-2col">
@@ -484,6 +490,7 @@
                 </div>
                 <div class="meta">
                   <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-show="t.seed_gid" class="text-muted" x-text="'gid:' + t.seed_gid"></span>
                   <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
                   <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
                 </div>
@@ -606,6 +613,7 @@
                 <div class="item-top">
                   <div class="item-url" x-text="entry.action || 'event'"></div>
                   <span :class="badgeClass(entry.outcome || entry.status || 'unknown')" x-text="entry.outcome || entry.status || 'unknown'"></span>
+                  <span x-show="entry.observation && entry.observation !== 'ok'" class="badge warn" x-text="entry.observation"></span>
                 </div>
                 <div class="meta"><span x-text="(entry.action === 'poll' ? 'Historical event' : 'Historical record') + ' · ' + logEntryLines(entry)"></span></div>
               </div>
@@ -640,14 +648,14 @@
                   <span class="badge" :class="session.session_closed_at ? 'warn' : 'good'" x-text="session.session_closed_at ? 'closed' : 'active'"></span>
                   <strong x-text="session.session_id ? session.session_id.slice(0, 8) : '-'"></strong>
                 </div>
-                <div class="queue-item-detail" x-text="(session.session_started_at ? 'Started ' + relativeTime(session.session_started_at) : '') + (session.session_closed_at ? ' · Closed ' + relativeTime(session.session_closed_at) : '')"></div>
+                <div class="queue-item-detail" x-text="(session.session_started_at ? 'Started ' + relativeTime(session.session_started_at) : '') + (session.session_closed_at ? ' · Closed ' + relativeTime(session.session_closed_at) : '') + (session.items_total != null ? ' · ' + session.items_total + ' items' : '') + (session.items_done ? ', ' + session.items_done + ' done' : '') + (session.items_error ? ', ' + session.items_error + ' errors' : '')"></div>
                 <template x-if="selectedSessionId === session.session_id && selectedSessionStats">
                   <div class="queue-item-detail mt-sm">
                     <template x-if="selectedSessionStats.error">
                       <span x-text="selectedSessionStats.error"></span>
                     </template>
                     <template x-if="!selectedSessionStats.error">
-                      <span x-text="JSON.stringify(selectedSessionStats, null, 2)"></span>
+                      <span x-text="(selectedSessionStats.items_total != null ? selectedSessionStats.items_total + ' total' : '') + (selectedSessionStats.items_done ? ', ' + selectedSessionStats.items_done + ' done' : '') + (selectedSessionStats.items_error ? ', ' + selectedSessionStats.items_error + ' errors' : '') + (selectedSessionStats.items_queued ? ', ' + selectedSessionStats.items_queued + ' queued' : '') + (selectedSessionStats.items_active ? ', ' + selectedSessionStats.items_active + ' active' : '') + (selectedSessionStats.bytes_completed ? ' · ' + formatBytes(selectedSessionStats.bytes_completed) : '')"></span>
                     </template>
                   </div>
                 </template>

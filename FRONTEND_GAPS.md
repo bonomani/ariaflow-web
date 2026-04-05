@@ -4,32 +4,7 @@ Remaining issues — features the backend provides but the frontend doesn't expo
 
 ---
 
-### FE-12: 22 backend response fields not consumed
-
-Backend returns fields the frontend ignores. Grouped by endpoint:
-
-**`/api/status` (items):**
-- `allowed_actions` — could dynamically enable/disable action buttons
-- `distribute_status`, `distribute_infohash` — seeding status per item
-- `error_code` — only `error_message` is displayed
-- `live_status` — only normalized status shown
-- `paused_at` — timestamp not displayed
-
-**`/api/bandwidth`:**
-- `current_limit` — raw bytes/sec limit
-- `down_cap_mbps`, `up_cap_mbps` — separate up/down caps (only `cap_mbps` used)
-- `responsiveness_rpm` — network quality metric
-
-**`/api/lifecycle`, `/api/log`:**
-- `observation` — only outcome/reason shown
-
-**`/api/sessions` + `/api/sessions/stats`:**
-- `items_total`, `items_done`, `items_error`, `items_queued`, `items_active`, `bytes_completed` — session stats not displayed
-
-**`/api/torrents`:**
-- `seed_gid` — GID not shown in torrent panel
-
-Full list tracked in `test_api_params.py::TestBackendFieldCoverage::KNOWN_UNUSED`.
+*No open gaps — all backend response fields are now consumed by the frontend.*
 
 ---
 
@@ -49,5 +24,6 @@ Full list tracked in `test_api_params.py::TestBackendFieldCoverage::KNOWN_UNUSED
 | FE-3: Torrent distribution UI | Phase 6 |
 | FE-4: Per-download aria2 option editing | Phase 6 |
 | FE-5: aria2 set_limits | Phase 6 |
-| FE-10: New Session button | Phase 1 v3 |
-| FE-11: Download .torrent file | Phase 1 v3 |
+| FE-10: New Session button | Phase 10 |
+| FE-11: Download .torrent file | Phase 10 |
+| FE-12: 22 unused backend fields wired | Phase 12 |
