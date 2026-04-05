@@ -354,14 +354,6 @@ document.addEventListener('alpine:init', () => {
     },
 
     // --- state labels ---
-    activeStateLabel(active, state) {
-      if (state?.paused && active?.recovered) return 'paused';
-      if (state?.paused) return 'paused';
-      if (active?.recovered) return active.status ? active.status : 'recovered';
-      if (active?.status) return active.status;
-      if (state?.running) return 'running';
-      return 'idle';
-    },
     sessionLabel(state) {
       if (state?.session_id && !state?.session_closed_at) return `current ${String(state.session_id).slice(0, 8)}`;
       if (state?.session_id && state?.session_closed_at) return `closed ${String(state.session_id).slice(0, 8)}`;
@@ -669,7 +661,6 @@ document.addEventListener('alpine:init', () => {
       return ls ? `${ns} · aria2:${ls}` : ns;
     },
     itemCanPause(item) { return ['downloading', 'active'].includes(this.itemNormalizedStatus(item)); },
-    itemCanDequeue(item) { return this.itemNormalizedStatus(item) === 'queued'; },
     itemCanResume(item) { return this.itemNormalizedStatus(item) === 'paused'; },
     itemCanRetry(item) { return ['error', 'failed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
     itemToggleAction(item) {
@@ -986,10 +977,6 @@ document.addEventListener('alpine:init', () => {
         if (action === 'stop' && result.stopped) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
       }
     },
-    async toggleDownloads() {
-      const paused = this.state?.paused;
-      return paused ? this.resumeDownloads() : this.pauseDownloads();
-    },
     async pauseDownloads() {
       const r = await this._fetch(this.apiPath('/api/pause'), { method: 'POST' });
       const data = await r.json();
@@ -1003,14 +990,6 @@ document.addEventListener('alpine:init', () => {
       this.resultText = data.resumed ? 'Downloads resumed' : 'Resume requested';
       this.resultJson = JSON.stringify(data, null, 2);
       if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
-    },
-    async newSession() {
-      const r = await this._fetch(this.apiPath('/api/session'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'new' }) });
-      const data = await r.json();
-      this.resultText = data.ok ? 'New session started' : 'Session change requested';
-      this.resultJson = JSON.stringify(data, null, 2);
-      if (this.page === 'lifecycle') this.loadLifecycle();
-      if (this.page === 'log') this.refreshActionLog();
     },
     async itemAction(itemId, action) {
       // Snapshot for rollback
@@ -1222,20 +1201,6 @@ document.addEventListener('alpine:init', () => {
     },
     contractTraceOutcome() {
       return this.contractTraceItems?.result?.outcome || 'unknown';
-    },
-    contractTraceLines() {
-      const data = this.contractTraceItems;
-      if (!data) return '';
-      const result = data.result || {};
-      const preflight = data.preflight || {};
-      return [
-        `Contract: ${data.meta?.contract || 'unknown'} v${data.meta?.version || '-'}`,
-        `Outcome: ${result.outcome || 'unknown'}`,
-        `Observation: ${result.observation || 'unknown'}`,
-        result.message ? `Message: ${result.message}` : null,
-        result.reason ? `Reason: ${result.reason}` : null,
-        preflight.status ? `Preflight: ${preflight.status}` : null,
-      ].filter(Boolean).join(' · ');
     },
 
     async refreshActionLog() {
