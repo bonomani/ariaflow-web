@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ariaflow-web"
-version = "0.1.201"
+version = "0.1.202"
 description = "Local dashboard frontend for ariaflow"
 requires-python = ">=3.10"
 dependencies = []
