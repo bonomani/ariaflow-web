@@ -10,10 +10,10 @@ from contextlib import contextmanager
 from typing import Iterator
 
 
-_SERVICE_TYPE = "_http._tcp"
+_SERVICE_TYPE = "_ariaflow._tcp"
 _DOMAIN = "local"
 _REACHABLE_RE = re.compile(r"can be reached at ([^\s]+)\.\s*:(\d+)")
-_BROWSE_RE = re.compile(r"\bAdd\b.*\s(_http\._tcp)\s+(ariaflow [^\r\n]+?)\s*$")
+_BROWSE_RE = re.compile(r"\bAdd\b.*\s_ariaflow\._tcp\.\s+\S+\s+(.*\S)\s*$")
 _TXT_PATH_RE = re.compile(r'"path=([^"]+)"')
 _TXT_ROLE_RE = re.compile(r'"role=([^"]+)"')
 _TXT_PRODUCT_RE = re.compile(r'"product=([^"]+)"')
@@ -82,7 +82,7 @@ def _browse_service_names(timeout: float = 1.5) -> list[str]:
     for line in output.splitlines():
         match = _BROWSE_RE.search(line.strip())
         if match:
-            names.append(match.group(2).strip())
+            names.append(match.group(1).strip())
     return list(dict.fromkeys(names))
 
 
