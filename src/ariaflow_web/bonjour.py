@@ -6,6 +6,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import time
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -20,16 +21,38 @@ _TXT_PRODUCT_RE = re.compile(r'"product=([^"]+)"')
 
 
 def _dns_sd_path() -> str | None:
-    return shutil.which("dns-sd")
+    return shutil.which("dns-sd") or shutil.which("dns-sd.exe")
+
+
+def _avahi_browse_path() -> str | None:
+    return shutil.which("avahi-browse")
+
+
+def _avahi_publish_path() -> str | None:
+    return shutil.which("avahi-publish-service")
+
+
+def _detect_backend() -> str | None:
+    system = platform.system()
+    if system == "Darwin" and _dns_sd_path():
+        return "dns-sd"
+    if system == "Windows" and _dns_sd_path():
+        return "dns-sd"
+    if system == "Linux" and (_avahi_browse_path() or _avahi_publish_path()):
+        return "avahi"
+    return None
 
 
 def bonjour_available() -> bool:
-    return platform.system() == "Darwin" and _dns_sd_path() is not None
+    return _detect_backend() is not None
 
 
 def _service_name(role: str, port: int) -> str:
-    host = os.uname().nodename.split(".")[0] or "localhost"
-    return f"ariaflow {role} {host} {port}"
+    try:
+        host = os.uname().nodename.split(".")[0]
+    except AttributeError:
+        host = platform.node().split(".")[0]
+    return f"ariaflow {role} {host or 'localhost'} {port}"
 
 
 def _txt_records(*, role: str, path: str, product: str, version: str) -> list[str]:
@@ -44,19 +67,27 @@ def _txt_records(*, role: str, path: str, product: str, version: str) -> list[st
 
 @contextmanager
 def advertise_http_service(*, role: str, port: int, path: str, product: str, version: str) -> Iterator[None]:
-    if not bonjour_available():
+    backend = _detect_backend()
+    if backend is None:
         yield
         return
-    cmd = [
-        _dns_sd_path() or "dns-sd",
-        "-R",
-        _service_name(role, port),
-        _SERVICE_TYPE,
-        _DOMAIN,
-        str(port),
-        *(_txt_records(role=role, path=path, product=product, version=version)),
-    ]
-    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    txt = _txt_records(role=role, path=path, product=product, version=version)
+    name = _service_name(role, port)
+    if backend == "avahi":
+        binary = _avahi_publish_path() or "avahi-publish-service"
+        cmd = [binary, name, _SERVICE_TYPE, str(port)] + txt
+    else:
+        binary = _dns_sd_path() or "dns-sd"
+        cmd = [binary, "-R", name, _SERVICE_TYPE, _DOMAIN, str(port)] + txt
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except (FileNotFoundError, PermissionError):
+        yield
+        return
+    time.sleep(0.2)
+    if proc.poll() is not None:
+        yield
+        return
     try:
         yield
     finally:
@@ -69,9 +100,10 @@ def advertise_http_service(*, role: str, port: int, path: str, product: str, ver
 
 
 def _browse_service_names(timeout: float = 1.5) -> list[str]:
-    if not bonjour_available():
+    binary = _dns_sd_path()
+    if not binary:
         return []
-    cmd = [_dns_sd_path() or "dns-sd", "-B", _SERVICE_TYPE, _DOMAIN]
+    cmd = [binary, "-B", _SERVICE_TYPE, _DOMAIN]
     try:
         completed = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
@@ -87,7 +119,10 @@ def _browse_service_names(timeout: float = 1.5) -> list[str]:
 
 
 def _resolve_service(name: str, timeout: float = 1.5) -> dict[str, object] | None:
-    cmd = [_dns_sd_path() or "dns-sd", "-L", name, _SERVICE_TYPE, _DOMAIN]
+    binary = _dns_sd_path()
+    if not binary:
+        return None
+    cmd = [binary, "-L", name, _SERVICE_TYPE, _DOMAIN]
     try:
         completed = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
