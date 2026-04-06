@@ -1,106 +1,51 @@
 # Plan
 
-## Goal
+## Phase 1: Visibility-aware timer pausing
 
-Make backend discovery feel instant, clean, honest, and verifiable.
+Currently, all frontend timers (fast poll, medium 30s, slow 120s, SSE) keep
+firing even when the browser tab is hidden (user minimized, switched tabs, etc).
+This wastes network and battery.
 
-Three independent problems solved by one coordinated change:
+### 1a: Listen for `visibilitychange`
 
-- **Instant display**: no 2-6s wait to see the local backend; never show `127.0.0.1` for self
-- **No duplicates**: the local backend appears exactly once in the dropdown
-- **Explicit Bonjour health signal**: distinguish "mDNS broken" from "no peers found"
+In `init()`, attach a listener:
+```js
+document.addEventListener('visibilitychange', () => this._onVisibilityChange());
+```
 
----
+### 1b: New `_onVisibilityChange()` method
 
-## Phase 1: Instant LAN IP display (no Bonjour wait)
+- **Hidden** (`document.visibilityState === 'hidden'`): pause all timers
+  - `refreshTimer`, `_mediumTimer`, `_slowTimer`, `_sseFallbackTimer`
+  - Close SSE connection (it would keep receiving events otherwise)
+- **Visible** (`document.visibilityState === 'visible'`):
+  - Trigger immediate `refresh()` (user expects fresh data when they look back)
+  - Restart `refreshTimer` with current `refreshInterval`
+  - Call `_updateTabTimers(this.page)` to restart medium/slow timers
+  - Call `_initSSE()` to re-establish SSE
 
-Already implemented in `webapp.py` via `local_identity()` injection. Just surface it in `backendDisplayName`.
+### 1c: Track visibility state
 
-### 1a — Restore IP in parens for the selector
+Add `_tabHidden: false` flag to Alpine state. Used to:
+- Prevent timers from being started while hidden (via early return in `setRefreshInterval`)
+- Show a subtle "paused" indicator in the UI (optional, low priority)
 
-`backendDisplayName(url)` should always return `hostname (host:port)` or `name (host:port)`:
+### 1d: Edge cases
 
-- **Default backend**: `bcs-Mac-mini (192.168.1.10:8000)` — hostname from `window.__ARIAFLOW_WEB_HOSTNAME__`, IP from `window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__` (Google UDP trick at page load, ~1ms)
-- **Discovered backend** (Bonjour metadata present): `bc's Mac AriaFlow (192.168.2.15:8000)` — name from `backendMeta[url].name` (strip `(N)` suffix), address from URL host
-- **Manual URL** (no metadata): `192.168.1.20:8000` — just the URL's host
-- **Edge case**: 0 interfaces → default falls back to `bcs-Mac-mini (127.0.0.1:8000)`
+- **Browser tab switches but window still focused** → `visibilitychange` still fires. Fine.
+- **SSE in-flight when tab hides** → close cleanly; server-side the `queue.Queue` client entry times out naturally.
+- **SSE reconnect failure during hidden** → don't restart the 5s reconnect loop; wait for visibility.
+- **User toggles Off / On** while hidden → honor it but don't start timers until visible.
 
-No changes to webapp.py — globals already injected.
+### 1e: Verify
 
----
+- Tests should still pass (no mock for visibility, so behavior is unchanged during tests).
+- Manual test: open browser devtools, switch tab, verify no network requests in Network panel. Switch back, verify immediate refresh.
 
-## Phase 2: Skip self-discoveries from the dropdown
+## Phase 2 (optional, if you want more)
 
-### 2a — Expose local hostname to the frontend
+Items that require backend changes, deferred:
 
-Already done: `window.__ARIAFLOW_WEB_HOSTNAME__` contains the short hostname. Also expose the `.local` form for matching Bonjour records: inject `window.__ARIAFLOW_WEB_LOCAL_DOT_LOCAL__` = `"<hostname>.local"`.
-
-### 2b — Filter self-entries in `mergeDiscoveredBackends`
-
-In the filter step, drop any discovered item whose:
-- `host` field equals `local_hostname() + ".local"` (case-insensitive), OR
-- `ip` field is in `window.__ARIAFLOW_WEB_LOCAL_IPS__`, OR
-- URL resolves to a loopback address
-
-Still store these in `backendMeta` for their presence to count as "Bonjour verified" (see Phase 3), but don't add their URLs to `backends`.
-
-### 2c — Edge case: multi-interface peer dedup
-
-When Bonjour finds the same remote instance on multiple interfaces (happens with `avahi-browse -rpt` on Linux), we currently add both. Dedupe by instance name: keep only the first occurrence per `backendMeta.name`. User sees one entry per remote machine.
-
----
-
-## Phase 3: Explicit Bonjour health indicator
-
-### 3a — New Alpine state
-
-- `bonjourState: 'pending' | 'ok' | 'broken' | 'unavailable'`
-  - `'pending'` — initial state, discovery hasn't completed yet (the 2s defer window)
-  - `'ok'` — discovery returned ≥1 item (self or remote), mDNS stack works
-  - `'broken'` — discovery ran, returned 0 items, but `available: true` from the backend (stack exists, found nothing)
-  - `'unavailable'` — discovery returned `available: false` (no dns-sd/avahi on this machine)
-
-### 3b — Update in `discoverBackends`
-
-After `data = await r.json()`:
-- `data.available === false` → `bonjourState = 'unavailable'`
-- `data.items.length === 0` → `bonjourState = 'broken'`
-- `data.items.length > 0` → `bonjourState = 'ok'`
-
-### 3c — UI indicator
-
-Replace the current two chips (`No backend discovered (local fallback)` / `Discovered N backend services`) with a single mDNS chip:
-
-| State | Display | Color |
-|-------|---------|-------|
-| `pending` | `mDNS …` | neutral |
-| `ok` | `mDNS ✓` | good (green) |
-| `broken` | `mDNS ✗` | warn |
-| `unavailable` | `mDNS N/A` | muted |
-
-Tooltip on hover explains what the state means.
-
-The separate "Discovered N backends" text, if wanted, can stay as a smaller muted line below showing the count of *remote* entries (excluding self).
-
----
-
-## Phase 4: System Info interface list (already done in previous phase)
-
-The `<details>` System Info block already lists all local IPs from `window.__ARIAFLOW_WEB_LOCAL_IPS__` with a `main` badge on `window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__`. No changes needed.
-
-Verify:
-- 0 interfaces → list shows `127.0.0.1 main` only (fallback)
-- 1 interface → one chip, marked `main`
-- 2+ interfaces → all chips, one marked `main`
-
----
-
-## Phase 5: Verify
-
-- Run fast tests (96 expected)
-- Run mypy clean
-- Manually verify on macOS:
-  - Dropdown shows `bcs-Mac-mini (192.168.1.10:8000)` immediately on page load
-  - After 2-3s, `mDNS ✓` badge appears
-  - Dropdown has no duplicate entries from Bonjour self-discovery
-  - System Info lists all interfaces with `main` badge on primary
+- **SSE push log entries** — reduces `_mediumTimer` load, needs new backend event type `action_logged`
+- **Merge /api/health into /api/status response** — one less endpoint to call, needs backend schema change
+- **Backend scheduler adaptive backoff when aria2 unreachable** — reduces RPC spam when aria2 is down

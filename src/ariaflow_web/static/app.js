@@ -281,6 +281,7 @@ document.addEventListener('alpine:init', () => {
       this.initTheme();
       this.initNotifications();
       window.addEventListener('beforeunload', () => { if (this._prefQueue.length) this._flushPrefQueue(); });
+      document.addEventListener('visibilitychange', () => this._onVisibilityChange());
       window.addEventListener('popstate', () => {
         const path = window.location.pathname.replace(/[/]+$/, '');
         const target = path === '/bandwidth' ? 'bandwidth' : path === '/lifecycle' ? 'lifecycle' : path === '/options' ? 'options' : path === '/log' ? 'log' : path === '/dev' ? 'dev' : path === '/archive' ? 'archive' : 'dashboard';
@@ -296,6 +297,10 @@ document.addEventListener('alpine:init', () => {
         this.deferRefresh(1000);
       }
       this.setRefreshInterval(10000);
+
+      // Hero data (disk, server metrics) — always refreshed independent of tab
+      this.loadHealth();
+      this._heroTimer = setInterval(() => this.loadHealth(), 120000);
 
       if (this.page === 'lifecycle') this.loadLifecycle();
       if (this.page === 'bandwidth') this.loadDeclaration();
@@ -323,12 +328,14 @@ document.addEventListener('alpine:init', () => {
       lifecycle: ['loadLifecycle'],
     },
     _TAB_SLOW: {
-      dashboard: ['loadDeclaration', 'loadHealth'],
-      dev: ['loadHealth'],
+      dashboard: ['loadDeclaration'],
       log: ['loadSessionHistory'],
       options: ['loadDeclaration', 'loadAria2Options', 'loadTorrents', 'loadPeers'],
       bandwidth: ['loadDeclaration'],
     },
+    // Hero panel data — always refreshed regardless of tab
+    _heroTimer: null,
+    _tabHidden: false,
 
     navigateTo(target) {
       if (this.page === target) return;
@@ -345,6 +352,30 @@ document.addEventListener('alpine:init', () => {
       if (this._mediumTimer) { clearInterval(this._mediumTimer); this._mediumTimer = null; }
       if (this._slowTimer) { clearInterval(this._slowTimer); this._slowTimer = null; }
     },
+    _onVisibilityChange() {
+      const hidden = document.visibilityState === 'hidden';
+      if (hidden === this._tabHidden) return;
+      this._tabHidden = hidden;
+      if (hidden) {
+        // Tab hidden: pause all timers + close SSE to stop network chatter
+        if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
+        if (this._heroTimer) { clearInterval(this._heroTimer); this._heroTimer = null; }
+        if (this._sseFallbackTimer) { clearTimeout(this._sseFallbackTimer); this._sseFallbackTimer = null; }
+        if (this._deferTimer) { clearTimeout(this._deferTimer); this._deferTimer = null; }
+        this._pauseTabTimers();
+        this._closeSSE();
+      } else {
+        // Tab visible: refresh immediately + restart all timers
+        if (this.refreshInterval > 0) {
+          this.refresh();
+          this.loadHealth();
+          this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
+          this._heroTimer = setInterval(() => this.loadHealth(), 120000);
+          this._updateTabTimers(this.page);
+        }
+        this._initSSE();
+      }
+    },
     _updateTabTimers(target) {
       this._pauseTabTimers();
       if (this.refreshInterval === 0) return; // "Off" = no background activity
@@ -356,12 +387,11 @@ document.addEventListener('alpine:init', () => {
       if (slow) this._slowTimer = setInterval(() => this._runTabMethods(slow), slowMs);
     },
     _loadPageData(target) {
-      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); this.loadHealth(); }
+      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
       if (target === 'lifecycle') this.loadLifecycle();
       if (target === 'bandwidth') this.loadDeclaration();
       if (target === 'options') { this.loadDeclaration(); this.loadAria2Options(); this.loadTorrents(); this.loadPeers(); }
       if (target === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); this.loadWebLog(); }
-      if (target === 'dev') this.loadHealth();
       if (target === 'archive') this.loadArchive();
     },
 
