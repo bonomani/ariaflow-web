@@ -225,7 +225,6 @@ document.addEventListener('alpine:init', () => {
     // api discovery
 
     // aria2 options (safe subset exposed by backend)
-    lastScheduler: null,
     itemOptionsGid: null,
     itemOptionsData: null,
     aria2Options: {},
@@ -275,6 +274,7 @@ document.addEventListener('alpine:init', () => {
       if (this.page === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
       if (this.page === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); this.loadWebLog(); }
       if (this.page === 'archive') this.loadArchive();
+      this._updateTabTimers(this.page);
 
       // SSE for real-time updates (falls back to polling on failure)
       this._initSSE();
@@ -283,12 +283,42 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2000);
     },
 
+    _mediumTimer: null,
+    _slowTimer: null,
+    MEDIUM_INTERVAL: 30000,
+    SLOW_INTERVAL: 120000,
+
+    // Per-tab refresh policies
+    _TAB_MEDIUM: {
+      log: ['refreshActionLog', 'loadWebLog'],
+      bandwidth: ['refreshBandwidth'],
+      lifecycle: ['loadLifecycle'],
+    },
+    _TAB_SLOW: {
+      dashboard: ['loadDeclaration'],
+      log: ['loadSessionHistory'],
+      options: ['loadDeclaration', 'loadAria2Options', 'loadTorrents', 'loadPeers'],
+      bandwidth: ['loadDeclaration'],
+    },
+
     navigateTo(target) {
       if (this.page === target) return;
       this.page = target;
       const urlMap = { dashboard: '/', bandwidth: '/bandwidth', lifecycle: '/lifecycle', options: '/options', log: '/log', dev: '/dev', archive: '/archive' };
       history.pushState(null, '', urlMap[target] || '/');
       this._loadPageData(target);
+      this._updateTabTimers(target);
+    },
+    _runTabMethods(methods) {
+      for (const m of methods || []) { if (typeof this[m] === 'function') this[m](); }
+    },
+    _updateTabTimers(target) {
+      if (this._mediumTimer) { clearInterval(this._mediumTimer); this._mediumTimer = null; }
+      if (this._slowTimer) { clearInterval(this._slowTimer); this._slowTimer = null; }
+      const medium = this._TAB_MEDIUM[target];
+      const slow = this._TAB_SLOW[target];
+      if (medium) this._mediumTimer = setInterval(() => this._runTabMethods(medium), this.MEDIUM_INTERVAL);
+      if (slow) this._slowTimer = setInterval(() => this._runTabMethods(slow), this.SLOW_INTERVAL);
     },
     _loadPageData(target) {
       if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
@@ -325,8 +355,11 @@ document.addEventListener('alpine:init', () => {
     // --- sparklines (rendering delegated to sparkline.js) ---
     recordSpeed(itemId, speed) {
       if (!itemId) return;
+      const s = Number(speed || 0);
       const current = this.speedHistory[itemId] || [];
-      const updated = [...current, Number(speed || 0)];
+      // Skip if speed unchanged — avoids Alpine reactivity churn
+      if (current.length && current[current.length - 1] === s && s === 0) return;
+      const updated = [...current, s];
       this.speedHistory = { ...this.speedHistory, [itemId]: updated.length > this.SPEED_HISTORY_MAX ? updated.slice(-this.SPEED_HISTORY_MAX) : updated };
     },
     renderSparkline(itemId) { return renderItemSparkline(this.speedHistory[itemId]); },
@@ -716,7 +749,6 @@ document.addEventListener('alpine:init', () => {
         }
         this._consecutiveFailures = 0;
         this.lastStatus = data;
-        this.loadScheduler();
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
@@ -744,12 +776,14 @@ document.addEventListener('alpine:init', () => {
       const pref = prefs.find((item) => item.name === name);
       return pref ? pref.value : undefined;
     },
+    _declarationLoadedAt: 0,
     async loadDeclaration(force = false) {
-      if (!force && this.lastDeclaration && this.lastDeclaration.ok !== false) return;
+      if (!force && this.lastDeclaration && this.lastDeclaration.ok !== false && Date.now() - this._declarationLoadedAt < 30000) return;
       const r = await this._fetch(this.apiPath('/api/declaration'));
       this.lastDeclaration = await r.json();
       if (this.lastDeclaration?.ok === false || this.lastDeclaration?.ariaflow?.reachable === false) return;
       this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
+      this._declarationLoadedAt = Date.now();
     },
     async saveDeclaration() {
       let parsed;
@@ -1239,16 +1273,6 @@ document.addEventListener('alpine:init', () => {
         this.itemOptionsData = await r.json();
       } catch (e) {
         this.itemOptionsData = { error: e.message };
-      }
-    },
-
-    // --- scheduler ---
-    async loadScheduler() {
-      try {
-        const r = await this._fetch(this.apiPath('/api/scheduler'));
-        this.lastScheduler = await r.json();
-      } catch (e) {
-        this.lastScheduler = null;
       }
     },
 
