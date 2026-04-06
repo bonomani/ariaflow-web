@@ -59,8 +59,7 @@
           </label>
           <div class="chip">Ariaflow <strong x-text="backendVersionText">-</strong></div>
           <div class="chip badge warn" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
-          <div class="chip badge warn" x-show="backendsDiscovered === false">No backend discovered (local fallback)</div>
-          <div class="chip badge good" x-show="backendsDiscovered === true" x-text="discoveryText"></div>
+          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText"></div>
         </div>
         <!-- L2: Session + cap + disk -->
         <div class="chips mt-sm">

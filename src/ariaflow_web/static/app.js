@@ -24,6 +24,8 @@ document.addEventListener('alpine:init', () => {
     DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
     localIps: window.__ARIAFLOW_WEB_LOCAL_IPS__ || ['127.0.0.1'],
     localMainIp: window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__ || '127.0.0.1',
+    // Bonjour health: pending (initial) → ok / broken / unavailable after discovery
+    bonjourState: 'pending',
     backendInput: '',
     backendsDiscovered: null,
     discoveryText: '',
@@ -503,11 +505,38 @@ document.addEventListener('alpine:init', () => {
       }
       this.backendMeta = meta;
 
-      const discovered = list.map((i) => String(i?.url || '').trim()).filter(Boolean);
+      // Determine which items refer to this same machine (self).
+      const localHostLower = String(window.__ARIAFLOW_WEB_HOSTNAME__ || '').toLowerCase();
+      const selfLocal = localHostLower ? `${localHostLower}.local` : '';
+      const localIps = this.localIps || [];
+      const isSelf = (item) => {
+        const host = String(item?.host || '').toLowerCase();
+        const ip = String(item?.ip || '');
+        if (selfLocal && host === selfLocal) return true;
+        if (ip && localIps.includes(ip)) return true;
+        if (ip && (ip === '127.0.0.1' || ip.startsWith('127.'))) return true;
+        try {
+          const urlIp = new URL(String(item?.url || '')).hostname;
+          if (urlIp === '127.0.0.1') return true;
+        } catch { /* ignore */ }
+        return false;
+      };
+
+      // Dedupe by instance name, then drop self entries for the dropdown.
+      const seenNames = new Set();
+      const deduped = [];
+      for (const item of list) {
+        const name = String(item?.name || '').trim();
+        if (name && seenNames.has(name)) continue;
+        if (name) seenNames.add(name);
+        deduped.push(item);
+      }
+      const remote = deduped.filter((item) => !isSelf(item));
+      const discovered = remote.map((i) => String(i?.url || '').trim()).filter(Boolean);
+
       if (!discovered.length) return;
       const state = this.loadBackendState();
       const merged = [...new Set([...state.backends, ...discovered])];
-      // Auto-select only if one backend was found and user hasn't picked differently.
       const firstDiscovered = discovered[0];
       const autoSelect = discovered.length === 1
         && state.selected === this.DEFAULT_BACKEND_URL
@@ -517,15 +546,25 @@ document.addEventListener('alpine:init', () => {
     },
     backendDisplayName(url) {
       if (!url) return '-';
-      // Default backend: show the local machine hostname (injected by webapp.py)
+      // Extract address (host:port) shown in parens
+      let addr = url;
+      try { addr = new URL(url).host; } catch { /* keep raw */ }
+      // Default backend: substitute real LAN IP (Google trick) for loopback
       if (url === this.DEFAULT_BACKEND_URL) {
-        return window.__ARIAFLOW_WEB_HOSTNAME__ || 'localhost';
+        const host = window.__ARIAFLOW_WEB_HOSTNAME__ || 'localhost';
+        const mainIp = window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__ || '127.0.0.1';
+        let port = '8000';
+        try { port = new URL(url).port || '8000'; } catch { /* keep default */ }
+        return `${host} (${mainIp}:${port})`;
       }
-      // Discovered backend with Bonjour name: use it, stripped of (N) suffix
+      // Discovered backend with Bonjour name
       const meta = this.backendMeta[url];
-      if (meta?.name) return meta.name.replace(/\s*\(\d+\)\s*$/, '');
-      // Fallback: host:port from URL
-      try { return new URL(url).host; } catch { return url; }
+      if (meta?.name) {
+        const name = meta.name.replace(/\s*\(\d+\)\s*$/, '');
+        return `${name} (${addr})`;
+      }
+      // Fallback: host:port only
+      return addr;
     },
     apiPath(path) {
       const backend = this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;
@@ -558,13 +597,39 @@ document.addEventListener('alpine:init', () => {
       this.deferRefresh(0);
     },
     async discoverBackends() {
-      const r = await this._fetch('/api/discovery');
-      const data = await r.json();
-      this.mergeDiscoveredBackends(data.items || []);
-      this.backendsDiscovered = Array.isArray(data.items) && data.items.length > 0;
-      this.discoveryText = this.backendsDiscovered
-        ? `Discovered ${data.items.length} backend service(s)`
-        : 'No Bonjour backends discovered';
+      try {
+        const r = await this._fetch('/api/discovery');
+        const data = await r.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+        if (data?.available === false) {
+          this.bonjourState = 'unavailable';
+        } else if (items.length === 0) {
+          this.bonjourState = 'broken';
+        } else {
+          this.bonjourState = 'ok';
+        }
+        this.mergeDiscoveredBackends(items);
+        this.backendsDiscovered = items.length > 0;
+        this.discoveryText = this.backendsDiscovered
+          ? `Discovered ${items.length} backend service(s)`
+          : 'No Bonjour backends discovered';
+      } catch (e) {
+        this.bonjourState = 'broken';
+      }
+    },
+    get bonjourBadgeText() {
+      return ({ pending: 'mDNS …', ok: 'mDNS ✓', broken: 'mDNS ✗', 'unavailable': 'mDNS N/A' })[this.bonjourState] || 'mDNS';
+    },
+    get bonjourBadgeClass() {
+      return ({ pending: 'badge', ok: 'badge good', broken: 'badge warn', unavailable: 'badge' })[this.bonjourState] || 'badge';
+    },
+    get bonjourBadgeTitle() {
+      return ({
+        pending: 'Discovering Bonjour services…',
+        ok: 'Bonjour discovery working',
+        broken: 'Bonjour returned no results',
+        unavailable: 'No mDNS tool (dns-sd/avahi) available on this machine',
+      })[this.bonjourState] || '';
     },
 
     // --- queue ---
