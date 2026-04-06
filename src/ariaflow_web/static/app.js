@@ -312,13 +312,19 @@ document.addEventListener('alpine:init', () => {
     _runTabMethods(methods) {
       for (const m of methods || []) { if (typeof this[m] === 'function') this[m](); }
     },
-    _updateTabTimers(target) {
+    _pauseTabTimers() {
       if (this._mediumTimer) { clearInterval(this._mediumTimer); this._mediumTimer = null; }
       if (this._slowTimer) { clearInterval(this._slowTimer); this._slowTimer = null; }
+    },
+    _updateTabTimers(target) {
+      this._pauseTabTimers();
+      if (this.refreshInterval === 0) return; // "Off" = no background activity
       const medium = this._TAB_MEDIUM[target];
       const slow = this._TAB_SLOW[target];
-      if (medium) this._mediumTimer = setInterval(() => this._runTabMethods(medium), this.MEDIUM_INTERVAL);
-      if (slow) this._slowTimer = setInterval(() => this._runTabMethods(slow), this.SLOW_INTERVAL);
+      const mediumMs = Math.max(this.MEDIUM_INTERVAL, this.refreshInterval);
+      const slowMs = Math.max(this.SLOW_INTERVAL, this.refreshInterval);
+      if (medium) this._mediumTimer = setInterval(() => this._runTabMethods(medium), mediumMs);
+      if (slow) this._slowTimer = setInterval(() => this._runTabMethods(slow), slowMs);
     },
     _loadPageData(target) {
       if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
@@ -649,6 +655,7 @@ document.addEventListener('alpine:init', () => {
       es.addEventListener('connected', () => {
         this._sseConnected = true;
         if (this._sseFallbackTimer) { clearTimeout(this._sseFallbackTimer); this._sseFallbackTimer = null; }
+        if (this._deferTimer) { clearTimeout(this._deferTimer); this._deferTimer = null; }
         // Pause polling — SSE will push updates
         if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
       });
@@ -706,6 +713,8 @@ document.addEventListener('alpine:init', () => {
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }
+      // Update tab timers — respects "Off" and new interval
+      this._updateTabTimers(this.page);
     },
 
     _deferTimer: null,
@@ -762,10 +771,14 @@ document.addEventListener('alpine:init', () => {
           clearInterval(this.refreshTimer);
           this.refreshTimer = setInterval(() => this.refresh(), backoff);
           this._inBackoff = true;
+          // Pause tab timers — backend is unreachable
+          this._pauseTabTimers();
         } else if (this._consecutiveFailures === 0 && this._inBackoff && this.refreshTimer) {
           clearInterval(this.refreshTimer);
           this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
           this._inBackoff = false;
+          // Resume tab timers — backend is back
+          this._updateTabTimers(this.page);
         }
       }
     },
