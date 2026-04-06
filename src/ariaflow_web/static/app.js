@@ -273,7 +273,7 @@ document.addEventListener('alpine:init', () => {
       if (this.page === 'lifecycle') this.loadLifecycle();
       if (this.page === 'bandwidth') this.loadDeclaration();
       if (this.page === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
-      if (this.page === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); }
+      if (this.page === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); this.loadWebLog(); }
       if (this.page === 'archive') this.loadArchive();
 
       // SSE for real-time updates (falls back to polling on failure)
