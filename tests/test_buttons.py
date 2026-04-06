@@ -42,7 +42,7 @@ def page(browser_context, web_server) -> Page:
 
 def _wait_dashboard(page: Page, web_server: str) -> None:
     _goto(page, f"{web_server}/")
-    page.wait_for_selector(".item.compact", timeout=8000)
+    page.wait_for_selector(".item.compact:not(.add-card)", timeout=8000)
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ class TestFilterButtons:
             pytest.skip(f"Filter button '{filter_name}' not visible (no items with that status)")
         btn.first.click()
         page.wait_for_timeout(500)
-        assert len(page.query_selector_all(".item.compact")) == expected_count
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) == expected_count
 
 
 # ---------------------------------------------------------------------------
@@ -159,12 +159,12 @@ class TestItemActionButtons:
 
     def test_remove_button_exists_on_every_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        remove_btns = page.locator('.item.compact button:has-text("Remove")').all()
+        remove_btns = page.locator('.item.compact:not(.add-card) button:has-text("Remove")').all()
         assert len(remove_btns) >= 5
 
     def test_remove_button_calls_api(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
-        remove_btns = page.locator('.item.compact button:has-text("Remove")').all()
+        remove_btns = page.locator('.item.compact:not(.add-card) button:has-text("Remove")').all()
         assert len(remove_btns) >= 1
         remove_btns[0].click()
         page.wait_for_timeout(500)
@@ -175,21 +175,21 @@ class TestItemActionButtons:
         page.click('.filter-bar .filter-btn:has-text("done")')
         page.wait_for_timeout(300)
         # In Alpine, x-show hides buttons; check no visible pause buttons
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact:not(.add-card) button')).filter(b => b.textContent.trim() === 'Pause').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible == 0
 
     def test_remove_button_on_queued_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("queued")')
         page.wait_for_timeout(300)
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Remove').filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact:not(.add-card) button')).filter(b => b.textContent.trim() === 'Remove').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible >= 1
 
     def test_no_retry_button_on_queued_item(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("queued")')
         page.wait_for_timeout(300)
-        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact button')).filter(b => b.textContent.trim() === 'Retry').filter(b => getComputedStyle(b).display !== 'none').length''')
+        visible = page.evaluate('''Array.from(document.querySelectorAll('.item.compact:not(.add-card) button')).filter(b => b.textContent.trim() === 'Retry').filter(b => getComputedStyle(b).display !== 'none').length''')
         assert visible == 0
 
 

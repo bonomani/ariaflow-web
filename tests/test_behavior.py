@@ -196,11 +196,11 @@ class TestRenderingEdgeCases:
         _goto(page, f"{web_server}/")
         refresh(page)
         page.wait_for_timeout(1500)
-        count = len(page.query_selector_all(".item.compact"))
+        count = len(page.query_selector_all(".item.compact:not(.add-card)"))
         if count == 0:  # retry once on slow startup
             refresh(page)
             page.wait_for_timeout(1500)
-            count = len(page.query_selector_all(".item.compact"))
+            count = len(page.query_selector_all(".item.compact:not(.add-card)"))
         assert count == 50
         backend.items = []
 
@@ -210,7 +210,7 @@ class TestRenderingEdgeCases:
         backend.items = [{"status": "queued"}]
         _goto(page, f"{web_server}/")
         refresh(page)
-        assert len(page.query_selector_all(".item.compact")) == 1
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) == 1
         backend.items = []
 
     @pytest.mark.xfail(reason="flaky: shared mock backend state across fixtures")

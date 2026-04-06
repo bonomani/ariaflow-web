@@ -109,7 +109,7 @@
           </div>
           <div class="list">
             <!-- Add item card — same layout as queue items -->
-            <div class="item compact">
+            <div class="item compact add-card">
               <div class="item-top">
                 <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
               </div>
@@ -662,6 +662,7 @@
             <button :class="{ secondary: !backendReachable }" @click="loadDeclaration(true)" :disabled="!backendReachable">Load</button>
             <button :class="{ secondary: !backendReachable }" @click="saveDeclaration()" :disabled="!backendReachable">Save</button>
           </div>
+          <div class="text-muted text-sm mt-sm" x-show="resultText && resultText !== 'Idle'" x-text="resultText"></div>
         </div>
       </div>
 

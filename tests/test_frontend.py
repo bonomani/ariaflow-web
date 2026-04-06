@@ -108,13 +108,13 @@ class TestRoutes:
 def _wait_for_dashboard_items(page: Page, web_server: str) -> None:
     """Navigate to dashboard and wait for queue items to render."""
     _goto(page, f"{web_server}/")
-    page.wait_for_selector(".item.compact", timeout=8000)
+    page.wait_for_selector(".item.compact:not(.add-card)", timeout=8000)
 
 
 class TestDashboardInteractive:
     def test_dashboard_renders_queue_items(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
-        assert len(page.query_selector_all(".item.compact")) >= 1
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) >= 1
 
     def test_filter_chips_show_counts(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
@@ -126,19 +126,19 @@ class TestDashboardInteractive:
         _wait_for_dashboard_items(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("done")')
         page.wait_for_timeout(300)
-        assert len(page.query_selector_all(".item.compact")) == 1
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) == 1
 
     def test_filter_by_error(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
         page.click('.filter-bar .filter-btn:has-text("error")')
         page.wait_for_timeout(300)
-        assert len(page.query_selector_all(".item.compact")) == 1
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) == 1
 
     def test_search_filters_queue(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
         page.fill('input[x-model="queueSearch"]', "big.iso")
         page.wait_for_timeout(300)
-        items = page.query_selector_all(".item.compact")
+        items = page.query_selector_all(".item.compact:not(.add-card)")
         assert len(items) == 1 and "big.iso" in items[0].inner_text()
 
     def test_search_no_results(self, page: Page, web_server: str) -> None:
@@ -150,13 +150,13 @@ class TestDashboardInteractive:
 
     def test_active_item_shows_progress(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
-        el = page.query_selector(".item.compact.active-item")
+        el = page.query_selector(".item.compact:not(.add-card).active-item")
         assert el is not None
         assert "50%" in el.inner_text()
 
     def test_active_item_shows_eta(self, page: Page, web_server: str) -> None:
         _wait_for_dashboard_items(page, web_server)
-        el = page.query_selector(".item.compact.active-item")
+        el = page.query_selector(".item.compact:not(.add-card).active-item")
         assert el is not None
         assert "ETA" in el.inner_text()
 

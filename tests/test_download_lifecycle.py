@@ -271,7 +271,7 @@ def refresh_and_wait(page: Page) -> None:
 
 
 def queue_items(page: Page) -> list:
-    return page.query_selector_all(".item.compact")
+    return page.query_selector_all(".item.compact:not(.add-card)")
 
 
 def queue_text(page: Page) -> str:

@@ -61,9 +61,9 @@ class TestScreenshots:
 
     def test_dashboard_has_queue_items(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")
-        page.wait_for_selector(".item.compact", timeout=8000)
+        page.wait_for_selector(".item.compact:not(.add-card)", timeout=8000)
         page.screenshot(path=str(SCREENSHOT_DIR / "dashboard_with_items.png"), full_page=True)
-        assert len(page.query_selector_all(".item.compact")) >= 1
+        assert len(page.query_selector_all(".item.compact:not(.add-card)")) >= 1
 
     def test_dark_and_light_theme(self, page: Page, web_server: str) -> None:
         _goto(page, f"{web_server}/")
