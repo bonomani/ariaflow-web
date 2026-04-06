@@ -34,6 +34,13 @@ DEFAULT_STATUS = {
         "gid": "aaa111", "url": "https://example.com/big.iso", "status": "active",
         "downloadSpeed": 1048576, "totalLength": 104857600, "completedLength": 52428800, "percent": 50.0,
     },
+    "actives": [
+        {
+            "gid": "aaa111", "url": "https://example.com/big.iso", "status": "active",
+            "downloadSpeed": 1048576, "totalLength": 104857600, "completedLength": 52428800, "percent": 50.0,
+        },
+    ],
+    "aria2": {"enabled": True, "reachable": True, "version": "1.36.0"},
     "state": {"running": True, "paused": False, "session_id": "sess-001", "session_started_at": "2026-04-01T10:00:00"},
     "summary": {"queued": 1, "done": 1, "error": 1, "total": 5},
     "bandwidth": {"source": "networkquality", "downlink_mbps": 100, "uplink_mbps": 20, "cap_mbps": 50, "interface_name": "en0"},

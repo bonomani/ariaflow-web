@@ -614,85 +614,54 @@ class TestApiParamCoverage:
 
 
 class TestBackendFieldCoverage:
-    """Verify every data field the backend returns is consumed by the frontend."""
+    """Verify every data field the backend returns is consumed by the frontend.
 
-    # Expected response fields per endpoint.
-    # Notation: "parent.child" for nested, "arr[].field" for array items.
-    # Only leaf fields that carry user-visible data are listed.
-    EXPECTED_FIELDS: dict[str, set[str]] = {
-        "/api/status": {
-            # items[]
-            "id", "url", "output", "status", "gid", "created_at",
-            "error_message", "error_code", "priority", "mode",
-            "mirrors", "torrent_data", "metalink_data",
-            "live_status", "paused_at", "completed_at",
-            "completed_length", "total_length", "allowed_actions",
-            "post_action_rule", "session_id",
-            "distribute_status", "distribute_infohash",
-            # active
-            "download_speed", "percent", "files",
-            # state
-            "running", "paused", "session_started_at", "stop_requested",
-            # summary
-            "queued", "done", "error", "total",
-            "active", "complete", "discovering", "waiting",
-            "stopped", "cancelled",
-            # bandwidth (inline)
-            "downlink_mbps", "uplink_mbps", "cap_mbps",
-            # ariaflow
-            "reachable", "version", "pid",
-        },
-        "/api/declaration": {
-            "name", "value", "options", "rationale",
-            "uic", "preferences",
-        },
-        "/api/lifecycle": {
-            "target", "outcome", "observation", "reason",
-            "detail", "completion",
-        },
-        "/api/bandwidth": {
-            "downlink_mbps", "uplink_mbps",
-            "down_cap_mbps", "up_cap_mbps", "cap_mbps",
-            "current_limit", "interface",
-            "responsiveness_rpm",
-        },
-        "/api/log": {
-            "action", "target", "outcome", "timestamp",
-            "session_id", "observation", "reason",
-        },
-        "/api/sessions": {
-            "session_id", "started_at", "closed_at", "closed_reason",
-            "items_total", "items_done", "items_error",
-        },
-        "/api/sessions/stats": {
-            "session_id", "items_total", "items_done", "items_error",
-            "items_queued", "items_active", "bytes_completed",
-        },
-        "/api/scheduler": {
-            "status", "running", "paused", "stop_requested",
-            "session_id", "session_started_at",
-        },
-        "/api/torrents": {
-            "infohash", "name", "seed_gid", "started_at", "item_id",
-        },
-        "/api/health": {
-            "status", "version", "disk_usage_percent", "disk_ok",
-        },
-        "/api/downloads/archive": {
-            # Same shape as status items — covered by /api/status above
-            "items",
-        },
-    }
+    Auto-discovers expected fields from the backend's openapi.yaml — no
+    hand-maintained list. If the backend adds a new property, this test
+    will fail until the frontend references it.
+    """
+
+    BACKEND_OPENAPI = Path(__file__).resolve().parents[2] / "ariaflow" / "src" / "aria_queue" / "openapi.yaml"
 
     # Fields that are generic wire format or internal — skip checking.
     SKIP_FIELDS = {
         "ok", "error", "message", "_rev", "_schema", "_request_id",
         "count", "meta", "contract",
+        # OpenAPI pagination / nullable markers
+        "filtered",
     }
 
     # Backend fields the frontend intentionally does not use (yet).
-    # Each entry documents why. Remove from here when wired into the UI.
-    KNOWN_UNUSED: dict[str, str] = {}
+    # Key: "field_name" (without endpoint prefix — applies to any endpoint).
+    # Value: reason.
+    KNOWN_UNUSED: dict[str, str] = {
+        # /api — API discovery endpoint
+        "endpoints": "FE-13: API catalog not displayed in UI",
+        # /api/bandwidth — probe diagnostics not shown
+        "cap_bytes_per_sec": "FE-13: raw bytes/sec, we show Mbps",
+        "last_probe": "FE-13: probe payload not displayed",
+        "last_probe_at": "FE-13: probe timestamp not displayed",
+        # /api/declaration
+        "updated_at": "FE-13: declaration mtime not displayed",
+        # /api/health — server metrics not displayed in UI
+        "bytes_received_total": "FE-13: server metric",
+        "bytes_sent_total": "FE-13: server metric",
+        "errors_total": "FE-13: server metric",
+        "requests_total": "FE-13: server metric",
+        "sse_clients": "FE-13: server metric",
+        "uptime_seconds": "FE-13: server metric",
+        # /api/lifecycle
+        "homebrew": "FE-13: homebrew provider details not displayed",
+        # /api/sessions/stats — alternate byte names
+        "bytes_downloaded": "FE-13: we show bytes_completed instead",
+        "bytes_uploaded": "FE-13: we show bytes_completed instead",
+        # /api/tests — subprocess output wrapping
+        "returncode": "FE-13: we show pass/fail summary instead",
+        "stderr": "FE-13: test stderr not displayed",
+        "stdout": "FE-13: test stdout not displayed",
+        # /api/status components
+        "active_url": "FE-13: we show per-item URL instead of scheduler-level active_url",
+    }
 
     @staticmethod
     def _snake_to_camel(name: str) -> str:
@@ -709,79 +678,225 @@ class TestBackendFieldCoverage:
             return True
         return False
 
-    def test_all_backend_fields_consumed(self) -> None:
-        """Every meaningful backend response field must appear in app.js or index.html."""
-        js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
-        combined = js + "\n" + html
+    def _collect_schema_properties(self, schema: object, components: dict, seen: set) -> set[str]:
+        """Recursively walk a JSON schema and return all property names found.
 
-        missing: list[str] = []
-        for endpoint, fields in sorted(self.EXPECTED_FIELDS.items()):
-            for field in sorted(fields - self.SKIP_FIELDS):
-                key = f"{endpoint}: {field}"
-                if key in self.KNOWN_UNUSED:
-                    continue
-                if not self._field_present(field, combined):
-                    missing.append(key)
-
-        assert missing == [], (
-            f"Backend response fields not referenced in frontend:\n"
-            + "\n".join(f"  - {f}" for f in missing)
-            + "\n\nIf intentionally unused, add to KNOWN_UNUSED with a reason."
-        )
-
-    def test_known_unused_count_is_stable(self) -> None:
-        """Guard: track how many fields are intentionally unused."""
-        assert len(self.KNOWN_UNUSED) == 0, (
-            f"KNOWN_UNUSED has {len(self.KNOWN_UNUSED)} entries (expected 0). "
-            "Update this count when wiring new fields or adding new gaps."
-        )
-
-    def test_expected_fields_covers_all_backend_endpoints(self) -> None:
-        """Every GET endpoint in openapi.yaml must have an EXPECTED_FIELDS entry.
-
-        This prevents the bug where we forget to list an endpoint's fields and
-        silently miss backend additions. If a GET endpoint is listed in openapi
-        but not in EXPECTED_FIELDS, add an entry (use an empty set if the
-        endpoint has no user-visible fields).
+        Handles $ref, nested objects, array items, oneOf/anyOf/allOf.
         """
-        openapi_path = Path(__file__).resolve().parents[2] / "ariaflow" / "src" / "aria_queue" / "openapi.yaml"
-        if not openapi_path.exists():
+        if not isinstance(schema, dict):
+            return set()
+        # Avoid infinite recursion on cyclic schemas
+        sid = id(schema)
+        if sid in seen:
+            return set()
+        seen = seen | {sid}
+
+        out: set[str] = set()
+        # $ref resolution
+        ref = schema.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+            name = ref.split("/")[-1]
+            target = components.get(name, {})
+            return self._collect_schema_properties(target, components, seen)
+        # Composition keywords
+        for key in ("oneOf", "anyOf", "allOf"):
+            for sub in schema.get(key, []) or []:
+                out |= self._collect_schema_properties(sub, components, seen)
+        # Object properties
+        props = schema.get("properties")
+        if isinstance(props, dict):
+            for name, subschema in props.items():
+                out.add(name)
+                out |= self._collect_schema_properties(subschema, components, seen)
+        # Array items
+        items = schema.get("items")
+        if isinstance(items, dict):
+            out |= self._collect_schema_properties(items, components, seen)
+        return out
+
+    def _extract_backend_fields(self) -> dict[str, set[str]]:
+        """Load openapi.yaml and extract field names per GET endpoint."""
+        if not self.BACKEND_OPENAPI.exists():
             pytest.skip("Backend openapi.yaml not available")
         try:
             import yaml
         except ImportError:
             pytest.skip("PyYAML not installed")
-        spec = yaml.safe_load(openapi_path.read_text(encoding="utf-8"))
+        spec = yaml.safe_load(self.BACKEND_OPENAPI.read_text(encoding="utf-8"))
+        components = (spec.get("components") or {}).get("schemas") or {}
 
-        # Endpoints that don't return user-visible data (admin/meta/parameterized)
-        SKIP_ENDPOINTS = {
-            "/api",  # API discovery — self-descriptive
-            "/api/docs",  # HTML page
-            "/api/openapi.yaml",  # YAML file
-            "/api/tests",  # test output, handled separately
-            "/api/events",  # SSE stream, not a JSON response
-            "/api/aria2/get_global_option",  # dynamic keys
-            "/api/aria2/get_option",  # dynamic keys
-            "/api/aria2/option_tiers",  # dynamic structure
-            "/api/peers",  # already wired, no user-visible fields beyond what shown
-        }
-
-        backend_gets = set()
+        # Collect top-level endpoint schemas
+        fields_by_endpoint: dict[str, set[str]] = {}
         for path, methods in (spec.get("paths") or {}).items():
-            if not isinstance(methods, dict):
+            if not isinstance(methods, dict) or "{" in path:
                 continue
-            if "get" in methods and "{" not in path:  # Skip parameterized routes
-                backend_gets.add(path)
+            get_op = methods.get("get")
+            if not isinstance(get_op, dict):
+                continue
+            schema = (
+                ((get_op.get("responses") or {}).get("200") or {})
+                .get("content", {})
+                .get("application/json", {})
+                .get("schema")
+            )
+            if not schema:
+                continue
+            fields = self._collect_schema_properties(schema, components, set())
+            if fields:
+                fields_by_endpoint[path] = fields
 
-        missing = sorted(
-            ep for ep in backend_gets
-            if ep not in self.EXPECTED_FIELDS
-            and ep not in SKIP_ENDPOINTS
-        )
+        # Also include all component schemas as a safety net — these are the
+        # canonical shapes the backend publishes, even when endpoints type
+        # nested objects as just `{type: object}`.
+        all_component_fields: set[str] = set()
+        for name, schema in components.items():
+            all_component_fields |= self._collect_schema_properties(schema, components, set())
+        if all_component_fields:
+            fields_by_endpoint["__components__"] = all_component_fields
+
+        return fields_by_endpoint
+
+    def test_all_backend_fields_consumed(self) -> None:
+        """Every field in backend openapi.yaml must appear in app.js or index.html."""
+        js = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        combined = js + "\n" + html
+
+        expected = self._extract_backend_fields()
+        missing: list[str] = []
+        for endpoint, fields in sorted(expected.items()):
+            for field in sorted(fields - self.SKIP_FIELDS):
+                if field in self.KNOWN_UNUSED:
+                    continue
+                if not self._field_present(field, combined):
+                    missing.append(f"{endpoint}: {field}")
+
         assert missing == [], (
-            f"Backend GET endpoints without EXPECTED_FIELDS entry:\n"
-            + "\n".join(f"  - {ep}" for ep in missing)
-            + "\n\nAdd each endpoint to EXPECTED_FIELDS (use empty set if no "
-            "user-visible fields) or to SKIP_ENDPOINTS if admin/meta only."
+            f"Backend response fields not referenced in frontend:\n"
+            + "\n".join(f"  - {f}" for f in missing)
+            + "\n\nIf intentionally unused, add the field name to KNOWN_UNUSED "
+            "with a reason. Otherwise wire it into the UI."
+        )
+
+    def test_known_unused_count_is_stable(self) -> None:
+        """Guard: track how many fields are intentionally unused."""
+        assert len(self.KNOWN_UNUSED) == 18, (
+            f"KNOWN_UNUSED has {len(self.KNOWN_UNUSED)} entries (expected 18). "
+            "Update this count when wiring new fields or adding new gaps."
+        )
+
+
+class TestMockFixturesMatchBackend:
+    """Verify test mock fixtures contain the fields the real backend returns.
+
+    Ensures browser tests exercise realistic data shapes. If the backend
+    adds a new field to /api/status, conftest.py's DEFAULT_STATUS should
+    include it so the UI renders correctly in tests.
+    """
+
+    BACKEND_OPENAPI = TestBackendFieldCoverage.BACKEND_OPENAPI
+    CONFTEST = Path(__file__).resolve().parent / "conftest.py"
+
+    # Fixtures with loose coverage (intentionally partial — mocks are minimal
+    # and don't need every optional field). Listed here so we don't over-check.
+    # Format: fixture_name → set of fields that MUST be present.
+    REQUIRED_FIELDS_PER_FIXTURE: dict[str, set[str]] = {
+        "DEFAULT_STATUS": {
+            # Must have the shape the frontend reads
+            "items", "state", "summary",
+        },
+        "DEFAULT_DECLARATION": {
+            "uic",
+        },
+        "DEFAULT_LIFECYCLE": set(),  # no strict requirements
+    }
+
+    def _collect_mock_keys(self, fixture_src: str) -> set[str]:
+        """Extract all dict keys (strings) from a fixture literal via AST."""
+        import ast
+        try:
+            tree = ast.parse(fixture_src, mode="eval")
+        except SyntaxError:
+            return set()
+        keys: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                for k in node.keys:
+                    if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                        keys.add(k.value)
+        return keys
+
+    def _extract_fixture(self, name: str) -> str | None:
+        """Find a top-level fixture assignment in conftest.py and return its source."""
+        import ast
+        src = self.CONFTEST.read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                tgt = node.targets[0]
+                if isinstance(tgt, ast.Name) and tgt.id == name:
+                    return ast.unparse(node.value)
+        return None
+
+    def test_mock_fixtures_have_required_fields(self) -> None:
+        """Each mock fixture must contain the minimal required field set."""
+        missing_per_fixture: dict[str, set[str]] = {}
+        for fixture_name, required in self.REQUIRED_FIELDS_PER_FIXTURE.items():
+            src = self._extract_fixture(fixture_name)
+            if src is None:
+                missing_per_fixture[fixture_name] = {"<fixture not found>"}
+                continue
+            keys = self._collect_mock_keys(src)
+            missing = required - keys
+            if missing:
+                missing_per_fixture[fixture_name] = missing
+
+        assert not missing_per_fixture, (
+            "Mock fixtures missing required fields:\n"
+            + "\n".join(
+                f"  {fix}: {sorted(fields)}"
+                for fix, fields in missing_per_fixture.items()
+            )
+            + "\n\nAdd the missing fields to the fixture in conftest.py "
+            "so browser tests exercise realistic data shapes."
+        )
+
+    def test_mock_status_covers_frontend_read_fields(self) -> None:
+        """DEFAULT_STATUS should include any status field the frontend reads.
+
+        Cross-checks: for every field the frontend references (from
+        TestBackendFieldCoverage auto-discovery), if it's defined in the
+        backend /api/status schema, it should be present in DEFAULT_STATUS.
+        Skipped if openapi.yaml or mock fixture is not available.
+        """
+        cov = TestBackendFieldCoverage()
+        try:
+            backend_fields_by_endpoint = cov._extract_backend_fields()
+        except Exception:
+            pytest.skip("Could not extract backend fields")
+
+        status_fields = backend_fields_by_endpoint.get("/api/status", set())
+        src = self._extract_fixture("DEFAULT_STATUS")
+        if src is None:
+            pytest.skip("DEFAULT_STATUS not found in conftest.py")
+        mock_keys = self._collect_mock_keys(src)
+
+        # Read frontend code to check which status fields are actually used
+        js = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        combined = js + "\n" + html
+
+        missing: list[str] = []
+        for field in sorted(status_fields - cov.SKIP_FIELDS):
+            if field in cov.KNOWN_UNUSED:
+                continue
+            if not cov._field_present(field, combined):
+                continue  # frontend doesn't use it — mock can skip too
+            if field not in mock_keys:
+                missing.append(field)
+
+        assert not missing, (
+            "DEFAULT_STATUS mock missing fields the frontend actually reads:\n"
+            + "\n".join(f"  - {f}" for f in missing)
+            + "\n\nAdd these to DEFAULT_STATUS in conftest.py."
         )

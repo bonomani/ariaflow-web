@@ -41,7 +41,7 @@ Alpine.js single-page app — no build step. See [`ARCHITECTURE.md`](./ARCHITECT
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Design, data flow, preference names |
 | [`ACTIONS.md`](./ACTIONS.md) | All UI actions by tab with endpoints |
 | [`FRONTEND_GAPS.md`](./FRONTEND_GAPS.md) | Remaining gaps (blocked by backend) |
-| [`BACKEND_GAPS.md`](./BACKEND_GAPS.md) | Missing backend features |
+| `../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md` | Missing backend features (authoritative copy in backend repo) |
 | [`RELEASE.md`](./RELEASE.md) | Release workflow |
 
 ## Release

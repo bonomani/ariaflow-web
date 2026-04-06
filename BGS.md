@@ -22,8 +22,8 @@ external_controls:
   privacy and data-boundary control: not applicable
 evidence_refs:
   - ./ACTIONS.md
-  - ./BACKEND_GAPS.md
   - ./FRONTEND_GAPS.md
+  - ../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md
   - ./ARCHITECTURE.md
   - ./tests/test_api_params.py
   - ./tests/test_coverage_check.py
@@ -38,7 +38,7 @@ read_next:
 
 ### BISS — Boundary interaction classification
 - `ACTIONS.md` — complete interaction inventory (34 endpoints, all handlers)
-- `BACKEND_GAPS.md` / `FRONTEND_GAPS.md` — boundary gap classification
+- `FRONTEND_GAPS.md` (local) + `../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md` (authoritative) — boundary gap classification
 - `ARCHITECTURE.md` — page-to-endpoint mapping
 
 ### UCC — Declaration/observation/result patterns
