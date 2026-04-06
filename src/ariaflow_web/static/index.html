@@ -48,7 +48,15 @@
       <div class="panel">
         <!-- L1: Scheduler state + backend status + errors -->
         <div class="chips">
-          <div class="chip">Backend <strong x-text="selectedBackend"></strong></div>
+          <label class="chip" :title="selectedBackend">
+            Backend
+            <select :value="selectedBackend" @change="selectBackend($el.value)">
+              <option :value="DEFAULT_BACKEND_URL" x-text="backendDisplayName(DEFAULT_BACKEND_URL)"></option>
+              <template x-for="backend in backends" :key="backend">
+                <option :value="backend" x-text="backendDisplayName(backend)"></option>
+              </template>
+            </select>
+          </label>
           <div class="chip">Ariaflow <strong x-text="backendVersionText">-</strong></div>
           <div class="chip badge warn" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
           <div class="chip badge warn" x-show="backendsDiscovered === false">No backend discovered (local fallback)</div>
@@ -69,18 +77,11 @@
             <div class="chip">Backend PID <strong x-text="backendPidText">-</strong></div>
           </div>
         </details>
-        <!-- Backend selector -->
-        <div class="gap-sm mt-sm" x-show="backends.length > 0">
-          <template x-for="backend in backends" :key="backend">
-            <span class="gap-sm">
-              <button :class="{ secondary: backend === selectedBackend }" @click="selectBackend(backend)" x-text="backend"></button>
-              <button class="icon-btn" @click="removeBackend(backend)" title="Remove backend">&times;</button>
-            </span>
-          </template>
-        </div>
+        <!-- Add backend + remove current (non-default) -->
         <div class="gap-sm mt-sm">
-          <input x-model="backendInput" placeholder="Add backend" class="input-md" @keydown.enter="addBackend()">
+          <input x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
           <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
+          <button x-show="selectedBackend !== DEFAULT_BACKEND_URL" class="secondary" @click="removeBackend(selectedBackend)" title="Remove current backend">Remove current</button>
         </div>
       </div>
     </div>

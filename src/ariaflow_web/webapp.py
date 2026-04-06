@@ -85,10 +85,12 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             result = discover_http_services()
             self._send_json(result)
             items = result.get("items")
+            item_list = items if isinstance(items, list) else []
+            urls = [str(i.get("url", "")) for i in item_list if isinstance(i, dict)]
             record_action(
                 action="discover", target="bonjour", outcome="ok" if result.get("available") else "skipped",
                 reason=str(result.get("reason", "")),
-                detail={"count": len(items) if isinstance(items, list) else 0},
+                detail={"count": len(item_list), "urls": urls},
             )
             return
         if path == "/api/web/log":

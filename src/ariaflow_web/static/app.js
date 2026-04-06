@@ -25,6 +25,8 @@ document.addEventListener('alpine:init', () => {
     backendInput: '',
     backendsDiscovered: null,
     discoveryText: '',
+    // URL → {name, host, ip} from Bonjour discovery, for friendly display.
+    backendMeta: {},
     urlInput: '',
     addOutput: '',
     addPriority: '',
@@ -482,16 +484,55 @@ document.addEventListener('alpine:init', () => {
       this._cachedSelectedBackend = nextSelected;
     },
     mergeDiscoveredBackends(items) {
-      const discovered = Array.isArray(items)
-        ? items.filter((item) => !item?.role || item.role !== 'web').map((item) => String(item?.url || '').trim()).filter((item) => item && item !== this.DEFAULT_BACKEND_URL)
+      // Extract backend-role services only (skip web frontends).
+      const list = Array.isArray(items)
+        ? items.filter((item) => !item?.role || item.role !== 'web')
         : [];
+      // Build URL→metadata map for friendly display.
+      const meta = { ...this.backendMeta };
+      for (const item of list) {
+        const url = String(item?.url || '').trim();
+        if (!url) continue;
+        meta[url] = {
+          name: String(item?.name || '').trim(),
+          host: String(item?.host || '').trim(),
+          ip: String(item?.ip || '').trim(),
+        };
+      }
+      this.backendMeta = meta;
+
+      const discovered = list.map((i) => String(i?.url || '').trim()).filter(Boolean);
       if (!discovered.length) return;
       const state = this.loadBackendState();
       const merged = [...new Set([...state.backends, ...discovered])];
-      // Auto-select if only one backend discovered and user hasn't manually picked one
-      const autoSelect = discovered.length === 1 && state.selected === this.DEFAULT_BACKEND_URL;
-      this.saveBackendState(merged, autoSelect ? discovered[0] : state.selected);
+      // Auto-select only if one backend was found and user hasn't picked differently.
+      const firstDiscovered = discovered[0];
+      const autoSelect = discovered.length === 1
+        && state.selected === this.DEFAULT_BACKEND_URL
+        && firstDiscovered !== state.selected;
+      this.saveBackendState(merged, autoSelect ? firstDiscovered : state.selected);
       if (autoSelect) { this._closeSSE(); this._initSSE(); this.deferRefresh(0); }
+    },
+    backendDisplayName(url) {
+      if (!url) return '-';
+      // Extract host:port from URL as the always-shown parenthetical address
+      let addr = url;
+      try { addr = new URL(url).host; } catch { /* keep raw url */ }
+      // Determine the label: local for default, Bonjour name if known, else host
+      let label;
+      if (url === this.DEFAULT_BACKEND_URL) {
+        label = 'local';
+      } else {
+        const meta = this.backendMeta[url];
+        if (meta?.name) {
+          // Strip mDNS conflict-resolution suffix "name (2)"
+          label = meta.name.replace(/\s*\(\d+\)\s*$/, '');
+        } else {
+          label = addr;
+        }
+      }
+      // Always show address in parens, unless label already equals addr
+      return label === addr ? addr : `${label} (${addr})`;
     },
     apiPath(path) {
       const backend = this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;
