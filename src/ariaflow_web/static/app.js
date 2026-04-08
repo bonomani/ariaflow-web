@@ -399,6 +399,25 @@ document.addEventListener('alpine:init', () => {
       if ((items || []).length) return 'ready';
       return 'idle';
     },
+    syncSchedulerResultText() {
+      const staleSchedulerMessages = new Set([
+        'Pause requested',
+        'Resume requested',
+        'Downloads paused',
+        'Downloads resumed',
+        'Scheduler started',
+        'Scheduler already running',
+        'Scheduler stopped',
+        'Scheduler already stopped',
+      ]);
+      if (!staleSchedulerMessages.has(this.resultText)) return;
+      if (!this.backendReachable) return;
+      if (!this.state?.running) {
+        this.resultText = 'Scheduler idle';
+        return;
+      }
+      this.resultText = this.state?.paused ? 'Downloads paused' : 'Downloads running';
+    },
     _offlineStatusLabel() {
       const data = this.lastStatus;
       const error = data?.ariaflow?.error || data?.error || 'backend unavailable';
@@ -924,6 +943,7 @@ document.addEventListener('alpine:init', () => {
         }
         this._consecutiveFailures = 0;
         this.lastStatus = data;
+        this.syncSchedulerResultText();
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
