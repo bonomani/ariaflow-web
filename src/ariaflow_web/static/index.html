@@ -183,6 +183,7 @@
                       <span x-show="itemCompletedLength(item)" x-text="'Done ' + formatBytes(itemCompletedLength(item))"></span>
                       <span x-show="item.recovered_at" x-text="'Recovered ' + (item.recovered_at || '')"></span>
                       <span x-show="itemShowPausedAt(item)" x-text="'Paused ' + relativeTime(item.paused_at)"></span>
+                      <span x-show="item.rpc_error_message" class="text-muted" x-text="item.rpc_error_message"></span>
                       <span x-show="item.error_message" x-text="(item.error_code ? '[' + item.error_code + '] ' : '') + (item.error_message || '')"></span>
                       <span x-show="item.live_status && item.live_status !== itemNormalizedStatus(item)" class="text-muted" x-text="'live: ' + item.live_status"></span>
                       <span x-show="item.distribute_status" class="text-muted" x-text="'seed: ' + item.distribute_status + (item.distribute_infohash ? ' ' + item.distribute_infohash.slice(0, 8) : '')"></span>

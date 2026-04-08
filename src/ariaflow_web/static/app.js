@@ -774,7 +774,10 @@ document.addEventListener('alpine:init', () => {
     itemRateLabel(item) {
       const speed = this.itemSpeed(item);
       if (speed) return this.formatRate(speed);
-      if (item.error_code === 'rpc_unreachable' || /timed out/i.test(item.error_message || '') || /timed out/i.test(this.lastErrorText || '')) {
+      if (item.rpc_failures) {
+        return /timed out/i.test(item.rpc_error_message || '') ? 'timed out' : 'rpc issue';
+      }
+      if (item.error_code === 'rpc_unreachable' || /timed out/i.test(item.error_message || '')) {
         return 'timed out';
       }
       if (['active', 'downloading', 'waiting'].includes(this.itemNormalizedStatus(item))) return 'stale';
@@ -792,6 +795,11 @@ document.addEventListener('alpine:init', () => {
     itemDisplayUrl(item) { return item.url || item.live?.url || ''; },
     itemStateLabel(item) {
       const ns = this.itemNormalizedStatus(item);
+      if (item.rpc_failures) {
+        const limit = Number(item.rpc_failure_limit || 0);
+        const detail = /timed out/i.test(item.rpc_error_message || '') ? 'rpc timeout' : 'rpc issue';
+        return limit > 0 ? `${ns} · ${detail} ${item.rpc_failures}/${limit}` : `${ns} · ${detail}`;
+      }
       const ls = this.itemLiveStatus(item);
       return ls ? `${ns} · aria2:${ls}` : ns;
     },
