@@ -283,24 +283,15 @@ document.addEventListener('alpine:init', () => {
         const path = window.location.pathname.replace(/[/]+$/, '');
         const target = path === '/bandwidth' ? 'bandwidth' : path === '/lifecycle' ? 'lifecycle' : path === '/options' ? 'options' : path === '/log' ? 'log' : path === '/dev' ? 'dev' : path === '/archive' ? 'archive' : 'dashboard';
         this.page = target;
-        this._loadPageData(target);
+        this._refreshTabOnly(target);
       });
 
-      // Dashboard needs status immediately; other pages defer it
-      if (this.page === 'dashboard') {
-        this.refresh();
-        this.loadDeclaration().catch((e) => console.warn(e.message));
-      } else {
-        this.deferRefresh(1000);
+      // First load: refresh header + active tab once, then arm fast timer.
+      this.refreshInterval = Number(localStorage.getItem('ariaflow.refresh_interval')) || 10000;
+      this._refreshAll();
+      if (this.refreshInterval > 0) {
+        this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }
-      this.setRefreshInterval(10000);
-
-      if (this.page === 'lifecycle') this.loadLifecycle();
-      if (this.page === 'bandwidth') this.loadDeclaration();
-      if (this.page === 'options') { this.loadDeclaration(); this.loadAria2Options(); }
-      if (this.page === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); this.loadWebLog(); }
-      if (this.page === 'archive') this.loadArchive();
-      this._updateTabTimers(this.page);
 
       // SSE for real-time updates (falls back to polling on failure)
       this._initSSE();
@@ -309,40 +300,77 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2000);
     },
 
-    _mediumTimer: null,
-    _slowTimer: null,
-    MEDIUM_INTERVAL: 30000,
-    SLOW_INTERVAL: 120000,
-
-    // Per-tab refresh policies
-    _TAB_MEDIUM: {
-      // refreshActionLog removed — backend now pushes action_logged SSE events (BG-7)
-      log: ['loadWebLog'],
-      bandwidth: ['refreshBandwidth'],
-      lifecycle: ['loadLifecycle'],
+    // --- timer model / per-tab refresh policies ---
+    // Per-tab loaders, each declared with a multiplier k of the user-selectable
+    // refresh interval R. Actual cadence = k * R. Every loader fires once when
+    // the tab is entered (init / navigateTo / visibility resume / backend switch).
+    // Note: declaration response field "policies" is surfaced via loadDeclaration.
+    LOADERS: {
+      dashboard: [
+        { fn: 'loadDeclaration', k: 12 },
+      ],
+      bandwidth: [
+        { fn: 'refreshBandwidth', k: 3 },
+        { fn: 'loadDeclaration',  k: 12 },
+      ],
+      lifecycle: [
+        { fn: 'loadLifecycle', k: 3 },
+      ],
+      options: [
+        { fn: 'loadAria2Options', k: 12 },
+        { fn: 'loadTorrents',     k: 12 },
+        { fn: 'loadPeers',        k: 12 },
+        { fn: 'loadDeclaration',  k: 12 },
+      ],
+      log: [
+        { fn: 'loadWebLog',         k: 3 },
+        { fn: 'loadSessionHistory', k: 12 },
+        { fn: 'loadDeclaration',    k: 12 },
+      ],
+      archive: [
+        { fn: 'loadArchive', k: 6 },
+      ],
+      dev: [],
     },
-    _TAB_SLOW: {
-      dashboard: ['loadDeclaration'],
-      log: ['loadSessionHistory'],
-      options: ['loadDeclaration', 'loadAria2Options', 'loadTorrents', 'loadPeers'],
-      bandwidth: ['loadDeclaration'],
-    },
+    _tabPollers: [],
     _tabHidden: false,
+
+    _stopTabPollers() {
+      for (const t of this._tabPollers) clearInterval(t);
+      this._tabPollers = [];
+    },
+    _startTabPollers(target) {
+      this._stopTabPollers();
+      const loaders = this.LOADERS[target] || [];
+      for (const { fn, k } of loaders) {
+        if (typeof this[fn] !== 'function') continue;
+        // Fire once on entry — guarantees the tab is populated immediately,
+        // even on reload-onto-tab or visibility resume.
+        try { this[fn](); } catch (e) { console.warn(e); }
+        // Off ("R=0") suppresses background polling but keeps the one-shot fire.
+        if (this.refreshInterval > 0) {
+          const ms = k * this.refreshInterval;
+          this._tabPollers.push(setInterval(() => this[fn](), ms));
+        }
+      }
+    },
+    // Refresh header AND active tab (init / visibility resume / backend switch).
+    _refreshAll() {
+      this.refresh();
+      this._startTabPollers(this.page);
+    },
+    // Refresh only the active tab (navigateTo): the header keeps ticking on
+    // its own fast timer, no need to force an extra refresh().
+    _refreshTabOnly(target) {
+      this._startTabPollers(target);
+    },
 
     navigateTo(target) {
       if (this.page === target) return;
       this.page = target;
       const urlMap = { dashboard: '/', bandwidth: '/bandwidth', lifecycle: '/lifecycle', options: '/options', log: '/log', dev: '/dev', archive: '/archive' };
       history.pushState(null, '', urlMap[target] || '/');
-      this._loadPageData(target);
-      this._updateTabTimers(target);
-    },
-    _runTabMethods(methods) {
-      for (const m of methods || []) { if (typeof this[m] === 'function') this[m](); }
-    },
-    _pauseTabTimers() {
-      if (this._mediumTimer) { clearInterval(this._mediumTimer); this._mediumTimer = null; }
-      if (this._slowTimer) { clearInterval(this._slowTimer); this._slowTimer = null; }
+      this._refreshTabOnly(target);
     },
     _onVisibilityChange() {
       const hidden = document.visibilityState === 'hidden';
@@ -353,35 +381,16 @@ document.addEventListener('alpine:init', () => {
         if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
         if (this._sseFallbackTimer) { clearTimeout(this._sseFallbackTimer); this._sseFallbackTimer = null; }
         if (this._deferTimer) { clearTimeout(this._deferTimer); this._deferTimer = null; }
-        this._pauseTabTimers();
+        this._stopTabPollers();
         this._closeSSE();
       } else {
-        // Tab visible: refresh immediately + restart all timers
+        // Tab visible: header + active tab are stale, refresh both
         if (this.refreshInterval > 0) {
-          this.refresh();
           this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
-          this._updateTabTimers(this.page);
         }
+        this._refreshAll();
         this._initSSE();
       }
-    },
-    _updateTabTimers(target) {
-      this._pauseTabTimers();
-      if (this.refreshInterval === 0) return; // "Off" = no background activity
-      const medium = this._TAB_MEDIUM[target];
-      const slow = this._TAB_SLOW[target];
-      const mediumMs = Math.max(this.MEDIUM_INTERVAL, this.refreshInterval);
-      const slowMs = Math.max(this.SLOW_INTERVAL, this.refreshInterval);
-      if (medium) this._mediumTimer = setInterval(() => this._runTabMethods(medium), mediumMs);
-      if (slow) this._slowTimer = setInterval(() => this._runTabMethods(slow), slowMs);
-    },
-    _loadPageData(target) {
-      if (target === 'dashboard') { this.refresh(); this.loadDeclaration().catch((e) => console.warn(e.message)); }
-      if (target === 'lifecycle') this.loadLifecycle();
-      if (target === 'bandwidth') this.loadDeclaration();
-      if (target === 'options') { this.loadDeclaration(); this.loadAria2Options(); this.loadTorrents(); this.loadPeers(); }
-      if (target === 'log') { this.loadDeclaration(); this.refreshActionLog(); this.loadSessionHistory(); this.loadWebLog(); }
-      if (target === 'archive') this.loadArchive();
     },
 
     // --- formatting ---
@@ -624,9 +633,8 @@ document.addEventListener('alpine:init', () => {
       if (!state.backends.includes(backend)) state.backends.push(backend);
       this.saveBackendState(state.backends, backend);
       this._initSSE();
-      this.deferRefresh(0);
-      if (this.page === 'lifecycle') this.loadLifecycle();
-      if (this.page === 'log') this.refreshActionLog();
+      // Backend changed: header chips and active-tab data are all stale.
+      this._refreshAll();
     },
     addBackend() {
       const value = (this.backendInput || '').trim();
@@ -907,8 +915,10 @@ document.addEventListener('alpine:init', () => {
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }
-      // Update tab timers — respects "Off" and new interval
-      this._updateTabTimers(this.page);
+      // Re-arm tab pollers at the new k*R cadence. _startTabPollers also fires
+      // each loader once — that's intentional: switching from Off to a real
+      // interval should populate the page immediately.
+      this._startTabPollers(this.page);
     },
 
     _deferTimer: null,
@@ -983,14 +993,14 @@ document.addEventListener('alpine:init', () => {
           clearInterval(this.refreshTimer);
           this.refreshTimer = setInterval(() => this.refresh(), backoff);
           this._inBackoff = true;
-          // Pause tab timers — backend is unreachable
-          this._pauseTabTimers();
+          // Pause tab pollers — backend is unreachable
+          this._stopTabPollers();
         } else if (this._consecutiveFailures === 0 && this._inBackoff && this.refreshTimer) {
           clearInterval(this.refreshTimer);
           this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
           this._inBackoff = false;
-          // Resume tab timers — backend is back
-          this._updateTabTimers(this.page);
+          // Resume tab pollers — backend is back
+          this._startTabPollers(this.page);
         }
       }
     },

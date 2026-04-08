@@ -30,8 +30,8 @@
               <div class="add-card-body">
                 <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
               </div>
-              <div x-show="urlInput.trim()" class="action-strip mt-sm">
-                <button @click="add()">Add</button>
+              <div class="action-strip mt-sm">
+                <button x-show="urlInput.trim()" @click="add()">Add</button>
                 <details>
                   <summary class="text-muted text-sm cursor-pointer">Advanced</summary>
                   <div class="gap-sm-grid mt-sm">
