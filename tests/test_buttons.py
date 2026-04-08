@@ -98,6 +98,21 @@ class TestDashboardButtons:
         })()""")
         assert visible == [True, True, True, True, True]
 
+    def test_pause_state_switches_default_filter_to_paused(self, page: Page, web_server: str) -> None:
+        _wait_dashboard(page, web_server)
+        result = page.evaluate("""(() => {
+            const app = document.querySelector('[x-data]')._x_dataStack[0];
+            app.queueFilter = 'all';
+            app._lastSchedulerPaused = false;
+            app.lastStatus = {
+              ...app.lastStatus,
+              state: { ...(app.lastStatus?.state || {}), running: true, paused: true },
+            };
+            app.syncQueueFilterToSchedulerState();
+            return app.queueFilter;
+        })()""")
+        assert result == 'paused'
+
     def test_new_session_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         # Button removed

@@ -20,6 +20,7 @@ document.addEventListener('alpine:init', () => {
     previousItemStatuses: {},
     refreshInFlight: false,
     lastRev: null,
+    _lastSchedulerPaused: null,
     page: 'dashboard',
     DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
     localIps: window.__ARIAFLOW_WEB_LOCAL_IPS__ || ['127.0.0.1'],
@@ -398,6 +399,15 @@ document.addEventListener('alpine:init', () => {
       if (active && active.status && active.status !== 'idle') return active.status;
       if ((items || []).length) return 'ready';
       return 'idle';
+    },
+    syncQueueFilterToSchedulerState() {
+      const paused = !!this.state?.paused;
+      const previous = this._lastSchedulerPaused;
+      this._lastSchedulerPaused = paused;
+      if (paused && previous !== true && ['all', 'downloading'].includes(this.queueFilter)) {
+        this.queueFilter = 'paused';
+        this._statusETag = null;
+      }
     },
     syncSchedulerResultText() {
       const staleSchedulerMessages = new Set([
@@ -854,6 +864,7 @@ document.addEventListener('alpine:init', () => {
             }
             this._consecutiveFailures = 0;
             this.lastStatus = data;
+            this.syncQueueFilterToSchedulerState();
             this.lastRev = data._rev || null;
             this.checkNotifications(this.itemsWithStatus);
             this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
@@ -953,6 +964,7 @@ document.addEventListener('alpine:init', () => {
         }
         this._consecutiveFailures = 0;
         this.lastStatus = data;
+        this.syncQueueFilterToSchedulerState();
         this.syncSchedulerResultText();
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
