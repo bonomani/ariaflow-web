@@ -30,3 +30,4 @@ build/
 .codexrules
 .claude/
 screenshots/
+docs/SPEC.md
