@@ -72,6 +72,32 @@ class TestDashboardButtons:
         _wait_dashboard(page, web_server)
         assert page.locator('.panel .gap-sm.mb-md > button:has-text("Stop")').count() == 0
 
+    def test_primary_filter_buttons_stay_visible(self, page: Page, web_server: str) -> None:
+        _wait_dashboard(page, web_server)
+        visible = page.evaluate("""(() => {
+            const app = document.querySelector('[x-data]')._x_dataStack[0];
+            app.lastStatus = {
+              ...app.lastStatus,
+              summary: {
+                total: 0,
+                queued: 0,
+                waiting: 0,
+                discovering: 0,
+                active: 0,
+                downloading: 0,
+                paused: 0,
+                stopped: 0,
+                complete: 0,
+                done: 0,
+                error: 0,
+                failed: 0,
+                cancelled: 0,
+              },
+            };
+            return ['all', 'downloading', 'paused', 'done', 'error'].map((name) => app.filterBtnVisible(name));
+        })()""")
+        assert visible == [True, True, True, True, True]
+
     def test_new_session_button(self, page: Page, web_server: str) -> None:
         _wait_dashboard(page, web_server)
         # Button removed

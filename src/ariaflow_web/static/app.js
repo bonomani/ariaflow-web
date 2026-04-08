@@ -727,7 +727,8 @@ document.addEventListener('alpine:init', () => {
       this._statusETag = null;
     },
     filterBtnVisible(f) {
-      return f === 'all' || (this.filterCounts[f] ?? 0) > 0 || this.queueFilter === f;
+      const stableFilters = new Set(['all', 'downloading', 'paused', 'done', 'error']);
+      return stableFilters.has(f) || (this.filterCounts[f] ?? 0) > 0 || this.queueFilter === f;
     },
     filterBtnLabel(f) {
       const count = this.filterCounts[f] ?? 0;
