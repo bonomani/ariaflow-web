@@ -929,7 +929,10 @@ document.addEventListener('alpine:init', () => {
         const opts = {};
         if (this._statusETag) opts.headers = { 'If-None-Match': this._statusETag };
         const r = await this._fetch(this._statusUrl(), opts);
-        if (r.status === 304) return; // Not modified
+        if (r.status === 304) {
+          this.syncSchedulerResultText();
+          return; // Not modified
+        }
         const etag = r.headers.get('ETag');
         if (etag) this._statusETag = etag;
         const data = await r.json();
@@ -1146,7 +1149,9 @@ document.addEventListener('alpine:init', () => {
       try {
         const r = await this._fetch(this.apiPath('/api/scheduler/pause'), { method: 'POST' });
         const data = await r.json();
-        this.resultText = data.paused ? 'Downloads paused' : 'Pause requested';
+        this.resultText = data.paused
+          ? 'Downloads paused'
+          : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to pause' : 'Pause failed'));
         this.resultJson = JSON.stringify(data, null, 2);
         if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
       } catch (e) {
@@ -1157,7 +1162,9 @@ document.addEventListener('alpine:init', () => {
       try {
         const r = await this._fetch(this.apiPath('/api/scheduler/resume'), { method: 'POST' });
         const data = await r.json();
-        this.resultText = data.resumed ? 'Downloads resumed' : 'Resume requested';
+        this.resultText = data.resumed
+          ? 'Downloads resumed'
+          : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to resume' : 'Resume failed'));
         this.resultJson = JSON.stringify(data, null, 2);
         if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
       } catch (e) {
