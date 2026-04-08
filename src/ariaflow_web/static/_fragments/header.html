@@ -1,0 +1,82 @@
+<body x-data="ariaflow" :class="'page-' + page">
+  <div class="wrap">
+    <div class="nav">
+      <a href="/" :class="{ active: page === 'dashboard' }" @click.prevent="navigateTo('dashboard')">Dashboard</a>
+      <a href="/bandwidth" :class="{ active: page === 'bandwidth' }" @click.prevent="navigateTo('bandwidth')">Bandwidth</a>
+      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">Service Status</a>
+      <a href="/options" :class="{ active: page === 'options' }" @click.prevent="navigateTo('options')">Options</a>
+      <a href="/log" :class="{ active: page === 'log' }" @click.prevent="navigateTo('log')">Log</a>
+      <a href="/dev" :class="{ active: page === 'dev' }" @click.prevent="navigateTo('dev')">Developer</a>
+      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">Archive</a>
+      <div class="spacer"></div>
+      <label class="refresh-control" for="refresh-interval">
+        Refresh
+        <select id="refresh-interval" x-model="refreshInterval" @change="setRefreshInterval($el.value)">
+          <option value="1500">1.5s</option>
+          <option value="3000">3s</option>
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="30000">30s</option>
+          <option value="0">Off</option>
+        </select>
+      </label>
+      <button @click="toggleTheme()" x-text="themeLabel">Theme</button>
+    </div>
+    <div class="hero">
+      <div class="title">
+        <h1>ariaflow-web</h1>
+        <p>Headless download scheduler with a local dashboard.</p>
+        <div class="metric mt-sm">
+          <div class="stat-label">Transfer</div>
+          <div class="stat-value" x-text="transferSpeedText">idle</div>
+          <div class="stat-sub">download ↓ upload ↑</div>
+          <div x-html="globalSparklineSvg" class="mt-sm"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <!-- L1: Scheduler state + backend status + errors -->
+        <div class="chips">
+          <label class="chip" :title="selectedBackend">
+            Backend
+            <select :value="selectedBackend" @change="selectBackend($el.value)">
+              <option :value="DEFAULT_BACKEND_URL" x-text="backendDisplayName(DEFAULT_BACKEND_URL)"></option>
+              <template x-for="backend in backends" :key="backend">
+                <option :value="backend" x-text="backendDisplayName(backend)"></option>
+              </template>
+            </select>
+          </label>
+          <div class="chip">Ariaflow <strong x-text="backendVersionText">-</strong></div>
+          <div class="chip badge warn" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
+          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText"></div>
+        </div>
+        <!-- L2: Session + cap + disk -->
+        <div class="chips mt-sm">
+          <div class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></div>
+          <div class="chip">Cap <strong x-text="downloadCapText">-</strong></div>
+          <div class="chip" :class="{ 'badge warn': !diskOk }">Disk <strong x-text="diskUsageText">-</strong></div>
+        </div>
+        <!-- L3: PID / version / interfaces (collapsible) -->
+        <details class="mt-sm">
+          <summary class="text-muted text-sm cursor-pointer">System info</summary>
+          <div class="chips mt-sm">
+            <div class="chip">Ariaflow-web <strong>__ARIAFLOW_WEB_VERSION__</strong></div>
+            <div class="chip">Web PID <strong>__ARIAFLOW_WEB_PID__</strong></div>
+            <div class="chip">Backend PID <strong x-text="backendPidText">-</strong></div>
+          </div>
+          <div class="chips mt-sm">
+            <template x-for="ip in localIps" :key="ip">
+              <div class="chip" :class="{ 'badge good': ip === localMainIp }">
+                <span x-text="ip"></span>
+                <strong x-show="ip === localMainIp" x-text="'main'"></strong>
+              </div>
+            </template>
+          </div>
+        </details>
+        <!-- Add backend + remove current (non-default) -->
+        <div class="gap-sm mt-sm">
+          <input x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
+          <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
+          <button x-show="selectedBackend !== DEFAULT_BACKEND_URL" class="secondary" @click="removeBackend(selectedBackend)" title="Remove current backend">Remove current</button>
+        </div>
+      </div>
+    </div>

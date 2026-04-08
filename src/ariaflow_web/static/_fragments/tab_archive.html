@@ -1,0 +1,26 @@
+      <!-- ARCHIVE -->
+      <div class="span-12" x-show="page === 'archive'">
+        <div class="panel">
+          <div class="section-title"><h2>Archive</h2><div class="hint">Recently removed items</div></div>
+          <div class="list">
+            <template x-if="archiveItems.length === 0">
+              <div class="item">No archived items.</div>
+            </template>
+            <template x-for="item in archiveItems" :key="item.id || item.url">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="shortName(item.output || item.url || '(no url)')"></div>
+                  <span :class="badgeClass(item.status || 'cancelled')" x-text="item.status || 'cancelled'"></span>
+                </div>
+                <div class="meta">
+                  <span x-show="item.cancelled_at" x-text="'Removed ' + relativeTime(item.cancelled_at)"></span>
+                  <span x-show="item.url" :title="item.url" x-text="item.url"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="mt-md text-center">
+            <button :class="{ secondary: !backendReachable }" @click="loadMoreArchive()" :disabled="!backendReachable" class="text-sm">Load more</button>
+          </div>
+        </div>
+      </div>

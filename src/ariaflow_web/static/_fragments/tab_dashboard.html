@@ -1,0 +1,134 @@
+      <div class="span-12" x-show="page === 'dashboard'">
+        <div class="panel">
+          <div class="gap-sm mb-md">
+            <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
+            <button :class="{ secondary: archiveBtnDisabled }" @click="cleanup()" :disabled="archiveBtnDisabled">Archive</button>
+            <span class="badge" x-text="schedulerStateLabelText">idle</span>
+            <span x-show="sumQueued" class="chip">Queued <strong x-text="sumQueued">0</strong></span>
+            <span x-show="sumDone" class="chip">Done <strong x-text="sumDone">0</strong></span>
+            <span x-show="sumError" class="chip badge warn">Errors <strong x-text="sumError">0</strong></span>
+            <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
+          </div>
+          <div class="mb-md">
+            <input type="text" placeholder="Search queue..." x-model="queueSearch">
+          </div>
+          <div class="filter-bar">
+            <template x-for="f in ['all','queued','waiting','discovering','downloading','paused','stopped','done','error','cancelled']" :key="f">
+              <button x-show="filterBtnVisible(f)" class="filter-btn" :class="{ active: queueFilter === f }" @click="setQueueFilter(f)" x-text="filterBtnLabel(f)"></button>
+            </template>
+          </div>
+          <div class="list">
+            <!-- Add item card — same layout as queue items -->
+            <div class="item compact add-card">
+              <div class="item-top">
+                <div class="item-url">Add Download</div>
+                <span class="badge">new</span>
+              </div>
+              <div class="meta">
+                <span>Paste one URL per line to queue targets one after another.</span>
+              </div>
+              <div class="add-card-body">
+                <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
+              </div>
+              <div x-show="urlInput.trim()" class="action-strip mt-sm">
+                <button @click="add()">Add</button>
+                <details>
+                  <summary class="text-muted text-sm cursor-pointer">Advanced</summary>
+                  <div class="gap-sm-grid mt-sm">
+                    <input x-model="addOutput" placeholder="Output filename (optional)" class="input-md">
+                    <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
+                    <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
+                    <div class="gap-sm">
+                      <label class="text-sm text-muted">.torrent file <input type="file" accept=".torrent" @change="handleFileUpload($event, 'torrent')"></label>
+                      <label class="text-sm text-muted">.metalink file <input type="file" accept=".metalink,.meta4" @change="handleFileUpload($event, 'metalink')"></label>
+                    </div>
+                    <select x-model="addPostActionRule">
+                      <option value="">Post-action rule (default)</option>
+                      <option value="pending">pending</option>
+                    </select>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <template x-if="!backendReachable">
+              <div class="item" x-text="_offlineStatusLabel()"></div>
+            </template>
+            <template x-if="backendReachable && filteredItems.length === 0">
+              <div class="item" x-text="'No ' + (queueFilter === 'all' ? '' : queueFilter + ' ') + 'items.'"></div>
+            </template>
+            <template x-for="item in filteredItems" :key="item.id || item.url">
+              <div class="item compact" :class="{ 'active-item': itemHasActiveStatus(item) }">
+                <div class="item-top">
+                  <div class="item-url" x-text="itemShortUrl(item)"></div>
+                  <span :class="badgeClass(itemNormalizedStatus(item))" x-text="itemStateLabel(item)"></span>
+                  <template x-if="itemModeBadge(item)">
+                    <span class="badge" x-text="itemModeBadge(item)"></span>
+                  </template>
+                  <span x-show="itemPriority(item) != null" class="badge" x-text="'P' + itemPriority(item)"></span>
+                </div>
+                <div class="meta">
+                  <template x-if="itemLiveStatus(item)">
+                    <span :class="badgeClass(itemLiveStatus(item))" x-text="'aria2: ' + itemLiveStatus(item)"></span>
+                  </template>
+                  <span x-show="itemDisplayUrl(item)" :title="itemDisplayUrl(item)" x-text="itemDisplayUrl(item)"></span>
+                  <span x-show="itemDetail(item)" x-text="itemDetail(item)"></span>
+                </div>
+                <template x-if="itemShowTransferPanel(item)">
+                  <div>
+                    <div class="meter"><div :style="'width:' + Math.round(Number(itemProgress(item) || 0)) + '%'"></div></div>
+                    <div class="statusline">
+                      <span x-text="Math.round(Number(itemProgress(item) || 0)) + '% done' + (itemEta(item) ? ' · ETA ' + itemEta(item) : '')"></span>
+                      <span x-text="itemRateLabel(item)"></span>
+                    </div>
+                    <div class="meta">
+                      <span x-show="itemTotalLength(item)" x-text="'Total ' + formatBytes(itemTotalLength(item))"></span>
+                      <span x-show="itemCompletedLength(item)" x-text="'Done ' + formatBytes(itemCompletedLength(item))"></span>
+                      <span x-show="item.recovered_at" x-text="'Recovered ' + (item.recovered_at || '')"></span>
+                      <span x-show="itemShowPausedAt(item)" x-text="'Paused ' + relativeTime(item.paused_at)"></span>
+                      <span x-show="item.rpc_error_message" class="text-muted" x-text="item.rpc_error_message"></span>
+                      <span x-show="item.error_message" x-text="(item.error_code ? '[' + item.error_code + '] ' : '') + (item.error_message || '')"></span>
+                      <span x-show="item.live_status && item.live_status !== itemNormalizedStatus(item)" class="text-muted" x-text="'live: ' + item.live_status"></span>
+                      <span x-show="item.distribute_status" class="text-muted" x-text="'seed: ' + item.distribute_status + (item.distribute_infohash ? ' ' + item.distribute_infohash.slice(0, 8) : '')"></span>
+                    </div>
+                    <div x-html="itemSparklineSvg(item)"></div>
+                  </div>
+                </template>
+                <div x-show="item.id" class="action-strip mt-sm">
+                  <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
+                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" @click="openFileSelection(item.id)">Files</button>
+                  <button x-show="item.gid" class="secondary" @click="loadItemOptions(item.gid)">Options</button>
+                  <button x-show="itemCanRemove(item)" @click="itemAction(item.id, 'remove')">Remove</button>
+                </div>
+                <template x-if="item.gid && itemOptionsGid === item.gid && itemOptionsData">
+                  <div class="meta mt-sm text-mono" x-text="JSON.stringify(itemOptionsData, null, 2)"></div>
+                </template>
+              </div>
+            </template>
+          </div>
+          <!-- File selection panel (torrent/metalink) -->
+          <template x-if="fileSelectionItemId">
+            <div class="system-card mt-md">
+              <div class="system-head">
+                <div class="system-copy"><h3>File Selection</h3></div>
+              </div>
+              <template x-if="fileSelectionLoading"><div class="item">Loading files...</div></template>
+              <template x-if="!fileSelectionLoading">
+                <div>
+                  <div class="list">
+                    <template x-for="(file, idx) in fileSelectionFiles" :key="file.index ?? idx">
+                      <div class="item compact">
+                        <label class="gap-sm">
+                          <input type="checkbox" x-model="file.selected">
+                          <span x-text="file.path || file.name || ('File ' + file.index)"></span>
+                          <span x-show="file.length" x-text="formatBytes(file.length)"></span>
+                        </label>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="system-actions"><button @click="saveFileSelection()">Save selection</button> <button @click="closeFileSelection()">Cancel</button></div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>

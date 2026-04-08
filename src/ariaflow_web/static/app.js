@@ -14,8 +14,8 @@ document.addEventListener('alpine:init', () => {
     queueSearch: '',
     speedHistory: {},
     SPEED_HISTORY_MAX: 30,
-    globalSpeedHistory: [],
-    globalUploadHistory: [],
+    globalSpeedHistory: [0, 0],
+    globalUploadHistory: [0, 0],
     GLOBAL_SPEED_MAX: 40,
     previousItemStatuses: {},
     refreshInFlight: false,
@@ -951,6 +951,7 @@ document.addEventListener('alpine:init', () => {
           this._consecutiveFailures++;
           // Show offline immediately if no prior data, or after 3 consecutive failures to avoid flicker
           if (!this.lastStatus || this._consecutiveFailures >= 3) this.lastStatus = data;
+          this.recordGlobalSpeed(0, 0);
           return;
         }
         this._consecutiveFailures = 0;
@@ -973,6 +974,7 @@ document.addEventListener('alpine:init', () => {
             },
           };
         }
+        this.recordGlobalSpeed(0, 0);
       } finally {
         this.refreshInFlight = false;
         // Backoff: increase polling interval on consecutive failures, reset on recovery

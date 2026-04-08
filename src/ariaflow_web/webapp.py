@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import re
 import threading
 from pathlib import Path
 from http import HTTPStatus
@@ -25,8 +26,19 @@ _CONTENT_TYPES: dict[str, str] = {
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
 
+_INCLUDE_RE = re.compile(r"<!--INCLUDE:([\w_./-]+)-->\n?")
+
+
+def _expand_includes(text: str) -> str:
+    def _sub(match: "re.Match[str]") -> str:
+        rel = match.group(1)
+        return (_STATIC_DIR / rel).read_text(encoding="utf-8")
+    return _INCLUDE_RE.sub(_sub, text)
+
+
 def _read_index_html(backend_url: str | None = None) -> str:
     text = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    text = _expand_includes(text)
     text = text.replace("__ARIAFLOW_WEB_VERSION__", f"v{__version__}")
     text = text.replace("__ARIAFLOW_WEB_PID__", str(os.getpid()))
     identity = local_identity()

@@ -1,0 +1,171 @@
+      <!-- OPTIONS -->
+      <div class="span-6" x-show="page === 'options'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Options</h2>
+            <div class="hint">UIC declaration preferences</div>
+          </div>
+          <div class="list">
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Auto preflight</div>
+                <label ><input type="checkbox" :checked="autoPreflightEnabled" @change="setAutoPreflightPreference($el.checked)">Toggle</label>
+              </div>
+              <div class="meta"><span>Run preflight gate checks automatically before starting the scheduler.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Post-action rule</div>
+                <select :value="postActionRuleValue" @change="setPostActionRule($el.value)">
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+              <div class="meta"><span>Placeholder policy used after a download finishes.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 unsafe mode</div>
+                <label><input type="checkbox" :checked="aria2UnsafeEnabled" @change="setAria2UnsafeOptions($el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Allow setting any aria2 option via API. Bypasses the safe subset.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Max retries</div>
+                <label><input type="number" min="0" max="20" :value="maxRetries" @input="setRetryPref('max_retries', $el.value)" class="input-sm"></label>
+              </div>
+              <div class="meta"><span>Auto-retry failed items. 0 = manual only.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Retry backoff</div>
+                <label><input type="number" min="1" max="300" :value="retryBackoff" @input="setRetryPref('retry_backoff_seconds', $el.value)" class="input-sm"> <span>sec</span></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 max tries</div>
+                <label><input type="number" min="0" max="20" :value="aria2MaxTries" @input="setRetryPref('aria2_max_tries', $el.value)" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 retry wait</div>
+                <label><input type="number" min="0" max="60" :value="aria2RetryWait" @input="setRetryPref('aria2_retry_wait', $el.value)" class="input-sm"> <span>sec</span></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Distribute downloads</div>
+                <label><input type="checkbox" :checked="distributeEnabled" @change="setDistributePref('distribute_completed_downloads', $el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Auto-create torrent from completed HTTP downloads.</span></div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Seed ratio</div>
+                <label><input type="number" min="0" max="10" step="0.1" :value="distributeSeedRatio" @input="setDistributePref('distribute_seed_ratio', Number($el.value))" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Max seed hours</div>
+                <label><input type="number" min="0" max="720" :value="distributeMaxSeedHours" @input="setDistributePref('distribute_max_seed_hours', Number($el.value))" class="input-sm"> <span>h</span></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Max active seeds</div>
+                <label><input type="number" min="0" max="20" :value="distributeMaxActiveSeeds" @input="setDistributePref('distribute_max_active_seeds', Number($el.value))" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Tracker URL</div>
+                <label><input type="text" :value="internalTrackerUrl" @input="setDistributePref('internal_tracker_url', $el.value)" class="input-md"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-6" x-show="page === 'options'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>aria2 Options</h2>
+            <div class="hint" x-text="aria2Tiers.unsafe_enabled ? 'Unsafe mode: all options available' : aria2Tiers.safe.length + ' safe options · ' + aria2Tiers.managed.length + ' managed by ariaflow'">Current aria2 global options.</div>
+          </div>
+          <div class="list">
+            <template x-for="opt in aria2Tiers.safe || []" :key="opt">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="opt"></div>
+                  <label><input type="text" :value="aria2Options[opt] || ''" @input="setAria2Option(opt, $el.value)" class="input-sm"></label>
+                </div>
+              </div>
+            </template>
+            <template x-for="opt in aria2Tiers.managed || []" :key="'m-' + opt">
+              <div class="item dimmed">
+                <div class="item-top">
+                  <div class="item-url" x-text="opt"></div>
+                  <span class="text-muted text-sm" x-text="aria2Options[opt] || '-'"></span>
+                </div>
+                <div class="meta"><span>Managed by ariaflow — read-only</span></div>
+              </div>
+            </template>
+          </div>
+          <div x-show="aria2OptionResult" class="text-muted text-sm mt-sm" x-text="aria2OptionResult"></div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'options' && distributeEnabled">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Active Seeds</h2>
+            <button @click="loadTorrents()">Refresh</button>
+          </div>
+          <div x-show="torrentLoading" class="text-muted text-sm">Loading…</div>
+          <div x-show="!torrentLoading && torrentList.length === 0" class="text-muted text-sm">No active seeds.</div>
+          <div class="list" x-show="!torrentLoading && torrentList.length > 0">
+            <template x-for="t in torrentList" :key="t.infohash">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="t.name || t.infohash"></div>
+                  <a href="#" :href="apiPath('/api/torrents/' + t.infohash + '.torrent')" download class="btn-link secondary">.torrent</a>
+                  <button @click="stopTorrent(t.infohash)">Stop</button>
+                </div>
+                <div class="meta">
+                  <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-show="t.seed_gid" class="text-muted" x-text="'gid:' + t.seed_gid"></span>
+                  <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
+                  <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'options' && peerList.length > 0">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Discovered Peers</h2>
+            <button @click="loadPeers()">Refresh</button>
+          </div>
+          <div class="list">
+            <template x-for="peer in peerList" :key="peer.instance || peer.host">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="peer.instance || peer.host"></div>
+                  <span class="badge" :class="peer.status === 'resolved' ? 'good' : 'warn'" x-text="peer.status || 'unknown'"></span>
+                </div>
+                <div class="meta">
+                  <span x-text="peer.base_url || (peer.host + ':' + peer.port)"></span>
+                  <span x-show="peer.torrent_count != null" x-text="peer.torrent_count + ' torrents'"></span>
+                  <span x-show="peer.last_seen" class="text-muted" x-text="'seen ' + relativeTime(new Date(peer.last_seen * 1000).toISOString())"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>

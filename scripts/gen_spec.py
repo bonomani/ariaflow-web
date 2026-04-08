@@ -79,7 +79,9 @@ def extract_action_handlers() -> set[str]:
     """JS function names invoked from inline @click/@change/@input handlers."""
     actions: set[str] = set()
     pattern = re.compile(r'@(?:click|change|input)(?:\.[a-z0-9.]+)?="([^"(]+)\(')
-    for path in [STATIC / "index.html", STATIC / "app.js"]:
+    paths = [STATIC / "index.html", STATIC / "app.js"]
+    paths.extend(sorted((STATIC / "_fragments").glob("*.html")))
+    for path in paths:
         for m in pattern.finditer(path.read_text(encoding="utf-8")):
             fn = m.group(1).strip()
             if "${" not in fn:
@@ -89,7 +91,7 @@ def extract_action_handlers() -> set[str]:
 
 def extract_pages_from_html() -> list[tuple[str, str, str]]:
     """Return [(label, key, url)] for top-level navigation links."""
-    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    html = (STATIC / "_fragments" / "header.html").read_text(encoding="utf-8")
     out: list[tuple[str, str, str]] = []
     pattern = re.compile(
         r'<a\s+href="([^"]+)"[^>]*navigateTo\(\'([^\']+)\'\)[^>]*>([^<]+)</a>'

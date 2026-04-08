@@ -1,0 +1,98 @@
+      <!-- BANDWIDTH -->
+      <div class="span-12" x-show="page === 'bandwidth'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Bandwidth</h2>
+            <div class="hint">Probe, reservation policy, and download concurrency</div>
+          </div>
+          <div class="chips mb-md">
+            <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
+            <div class="chip">Download <strong x-text="bwDownBadgeText">-</strong></div>
+            <div class="chip">Upload <strong x-text="bwUpBadgeText">-</strong></div>
+            <div class="chip">Down cap <strong x-text="bwDownCapText">-</strong></div>
+            <div class="chip">Up cap <strong x-text="bwUpCapText">-</strong></div>
+            <div class="chip">Limit <strong x-text="bwCurrentLimitText">-</strong></div>
+            <div class="chip" x-show="bwResponsivenessText !== '-'">RPM <strong x-text="bwResponsivenessText">-</strong></div>
+            <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
+            <div class="chip" x-show="bw.last_probe_at">Probed <strong x-text="bw.last_probe_at ? relativeTime(new Date(bw.last_probe_at * 1000).toISOString()) : '-'">-</strong></div>
+          </div>
+          <details class="mb-md" x-show="bw.last_probe">
+            <summary class="text-muted text-sm cursor-pointer">Last probe payload</summary>
+            <div class="debug-box text-mono text-sm" x-text="JSON.stringify(bw.last_probe, null, 2)"></div>
+          </details>
+          <div class="grid-2col">
+            <div>
+              <h3 class="mt-0 mb-sm">Probe</h3>
+              <div class="list">
+                <div class="item">
+                  <div class="row">
+                    <button :class="{ secondary: probeRunning }" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Auto-probe interval</div>
+                    <label>
+                      <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
+                        <option value="60">60s</option>
+                        <option value="120">120s</option>
+                        <option value="180">180s</option>
+                        <option value="300">300s</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="mt-0 mb-sm">Policy</h3>
+              <div class="list">
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Downlink reserve</div>
+                    <label >
+                      <input type="number" min="0" max="90" step="1" :value="bwDownFreePercent" @input="setBandwidthPref('bandwidth_down_free_percent', Number($el.value), 20)" class="input-sm">
+                      <span>%</span>
+                      <input type="number" min="0" step="0.5" :value="bwDownFreeAbsolute" @input="setBandwidthPref('bandwidth_down_free_absolute_mbps', Number($el.value), 0)" class="input-sm">
+                      <span>Mbps</span>
+                    </label>
+                  </div>
+                  <div class="meta"><span>Reserve % or absolute Mbps of downlink. Stricter wins.</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Uplink reserve</div>
+                    <label >
+                      <input type="number" min="0" max="90" step="1" :value="bwUpFreePercent" @input="setBandwidthPref('bandwidth_up_free_percent', Number($el.value), 50)" class="input-sm">
+                      <span>%</span>
+                      <input type="number" min="0" step="0.5" :value="bwUpFreeAbsolute" @input="setBandwidthPref('bandwidth_up_free_absolute_mbps', Number($el.value), 0)" class="input-sm">
+                      <span>Mbps</span>
+                    </label>
+                  </div>
+                  <div class="meta"><span>Reserve % or absolute Mbps of uplink. Stricter wins.</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Concurrent downloads</div>
+                    <label >
+                      <input type="number" min="1" step="1" :value="bwConcurrency" @input="setSimultaneousLimit($el.value)" class="input-sm">
+                    </label>
+                  </div>
+                  <div class="meta"><span>Max parallel downloads. Default: 1 (sequential).</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Duplicate transfers</div>
+                    <select :value="bwDedupValue" @change="setDuplicateAction($el.value)">
+                      <option value="remove">Remove</option>
+                      <option value="pause">Pause</option>
+                      <option value="ignore">Ignore</option>
+                    </select>
+                  </div>
+                  <div class="meta"><span>Action for duplicate active jobs on the same URL.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>

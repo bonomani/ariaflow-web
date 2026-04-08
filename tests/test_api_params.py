@@ -18,6 +18,14 @@ from conftest import start_server, stop_server  # noqa: E402
 WEBAPP_PY = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "webapp.py"
 APP_JS = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static" / "app.js"
 INDEX_HTML = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static" / "index.html"
+_FRAGMENTS_DIR = INDEX_HTML.parent / "_fragments"
+
+
+def _read_index_html_assembled() -> str:
+    text = INDEX_HTML.read_text(encoding="utf-8")
+    for frag in sorted(_FRAGMENTS_DIR.glob("*.html")):
+        text += "\n" + frag.read_text(encoding="utf-8")
+    return text
 BACKEND_WEBAPP = Path(__file__).resolve().parents[2] / "ariaflow" / "src" / "aria_queue" / "webapp.py"
 UCC_DECLARATIONS = Path(__file__).resolve().parents[1] / "docs" / "ucc-declarations.yaml"
 
@@ -362,7 +370,7 @@ class TestApiParamCoverage:
         endpoints automatically — no hardcoded list to maintain.
         """
         js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
         combined = js + "\n" + html
 
         backend_routes = self._extract_backend_routes()
@@ -437,7 +445,7 @@ class TestApiParamCoverage:
         @change, @input, x-show, or called from init/_loadPageData.
         """
         js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
 
         # Find async methods that call _fetch or apiPath
         api_methods = set()
@@ -488,7 +496,7 @@ class TestApiParamCoverage:
         or checkbox in the frontend that reads/writes it.
         """
         js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
 
         # All preference names the frontend reads via getDeclarationPreference.
         # Sourced from docs/ucc-declarations.yaml (UCC declaration artifact).
@@ -532,7 +540,7 @@ class TestApiParamCoverage:
         """
         js = APP_JS.read_text(encoding="utf-8")
 
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
 
         # Actions called via itemAction(id, 'action') in JS and HTML
         ui_actions = set(re.findall(r"itemAction\([^,]+,\s*['\"](\w+)['\"]", js))
@@ -678,7 +686,7 @@ class TestBackendFieldCoverage:
     def test_all_backend_fields_consumed(self) -> None:
         """Every field in backend openapi.yaml must appear in app.js or index.html."""
         js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
         combined = js + "\n" + html
 
         expected = self._extract_backend_fields()
@@ -803,7 +811,7 @@ class TestMockFixturesMatchBackend:
 
         # Read frontend code to check which status fields are actually used
         js = APP_JS.read_text(encoding="utf-8")
-        html = INDEX_HTML.read_text(encoding="utf-8")
+        html = _read_index_html_assembled()
         combined = js + "\n" + html
 
         missing: list[str] = []
