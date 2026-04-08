@@ -131,6 +131,7 @@ jobs:
           python3 scripts/homebrew_formula.py --tag "${{ steps.release_meta.outputs.tag }}" --output tap/Formula/ariaflow-web.rb
 
       - name: Commit tap update
+        id: push_tap_update
         working-directory: tap
         run: |
           git config user.name "github-actions[bot]"
@@ -138,11 +139,14 @@ jobs:
           git add Formula/ariaflow-web.rb
           if git diff --cached --quiet; then
             echo "Formula already up to date"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git commit -m "Update ariaflow-web formula to ${{ steps.release_meta.outputs.tag }}"
           git pull --rebase origin main
           git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Verify tap version
         run: |
@@ -152,20 +156,21 @@ jobs:
           test "$current" = "$expected"
 
       - name: Verify published tap formula
+        working-directory: tap
         run: |
-          python3 - <<'PY'
-          from urllib.request import urlopen
-          import re
-
-          expected = "${{ steps.release_meta.outputs.version }}"
-          url = "https://raw.githubusercontent.com/bonomani/homebrew-ariaflow/main/Formula/ariaflow-web.rb"
-          text = urlopen(url, timeout=20).read().decode("utf-8")
-          match = re.search(r'^  version "([^"]+)"$', text, re.MULTILINE)
-          current = match.group(1) if match else ""
-          if current != expected:
-              raise SystemExit(f"Published tap formula mismatch: expected {expected}, got {current or 'missing'}")
-          print(f"Published tap formula is {current}")
-          PY
+          expected="${{ steps.release_meta.outputs.version }}"
+          current=""
+          for attempt in 1 2 3 4 5 6; do
+            git fetch --depth=1 origin main
+            current=$(git show FETCH_HEAD:Formula/ariaflow-web.rb | python3 -c 'from pathlib import Path; import re, sys; text = sys.stdin.read(); match = re.search(r"^  version \"([^\"]+)\"$", text, re.MULTILINE); print(match.group(1) if match else "")')
+            if [ "$current" = "$expected" ]; then
+              echo "Published tap formula is $current"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Published tap formula mismatch: expected $expected, got ${current:-missing}"
+          exit 1
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -174,6 +179,18 @@ jobs:
           generate_release_notes: true
           prerelease: false
           tag_name: ${{ steps.release_meta.outputs.tag }}
+
+      - name: Roll back tap update on failure
+        if: failure() && steps.push_tap_update.outputs.pushed == 'true'
+        working-directory: tap
+        env:
+          TAP_COMMIT_SHA: ${{ steps.push_tap_update.outputs.commit_sha }}
+        run: |
+          git fetch origin main
+          git pull --rebase origin main
+          git revert --no-edit "$TAP_COMMIT_SHA" || exit 1
+          git pull --rebase origin main
+          git push origin HEAD:main
 
       - name: Roll back remote tag on failure
         if: failure() && steps.release_meta.outputs.should_tag_push == 'true' && steps.push_release_tag.outputs.pushed == 'true'
