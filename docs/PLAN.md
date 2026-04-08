@@ -44,6 +44,56 @@ explicit, machine-checked, and reviewable.
 - **Pinned BGS SHAs must be maintained manually.** `tests/test_bgs_sha_drift.py`
   warns when `docs/bgs-decision.yaml` lags behind `../BGSPrivate/bgs`.
 
+## Header / tabs separation refactor
+
+Goal: split `src/ariaflow_web/static/index.html` so the header (nav + hero) and
+each tab become independent units. Analysis shows zero tab-conditional logic in
+the header and zero header references inside tabs — only four shared values
+couple them: `page`, `selectedBackend`/`backendReachable`, `refreshInterval`,
+and the global transfer metrics (`transferSpeedText`, `globalSparklineSvg`).
+
+### Timer model (3 timers, today in `app.js`)
+
+| Tier | Field | Interval | Selectable? | Drives |
+|---|---|---|---|---|
+| Fast | `refreshTimer` | `refreshInterval` (1.5s / 3s / 5s / 10s / 30s / Off, default 10s) | **yes — user-selectable in header** | `refresh()` → global status + sparklines, consumed by **header transfer graph** and **dashboard queue items** |
+| Medium | `_mediumTimer` | `MEDIUM_INTERVAL=30s`, clamped to ≥ fast | no | per-tab methods in `_TAB_MEDIUM` (log, bandwidth, lifecycle) |
+| Slow | `_slowTimer` | `SLOW_INTERVAL=120s`, clamped to ≥ fast | no | per-tab methods in `_TAB_SLOW` (dashboard, log, options, bandwidth) |
+
+Implications for the refactor:
+- The **fast** timer is the only cross-cutting one — it feeds both header
+  (sparkline/transfer chip) and the active tab. It must live in the store,
+  not in any single template, and `refreshInterval=0` ("Off") must continue
+  to suppress all three timers.
+- The **medium** and **slow** timers are tab-scoped: their method lists
+  (`_TAB_MEDIUM`, `_TAB_SLOW`) key by `page`. After the split, each tab
+  fragment should declare its own medium/slow methods (e.g. via a tab-local
+  config object the store reads), instead of the central maps in `app.js`.
+  That way adding a tab does not require editing two dictionaries in core.
+- Visibility-pause logic (`_onVisibilityChange`, app.js:347) currently
+  knows about all three timers + SSE + defer timer. It should stay
+  centralized in the store after the refactor — one owner for "pause/resume
+  all background activity".
+
+Steps:
+1. Introduce an Alpine store (`Alpine.store('app', { page, backend, reachable,
+   refreshInterval })`); migrate header bindings to read/write the store.
+2. Watch `page` and `refreshInterval` in the store and call
+   `_updateTabTimers(page)` from there, so tabs no longer need to know that
+   bridge exists (currently in `app.js:303,910`).
+3. Extract `index.html` lines 15–94 into `_header.html` (nav + hero) and split
+   each `x-show="page === '<name>'"` block into `tab_<name>.html`
+   (dashboard, bandwidth, lifecycle, options, log, dev, archive).
+4. Server- or template-include the fragments from `index.html`; keep a single
+   `x-data="ariaflow"` root so existing methods/state still resolve.
+5. Keep global transfer metrics (`transferSpeedText`, `globalSparklineSvg`)
+   in the header — they are global and consumed by the fast timer, not
+   dashboard-specific.
+6. Smoke-test each tab (switch, refresh interval change, backend switch,
+   offline/online transition) to confirm no regressions in timer wiring.
+
+Out of scope: no behavioral changes, no backend calls, no styling rework.
+
 ## Deferred
 
 - **Mock fixtures (DEFAULT_STATUS etc.) → YAML.** Not worth the churn.
