@@ -126,7 +126,6 @@ coverage_map:
   setRefreshInterval: "test_refresh_interval_change / test_refresh_off"
   setSimultaneousLimit: "test_simultaneous_downloads_input"
   toggleScheduler: "test_start_stop_engine_button / test_03_start_engine"
-  schedulerAction: "test_start_stop_engine_button (stop button)"
   toggleTheme: "test_theme_toggle_cycles"
   uccRun: "test_run_contract_button"
   cleanup: "test_cleanup"
@@ -145,4 +144,3 @@ coverage_map:
   loadWebLog: "test_web_log (web server log)"
   refresh: "test_server_metrics_refresh (manual refresh)"
   stopTorrent: "test_api_params (torrent stop)"
-  newSession: "test_api_params (new session)"
