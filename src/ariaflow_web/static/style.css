@@ -420,8 +420,9 @@ details.debug summary::-webkit-details-marker { display: none; }
   cursor: default;
 }
 
-/* Per-tab badge: small pill next to the label showing a count. */
-.nav a .tab-badge {
+/* Tab/filter badge: small pill next to a label showing a count.
+   Used by .nav a (top tabs) and .filter-btn (queue filters). */
+.tab-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -435,8 +436,9 @@ details.debug summary::-webkit-details-marker { display: none; }
   font-weight: 700;
   line-height: 1;
 }
-.nav a.active .tab-badge { background: var(--accent); color: var(--btn-text); }
-.nav a .tab-badge.warn { background: #b91c1c; color: #fff; }
+.nav a.active .tab-badge,
+.filter-btn.active .tab-badge { background: var(--accent); color: var(--btn-text); }
+.tab-badge.warn { background: #b91c1c; color: #fff; }
 
 /* Small tab variant. */
 .nav.compact a { padding: var(--pad-xs) var(--gap-sm); font-size: var(--font-sm); }
