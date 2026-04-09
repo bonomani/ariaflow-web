@@ -381,11 +381,6 @@ class TestApiParamCoverage:
         # Endpoints accessed via window.open (not apiPath/_fetch)
         WINDOW_OPEN = {"/api/docs", "/api/openapi.yaml"}
 
-        # Backend endpoints the dashboard intentionally does not call.
-        # /api/sessions/new: backend supports manual session reset, but the
-        #   ariaflow-web dashboard never exposed (or has retired) the button.
-        DELIBERATELY_UNUSED = {"/api/sessions/new"}
-
         missing = []
         for route in sorted(backend_routes):
             if route in FRONTEND_ONLY:
@@ -397,8 +392,6 @@ class TestApiParamCoverage:
             if any(route.startswith(prefix) for prefix in ["/api/downloads/", "/api/torrents/", "/api/lifecycle/"]) and any(p in combined for p in ["/api/downloads/", "/api/torrents/", "/api/lifecycle/"]):
                 continue
             if route in WINDOW_OPEN:
-                continue
-            if route in DELIBERATELY_UNUSED:
                 continue
             missing.append(route)
 

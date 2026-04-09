@@ -2,26 +2,6 @@
 
 ## Open
 
-### FE-17: No CI enforcement for BGS compliance
-
-The new BGS validation flow works locally and via pre-commit, but not in
-GitHub Actions, because the validator depends on the private sibling repo
-`../BGSPrivate`.
-
-Current state:
-- `tests/test_bgs_compliance.py` validates the claim locally.
-- `.pre-commit-config.yaml` can run the check before commit.
-- CI cannot currently resolve the validator path or private repo dependency.
-
-Impact:
-- Contract/governance drift can still merge if contributors skip local checks.
-- The repo claims BGS-Verified, but enforcement is only partial.
-
-Needed:
-- Either wire CI to reach the validator and private repo safely, or document
-  local-only enforcement as a permanent limitation and stop treating CI parity
-  as an expected next step.
-
 ### FE-18: No schema/test oracle for `/api/events`
 
 The schema migration now covers JSON endpoints, but the SSE stream at
@@ -40,26 +20,28 @@ Needed:
 - Add an event-stream test strategy only if SSE payload stability becomes a
   recurring source of regressions. Otherwise keep this explicitly deferred.
 
-### FE-19: Manual BGS SHA maintenance
+### FE-20: Archive button enabled with nothing archivable
 
-The pinned BGS refs in `docs/bgs-decision.yaml` are checked by
-`tests/test_bgs_sha_drift.py`, but that test only warns.
+`canArchive` (app.js) checks `sumDone > 0 || sumError > 0` but the
+backend `cleanup()` applies extra rules (`max_done_age_days: 7`,
+`max_done_count: 100`). User clicks Archive, gets "0 archived".
 
-Current state:
-- Drift is visible locally.
-- The pin is not auto-updated.
-- Warning-only mode avoids blocking unrelated work.
+Blocked by: BG-14 (need backend to expose archivable count or document
+the cleanup criteria so the frontend can replicate the logic).
 
-Impact:
-- The decision record can silently lag the actual BGSPrivate checkout for a
-  while.
-
-Needed:
-- Keep the warning if low-friction maintenance is preferred, or promote the
-  drift check to a stricter gate if the repo wants tighter provenance control.
+Workaround: After cleanup returns "0 archived", the resultText shows the
+outcome. Not ideal but prevents confusion on repeated clicks.
 
 ## Resolved
 
+- FE-19: Manual BGS SHA maintenance — closed as accepted. The drift test
+  (`test_bgs_sha_drift.py`) warns on mismatch; warning-only is sufficient
+  for this repo's governance level. No code change needed.
+- FE-17: No CI enforcement for BGS compliance — closed as won't-fix.
+  The validator depends on the private `../BGSPrivate` sibling repo which
+  cannot be cloned in CI without exposing credentials. Local-only
+  enforcement (pre-commit + `test_bgs_compliance.py`) is the permanent
+  design. Documented as a known limitation.
 - FE-15: Log tab no longer depends on polling once backend `action_logged`
   SSE events are available.
 - FE-16: Hero/health data no longer depends on a dedicated `/api/health`
