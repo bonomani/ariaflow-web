@@ -204,6 +204,65 @@ elevation, density, breakpoint).
 | FE-18 | Defer or add SSE smoke test | frontend later | low |
 | FE-19 | Close as accepted | frontend now | trivial |
 
+## Rename: ariaflow-web → ariaflow-dashboard
+
+Full rebrand of package, module, CLI, UI, and all references.
+
+### Package & build
+- `pyproject.toml` — name, entry point, package-data key
+- Rename directory `src/ariaflow_web/` → `src/ariaflow_dashboard/`
+
+### CLI
+- `cli.py` — `prog=` and version string
+
+### UI
+- `static/index.html` — `<title>`
+- `static/_fragments/header.html` — `<h1>`
+
+### Source code
+- `action_log.py` — env var `ARIAFLOW_WEB_LOG` → `ARIAFLOW_DASHBOARD_LOG`,
+  default filename, `"source"` field
+- `webapp.py` — `"source"` field
+
+### JSON schemas (24 files)
+- `docs/schemas/*.schema.json` — all `$id` URLs: `bonomani/ariaflow-web` →
+  `bonomani/ariaflow-dashboard`
+- `docs/schemas/ucc-declarations.schema.json` — title and description
+
+### Documentation
+- `README.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, `ACTIONS.md`,
+  `CLAUDE.md`, `BGS.md`, `RELEASE.md`, `docs/PLAN.md`,
+  `docs/bgs-decision.yaml`, `docs/ucc-declarations.yaml`
+
+### GitHub workflows
+- `.github/workflows/release.yml` — commit messages, formula paths,
+  artifact names
+
+### Scripts
+- `scripts/homebrew_formula.py` — URL and name references
+- `scripts/publish.py` — `REPO` constant and path references
+- `scripts/gen_spec.py` — source paths and title
+
+### Tests (all imports and path references)
+- `test_cli.py`, `test_web.py`, `test_buttons.py`, `conftest.py`,
+  `test_static_serving.py`, `test_download_lifecycle.py`,
+  `test_api_params.py`, `test_coverage_check.py`, `test_quality.py`,
+  `test_homebrew_formula.py`
+
+### Homebrew tap (bonomani/homebrew-ariaflow)
+- `Formula/ariaflow-web.rb` → `Formula/ariaflow-dashboard.rb`
+- Update all references in formula and workflow
+
+### Notes
+- Module rename `ariaflow_web` → `ariaflow_dashboard` is the most invasive
+  change — every import in every file.
+- Env var `ARIAFLOW_WEB_LOG` → `ARIAFLOW_DASHBOARD_LOG` may break existing
+  deployments — document the migration.
+- Coordinate with the Homebrew tap for the formula rename.
+- PyPI: a new package name means a fresh PyPI project (`ariaflow-dashboard`).
+  The old `ariaflow-web` package can be yanked or left with a final version
+  that depends on `ariaflow-dashboard` as a redirect.
+
 ## Deferred
 
 - **Mock fixtures (DEFAULT_STATUS etc.) → YAML.** Not worth the churn.
