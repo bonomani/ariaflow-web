@@ -331,6 +331,7 @@ a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
   padding: 4px 8px;
   background: transparent;
   border: none;
+  border-radius: 0;
   color: var(--muted);
   font-size: var(--font-sm);
   font-weight: 600;
