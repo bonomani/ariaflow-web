@@ -122,13 +122,12 @@ document.addEventListener('alpine:init', () => {
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return 'Start';
-      if (this.state?.stop_requested) return 'Stopping...';
       if (this.state?.paused) return 'Resume';
       if (this.state?.running) return 'Pause';
       return 'Start';
     },
     get schedulerBtnDisabled() {
-      return !this.backendReachable || !!this.state?.stop_requested;
+      return !this.backendReachable;
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
