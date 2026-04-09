@@ -1,48 +1,14 @@
 # Plan
 
-Current work in `ariaflow-web` is a contract-governance migration, not a
-feature sprint. The goal is to make the frontend's backend assumptions
-explicit, machine-checked, and reviewable.
+## Contract-governance migration — DONE
 
-## Current migration
-
-- Move BGS decision detail out of `BGS.md` into `docs/bgs-decision.yaml`.
-- Treat `docs/ucc-declarations.yaml` as the canonical declaration for:
-  endpoint coverage, action coverage, expected preferences, and known-unused
-  backend fields.
-- Add frontend-owned JSON schemas under `docs/schemas/` for the subset of
-  backend response shapes the UI actually consumes.
-- Add tests that verify:
-  mock fixtures match the frontend schemas,
-  frontend schemas are a subset of backend OpenAPI,
-  the UCC declaration artifact is well-formed,
-  the BGS claim passes the local validator.
-
-## Next steps
-
-- Run and stabilize the new test set:
-  `tests/test_api_response_shapes.py`
-  `tests/test_openapi_alignment.py`
-  `tests/test_ucc_declarations_schema.py`
-  `tests/test_bgs_compliance.py`
-  `tests/test_bgs_sha_drift.py`
-  plus the existing contract tests in `tests/test_api_params.py` and
-  `tests/test_coverage_check.py`.
-- Verify that the new docs and tests are internally consistent:
-  `BGS.md`, `docs/bgs-decision.yaml`, `docs/ucc-declarations.yaml`,
-  `docs/schemas/`, `.pre-commit-config.yaml`.
-- Decide whether the migration lands as one commit series now or is dropped
-  entirely. The partial state is the only bad state.
-
-## Open items
-
-- **No CI enforcement for BGS compliance.** The validator depends on the
-  private `../BGSPrivate` sibling checkout, so this currently runs only
-  locally and via pre-commit.
-- **No schema oracle for `/api/events` yet.** SSE uses `text/event-stream`,
-  so it needs a different test strategy than the JSON endpoints.
-- **Pinned BGS SHAs must be maintained manually.** `tests/test_bgs_sha_drift.py`
-  warns when `docs/bgs-decision.yaml` lags behind `../BGSPrivate/bgs`.
+BGS decision in `docs/bgs-decision.yaml`. UCC declarations in
+`docs/ucc-declarations.yaml`. Frontend JSON schemas in `docs/schemas/`.
+All 149 tests pass (13 test files), including:
+`test_api_response_shapes`, `test_openapi_alignment`,
+`test_ucc_declarations_schema`, `test_bgs_compliance`,
+`test_bgs_sha_drift` (warning-only, accepted per FE-19),
+`test_api_params`, `test_coverage_check`.
 
 ## Header / tabs separation refactor — DONE
 
@@ -164,45 +130,23 @@ elevation, density, breakpoint).
   but prevents repeated clicks.
 - **Priority:** low.
 
-### FE-17: No CI enforcement for BGS compliance
+### FE-18: SSE smoke test (deferred)
 - **Owner:** frontend.
-- **Resolution path:** Accept local-only enforcement as a permanent
-  limitation. The validator depends on `../BGSPrivate` which is private
-  and can't be cloned in CI without exposing credentials. Document this
-  in `BGS.md` as a known limitation. Close FE-17 as "won't fix — by
-  design" and remove it from the open section.
-- **Priority:** low — no regression risk, pre-commit catches it locally.
-
-### FE-18: No schema/test oracle for `/api/events` (SSE)
-- **Owner:** frontend.
-- **Resolution path:** Add a lightweight SSE integration test that
-  connects to `/api/events`, receives at least one `status` event, and
-  validates the JSON payload against `docs/schemas/api-status.schema.json`.
-  Requires a running backend (mark test `@pytest.mark.slow`).
-  Alternatively, defer permanently if SSE payloads haven't caused
-  regressions.
-- **Priority:** low — no regressions reported yet.
-
-### FE-19: Manual BGS SHA maintenance
-- **Owner:** frontend.
-- **Resolution path:** The drift test (`test_bgs_sha_drift.py`) already
-  warns. Promote it to a hard failure only when actively working on BGS
-  updates; otherwise keep the warning. No code change needed — this is
-  a workflow decision, not a bug. Close as "accepted — warning is
-  sufficient" and move to resolved.
+- **Resolution path:** Add an SSE integration test when/if SSE payload
+  drift causes a regression. No regressions reported yet.
 - **Priority:** low.
 
 ### Action summary
 
-| Gap | Next action | Who | Effort |
-|---|---|---|---|
-| BG-12 | Commit gap file, then backend removes endpoint | backend session | low |
-| BG-13 | File gap, backend implements WSL detection | file now, backend later | medium |
-| BG-14 | File gap, backend exposes archivable count | file now, backend later | low |
-| FE-20 | File gap, blocked by BG-14 | file now, implement after BG-14 | low |
-| FE-17 | Close as won't-fix, document limitation | frontend now | trivial |
-| FE-18 | Defer or add SSE smoke test | frontend later | low |
-| FE-19 | Close as accepted | frontend now | trivial |
+| Gap | Status |
+|---|---|
+| BG-12 | Resolved — backend removed endpoint |
+| BG-13 | Filed — awaiting backend (WSL detection) |
+| BG-14 | Filed — awaiting backend (archivable count) |
+| FE-17 | Closed — won't-fix |
+| FE-18 | Deferred |
+| FE-19 | Closed — accepted |
+| FE-20 | Filed — blocked by BG-14 |
 
 ## Rename: ariaflow-web → ariaflow-dashboard
 
