@@ -139,13 +139,17 @@ button, select {
   width: auto;
 }
 button:hover, select:hover { filter: brightness(1.05); }
+button:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 button.secondary, select.secondary {
   background: var(--btn-inactive-bg);
   color: var(--text);
   border-color: var(--line);
   font-weight: 400;
 }
-button.icon-btn { padding: var(--pad-icon-btn); min-width: 38px; border-radius: var(--radius-pill); line-height: 1; }
+button.icon-btn { padding: var(--pad-icon-btn); min-width: 38px; line-height: 1; }
 a.btn-link { display: inline-block; text-decoration: none; padding: var(--pad-btn); border-radius: var(--radius-pill); font-weight: 700; background: var(--btn-bg); color: var(--btn-text); border: var(--border-none); cursor: pointer; }
 a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
 
@@ -157,7 +161,7 @@ a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
   align-items: center;
   gap: var(--gap-sm);
   padding: var(--pad-sm);
-  border: var(--border);
+  border: var(--border-none);
   border-radius: var(--radius-pill);
   background: var(--btn-inactive-bg);
   color: var(--text);
@@ -327,8 +331,8 @@ a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
 .filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: var(--gap-sm);
+  padding: var(--pad-xs);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -345,7 +349,6 @@ a.btn-link.secondary { background: var(--btn-inactive-bg); color: var(--text); }
 .filter-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 .filter-btn.active {
   color: var(--accent);
@@ -396,7 +399,7 @@ details.debug summary::-webkit-details-marker { display: none; }
    The 3px bar overlaps the 1px nav baseline so it reads as a tab indicator. */
 .nav a {
   text-decoration: none;
-  padding: var(--pad-sm) var(--gap-md);
+  padding: 8px 12px;
   background: transparent;
   color: var(--muted);
   border: none;
@@ -439,7 +442,7 @@ details.debug summary::-webkit-details-marker { display: none; }
 }
 .nav a.active .tab-badge,
 .filter-btn.active .tab-badge { background: var(--accent); color: var(--btn-text); }
-.tab-badge.warn { background: #b91c1c; color: #fff; }
+.tab-badge.warn { background: var(--danger); color: var(--btn-text); }
 
 /* Small tab variant. */
 .nav.compact a { padding: var(--pad-xs) var(--gap-sm); font-size: var(--font-sm); }
