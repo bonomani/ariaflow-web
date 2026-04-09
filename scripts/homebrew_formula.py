@@ -35,7 +35,7 @@ def download_sha256(url: str) -> str:
 
 
 def render_formula(*, version: str, url: str, sha256: str) -> str:
-    return f"""class AriaflowWeb < Formula
+    return f"""class AriaflowDashboard < Formula
   desc "Local dashboard frontend for ariaflow"
   homepage "https://github.com/bonomani/ariaflow-dashboard"
   url "{url}"
@@ -43,7 +43,6 @@ def render_formula(*, version: str, url: str, sha256: str) -> str:
   version "{version}"
   license "MIT"
   depends_on "python"
-  depends_on "ariaflow"
   head "https://github.com/bonomani/ariaflow-dashboard.git", branch: "main"
 
   def install
