@@ -1,4 +1,4 @@
-# BGS Entry
+# ariaflow-dashboard BGS Entry
 
 project_name: ariaflow-dashboard
 bgs_slice: BGS-Verified

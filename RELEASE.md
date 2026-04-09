@@ -1,4 +1,4 @@
-# Release
+# ariaflow-dashboard Release
 
 `ariaflow-dashboard` uses a stable tag-push release pattern. Every push to `main`
 triggers a GitHub Actions workflow that auto-releases.
