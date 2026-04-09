@@ -1,9 +1,9 @@
-# ariaflow-web
+# ariaflow-dashboard
 
 Local dashboard frontend for `ariaflow`.
 
 ```bash
-ariaflow-web --host 127.0.0.1 --port 8001
+ariaflow-dashboard --host 127.0.0.1 --port 8001
 ```
 
 Expects an `ariaflow` backend at `http://127.0.0.1:8000` (configurable in UI).
@@ -14,9 +14,9 @@ Expects an `ariaflow` backend at `http://127.0.0.1:8000` (configurable in UI).
 
 ```bash
 brew tap bonomani/ariaflow
-brew install ariaflow-web   # installs ariaflow + aria2 automatically
+brew install ariaflow-dashboard   # installs ariaflow + aria2 automatically
 brew services start ariaflow
-brew services start ariaflow-web
+brew services start ariaflow-dashboard
 ```
 
 ### All platforms (pip / pipx)
@@ -29,15 +29,15 @@ brew services start ariaflow-web
 #    Arch:    sudo pacman -S aria2
 #    Windows: winget install aria2
 
-# 2. Install ariaflow-web (dashboard only)
-pipx install ariaflow-web
+# 2. Install ariaflow-dashboard (dashboard only)
+pipx install ariaflow-dashboard
 
 # Or include the ariaflow backend in one command:
-pipx install "ariaflow-web[local]"
+pipx install "ariaflow-dashboard[local]"
 
 # 3. Start the backend, then the dashboard
 ariaflow &
-ariaflow-web --host 127.0.0.1 --port 8001
+ariaflow-dashboard --host 127.0.0.1 --port 8001
 ```
 
 ### Windows
@@ -48,24 +48,24 @@ winget install aria2
 
 # ariaflow + dashboard via pipx
 pipx install ariaflow
-pipx install ariaflow-web
+pipx install ariaflow-dashboard
 
 # Start both
 Start-Process ariaflow
-ariaflow-web --host 127.0.0.1 --port 8001
+ariaflow-dashboard --host 127.0.0.1 --port 8001
 ```
 
 ### Development (git install)
 
 ```bash
-git clone https://github.com/bonomani/ariaflow-web.git
-cd ariaflow-web
+git clone https://github.com/bonomani/ariaflow-dashboard.git
+cd ariaflow-dashboard
 pip install -e ".[dev,local]"    # editable install + test deps + backend
 pytest                           # run all unit/contract tests
 pytest -m slow                   # run browser tests (needs playwright)
 ```
 
-The app auto-detects a git checkout (`ariaflow_web.__install_mode__ == "git"`)
+The app auto-detects a git checkout (`ariaflow_dashboard.__install_mode__ == "git"`)
 vs a PyPI release (`"release"`). This lets tests and dev tooling know whether
 the full source tree (docs, schemas, paired repo) is available.
 
@@ -93,7 +93,7 @@ Alpine.js single-page app — no build step. See [`ARCHITECTURE.md`](./ARCHITECT
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Design, data flow, preference names |
 | [`ACTIONS.md`](./ACTIONS.md) | All UI actions by tab with endpoints |
 | [`FRONTEND_GAPS.md`](./FRONTEND_GAPS.md) | Remaining gaps (blocked by backend) |
-| `../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md` | Missing backend features (authoritative copy in backend repo) |
+| `../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md` | Missing backend features (authoritative copy in backend repo) |
 | [`RELEASE.md`](./RELEASE.md) | Release workflow |
 
 ## Release

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-downloads-archive.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-downloads-archive.schema.json",
   "title": "GET /api/downloads/archive response (frontend contract)",
   "type": "object",
   "required": ["items"],

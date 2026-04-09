@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-aria2-option-tiers.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-aria2-option-tiers.schema.json",
   "title": "GET /api/aria2/option_tiers response (frontend contract)",
   "type": "object",
   "required": ["managed", "safe", "unsafe_enabled"],

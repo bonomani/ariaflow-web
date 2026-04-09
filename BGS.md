@@ -1,6 +1,6 @@
 # BGS Entry
 
-project_name: ariaflow-web
+project_name: ariaflow-dashboard
 bgs_slice: BGS-Verified
 decision_reason: "Frontend has explicit boundary classification (ACTIONS.md), declaration/observation/result test patterns (EXPECTED_ENDPOINTS, EXPECTED_FIELDS), and oracle-based verification (COVERAGE_MAP, field coverage)"
 applies_to_scope: "frontend API boundary and UI coverage verification"
@@ -11,4 +11,4 @@ read_next:
   - "./ACTIONS.md"
   - "./tests/test_api_params.py"
   - "./tests/test_coverage_check.py"
-  - "../ariaflow/BGS.md"
+  - "../ariaflow-server/BGS.md"

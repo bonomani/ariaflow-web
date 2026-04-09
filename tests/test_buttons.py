@@ -1,4 +1,4 @@
-"""Click-test every button in the ariaflow-web UI."""
+"""Click-test every button in the ariaflow-dashboard UI."""
 from __future__ import annotations
 
 import sys

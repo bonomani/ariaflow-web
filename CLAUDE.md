@@ -1,7 +1,7 @@
-# Directives Claude Code - ariaflow-web (frontend)
+# Directives Claude Code - ariaflow-dashboard (frontend)
 
 ## Project bindings (adjust per repo)
-- **THIS_REPO:** `ariaflow-web` (frontend)
+- **THIS_REPO:** `ariaflow-dashboard` (frontend)
 - **PAIRED_REPO:** `/home/bc/repos/github/bonomani/ariaflow-server` (backend)
 - **PAIRED_GAPS_FILE:** `/home/bc/repos/github/bonomani/ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md`
 - **LOCAL_GAPS_FILE:** `FRONTEND_GAPS.md` (at this repo root)

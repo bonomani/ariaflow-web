@@ -1,6 +1,6 @@
-decision_id: claim-bgs-verified-ariaflow-web-001
+decision_id: claim-bgs-verified-ariaflow-dashboard-001
 bgs_slice: BGS-Verified
-declared_scope: "ariaflow-web frontend's API boundary against the ariaflow backend: every endpoint called, every response field consumed, every preference exposed as a UI control, and every item action wired to the backend"
+declared_scope: "ariaflow-dashboard frontend's API boundary against the ariaflow backend: every endpoint called, every response field consumed, every preference exposed as a UI control, and every item action wired to the backend"
 decision_reason: "DECISION-TREE §2.5 (download manager frontend) recommends BISS + UCC + TIC. The frontend triggers governed downloads on the backend, so BISS classification is required; request/result discipline is enforced via EXPECTED_ENDPOINTS / EXPECTED_FIELDS / EXPECTED_PREFERENCES (UCC); and oracle-based tests in tests/test_coverage_check.py + tests/test_api_params.py provide the TIC verification layer. BGS-Verified is the smallest sufficient slice — no preflight gates or state model are needed."
 bgs_version_ref: bgs@58c1467
 members_used:
@@ -20,7 +20,7 @@ external_controls:
 evidence_refs:
   - ./ACTIONS.md
   - ./FRONTEND_GAPS.md
-  - ../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md
+  - ../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md
   - ./ARCHITECTURE.md
   - ./docs/ucc-declarations.yaml
   - ./docs/schemas/api-status.schema.json
@@ -55,12 +55,12 @@ limitations:
   - "BISS classification is documented in ACTIONS.md but not generated from a machine-checkable source"
   - "BGS validator runs locally and via pre-commit (BGS_PRECOMMIT=1) but not in GitHub Actions: BGSPrivate is a private sibling repo and CI cannot reach it without cross-repo auth setup"
 known_exclusions:
-  - "Backend (ariaflow) behavior — covered by its own BGS claim at ../ariaflow/BGS.md"
+  - "Backend (ariaflow) behavior — covered by its own BGS claim at ../ariaflow-server/BGS.md"
   - "Browser/runtime security (CSP, SRI, CORS enforcement) — out of scope for this static dashboard"
   - "Accessibility (a11y) verification — not part of the API boundary scope claimed here"
 
 # External controls rationale:
-# All external controls are not_applicable because ariaflow-web is a static
+# All external controls are not_applicable because ariaflow-dashboard is a static
 # frontend dashboard with no authentication, no secrets, no server-side state,
 # and no user data processing. The backend (ariaflow) owns all security boundaries.
 
@@ -68,7 +68,7 @@ known_exclusions:
 #
 # BISS — Boundary interaction classification
 # - ACTIONS.md: complete interaction inventory (34 endpoints, all handlers)
-# - FRONTEND_GAPS.md (local) + ../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md (authoritative): boundary gap classification
+# - FRONTEND_GAPS.md (local) + ../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md (authoritative): boundary gap classification
 # - ARCHITECTURE.md: page-to-endpoint mapping
 #
 # UCC — Declaration/observation/result patterns

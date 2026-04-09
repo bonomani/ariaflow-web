@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/ucc-declarations.schema.json",
-  "title": "UCC declarations (ariaflow-web)",
-  "description": "Shape contract for docs/ucc-declarations.yaml — the canonical UCC declaration artifact for ariaflow-web's BGS-Verified claim. Validated by tests/test_ucc_declarations_schema.py.",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/ucc-declarations.schema.json",
+  "title": "UCC declarations (ariaflow-dashboard)",
+  "description": "Shape contract for docs/ucc-declarations.yaml — the canonical UCC declaration artifact for ariaflow-dashboard's BGS-Verified claim. Validated by tests/test_ucc_declarations_schema.py.",
   "type": "object",
   "required": [
     "expected_preferences",

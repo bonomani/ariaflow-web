@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright, Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ariaflow_web.webapp import serve  # noqa: E402
+from ariaflow_dashboard.webapp import serve  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Default mock data
@@ -366,12 +366,12 @@ def start_mock_backend(**overrides: object) -> tuple:
 
 
 def start_server(port: int | None = None, **mock_kwargs: object) -> tuple:
-    """Start ariaflow-web (static files) + mock backend. Returns (web_url, backend_url, web_server, backend_server, patches)."""
+    """Start ariaflow-dashboard (static files) + mock backend. Returns (web_url, backend_url, web_server, backend_server, patches)."""
     if port is None:
         port = _allocate_port()
     backend_url, backend_server, handler_cls = start_mock_backend(**mock_kwargs)
     from unittest.mock import patch
-    p = patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
+    p = patch("ariaflow_dashboard.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
     p.start()
     web_server = serve(host="127.0.0.1", port=port, backend_url=backend_url)
     thread = threading.Thread(target=web_server.serve_forever, daemon=True)

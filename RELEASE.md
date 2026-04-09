@@ -1,6 +1,6 @@
 # Release
 
-`ariaflow-web` uses a stable tag-push release pattern. Every push to `main`
+`ariaflow-dashboard` uses a stable tag-push release pattern. Every push to `main`
 triggers a GitHub Actions workflow that auto-releases.
 
 ## Version Sources
@@ -8,7 +8,7 @@ triggers a GitHub Actions workflow that auto-releases.
 Keep these two files aligned:
 
 - `pyproject.toml`
-- `src/ariaflow_web/__init__.py`
+- `src/ariaflow_dashboard/__init__.py`
 
 The existing repo tags use the stable pattern `vX.Y.Z`, for example `v0.1.71`.
 Do not publish alpha tags or prereleases from this repo.
@@ -21,7 +21,7 @@ Push to `main`. The workflow (`.github/workflows/release.yml`) will:
 2. Run `pip install -e .` + test suite (`tests.test_web tests.test_cli`)
 3. Build the source distribution
 4. Commit the version bump and push the tag
-5. Update `bonomani/homebrew-ariaflow/Formula/ariaflow-web.rb`
+5. Update `bonomani/homebrew-ariaflow/Formula/ariaflow-dashboard.rb`
 6. Verify the published tap formula matches
 7. Create a GitHub release with the sdist artifact
 
@@ -70,8 +70,8 @@ After release:
 
 ```bash
 brew tap bonomani/ariaflow
-brew upgrade ariaflow-web
-ariaflow-web --version
+brew upgrade ariaflow-dashboard
+ariaflow-dashboard --version
 ```
 
 ## GitHub Secret

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-status.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-status.schema.json",
   "title": "GET /api/status response (frontend contract)",
   "description": "Frontend-owned shape contract for the /api/status endpoint exposed by the ariaflow backend. This is what the dashboard depends on; the backend's openapi.yaml is the source of truth, this schema captures the subset the frontend actually consumes. Used as a TIC oracle by tests/test_api_response_shapes.py.",
   "type": "object",

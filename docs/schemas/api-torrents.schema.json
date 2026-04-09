@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-torrents.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-torrents.schema.json",
   "title": "GET /api/torrents response (frontend contract)",
   "type": "object",
   "required": ["torrents"],

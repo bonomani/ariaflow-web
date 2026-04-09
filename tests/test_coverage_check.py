@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static"
+STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "ariaflow_dashboard" / "static"
 TEST_DIR = Path(__file__).resolve().parent
 UCC_DECLARATIONS = Path(__file__).resolve().parents[1] / "docs" / "ucc-declarations.yaml"
 

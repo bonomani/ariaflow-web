@@ -1,4 +1,4 @@
-# ariaflow-web — Actionable Elements Reference
+# ariaflow-dashboard — Actionable Elements Reference
 
 Complete inventory of all triggers in the UI.
 

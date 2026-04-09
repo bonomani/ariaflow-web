@@ -20,7 +20,7 @@ def version_from_tag(tag: str) -> str:
 
 
 def tarball_url(tag: str) -> str:
-    return f"https://github.com/bonomani/ariaflow-web/archive/refs/tags/{tag}.tar.gz"
+    return f"https://github.com/bonomani/ariaflow-dashboard/archive/refs/tags/{tag}.tar.gz"
 
 
 def download_sha256(url: str) -> str:
@@ -37,36 +37,36 @@ def download_sha256(url: str) -> str:
 def render_formula(*, version: str, url: str, sha256: str) -> str:
     return f"""class AriaflowWeb < Formula
   desc "Local dashboard frontend for ariaflow"
-  homepage "https://github.com/bonomani/ariaflow-web"
+  homepage "https://github.com/bonomani/ariaflow-dashboard"
   url "{url}"
   sha256 "{sha256}"
   version "{version}"
   license "MIT"
   depends_on "python"
   depends_on "ariaflow"
-  head "https://github.com/bonomani/ariaflow-web.git", branch: "main"
+  head "https://github.com/bonomani/ariaflow-dashboard.git", branch: "main"
 
   def install
     libexec.install "src"
 
-    (bin/"ariaflow-web").write <<~EOS
+    (bin/"ariaflow-dashboard").write <<~EOS
       #!/bin/bash
-      exec env PYTHONPATH="#{{libexec}}/src:${{PYTHONPATH}}" python3 -m ariaflow_web.cli "$@"
+      exec env PYTHONPATH="#{{libexec}}/src:${{PYTHONPATH}}" python3 -m ariaflow_dashboard.cli "$@"
     EOS
-    chmod 0755, bin/"ariaflow-web"
+    chmod 0755, bin/"ariaflow-dashboard"
   end
 
   service do
     environment_variables ARIAFLOW_API_URL: "http://127.0.0.1:8000"
-    run [opt_bin/"ariaflow-web", "--host", "127.0.0.1", "--port", "8001"]
+    run [opt_bin/"ariaflow-dashboard", "--host", "127.0.0.1", "--port", "8001"]
     keep_alive true
     working_dir var
-    log_path var/"log/ariaflow-web.log"
-    error_log_path var/"log/ariaflow-web.err.log"
+    log_path var/"log/ariaflow-dashboard.log"
+    error_log_path var/"log/ariaflow-dashboard.err.log"
   end
 
   test do
-    system bin/"ariaflow-web", "--version"
+    system bin/"ariaflow-dashboard", "--version"
   end
 end
 """
@@ -78,7 +78,7 @@ def write_formula(path: Path, content: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Render the Homebrew formula for ariaflow-web.")
+    parser = argparse.ArgumentParser(description="Render the Homebrew formula for ariaflow-dashboard.")
     parser.add_argument("--tag", required=True, help="Stable release tag in the form vX.Y.Z.")
     parser.add_argument("--output", type=Path, help="Path to write the rendered formula.")
     parser.add_argument("--sha256", help="Optional precomputed checksum.")

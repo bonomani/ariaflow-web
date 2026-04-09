@@ -1,4 +1,4 @@
-"""Smoke tests for the ariaflow-web static file server."""
+"""Smoke tests for the ariaflow-dashboard static file server."""
 from __future__ import annotations
 
 import threading
@@ -7,12 +7,12 @@ import unittest
 import urllib.request
 
 from unittest.mock import patch
-from ariaflow_web.webapp import serve
+from ariaflow_dashboard.webapp import serve
 
 
 class WebSmokeTests(unittest.TestCase):
     def test_local_web_server_smoke(self) -> None:
-        with patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}):
+        with patch("ariaflow_dashboard.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}):
             server = serve(host="127.0.0.1", port=8765)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
@@ -45,7 +45,7 @@ class WebSmokeTests(unittest.TestCase):
                 server.server_close()
 
     def test_backend_url_injection(self) -> None:
-        with patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}):
+        with patch("ariaflow_dashboard.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"}):
             server = serve(host="127.0.0.1", port=8766, backend_url="http://custom:9999")
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()

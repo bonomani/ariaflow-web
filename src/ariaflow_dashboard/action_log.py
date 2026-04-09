@@ -1,4 +1,4 @@
-"""Action log for ariaflow-web HTTP server.
+"""Action log for ariaflow-dashboard HTTP server.
 
 Same format as the backend (actions.jsonl) — append-only JSONL with
 record_action(action, target, outcome, ...) interface.
@@ -19,7 +19,7 @@ _lock = threading.Lock()
 
 def _log_path() -> Path:
     """Action log file path — next to the process working directory."""
-    return Path(os.environ.get("ARIAFLOW_WEB_LOG", "ariaflow-web-actions.jsonl"))
+    return Path(os.environ.get("ARIAFLOW_DASHBOARD_LOG", "ariaflow-dashboard-actions.jsonl"))
 
 
 def _rotate() -> None:
@@ -53,7 +53,7 @@ def record_action(
         "observation": observation,
         "reason": reason,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-        "source": "ariaflow-web",
+        "source": "ariaflow-dashboard",
     }
     if detail is not None:
         entry["detail"] = detail

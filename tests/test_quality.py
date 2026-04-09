@@ -34,14 +34,14 @@ class TestPythonCompile:
 
     def test_all_py_files_compile(self) -> None:
         result = subprocess.run(
-            [sys.executable, "-W", "error", "-m", "py_compile", str(SRC / "ariaflow_web" / "webapp.py")],
+            [sys.executable, "-W", "error", "-m", "py_compile", str(SRC / "ariaflow_dashboard" / "webapp.py")],
             capture_output=True, text=True, timeout=10,
         )
         assert result.returncode == 0, f"Compile failed:\n{result.stderr}"
 
     @pytest.mark.parametrize("module", ["cli", "bonjour", "__init__"])
     def test_module_compiles(self, module: str) -> None:
-        path = SRC / "ariaflow_web" / f"{module}.py"
+        path = SRC / "ariaflow_dashboard" / f"{module}.py"
         result = subprocess.run(
             [sys.executable, "-W", "error", "-m", "py_compile", str(path)],
             capture_output=True, text=True, timeout=10,

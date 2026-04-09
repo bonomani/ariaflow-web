@@ -39,14 +39,14 @@ def _expand_includes(text: str) -> str:
 def _read_index_html(backend_url: str | None = None) -> str:
     text = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
     text = _expand_includes(text)
-    text = text.replace("__ARIAFLOW_WEB_VERSION__", f"v{__version__}")
-    text = text.replace("__ARIAFLOW_WEB_PID__", str(os.getpid()))
+    text = text.replace("__ARIAFLOW_DASHBOARD_VERSION__", f"v{__version__}")
+    text = text.replace("__ARIAFLOW_DASHBOARD_PID__", str(os.getpid()))
     identity = local_identity()
     globals_js = (
         f"<script>"
-        f"window.__ARIAFLOW_WEB_HOSTNAME__={json.dumps(identity['hostname'])};"
-        f"window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__={json.dumps(identity['main_ip'])};"
-        f"window.__ARIAFLOW_WEB_LOCAL_IPS__={json.dumps(identity['ips'] or ['127.0.0.1'])};"
+        f"window.__ARIAFLOW_DASHBOARD_HOSTNAME__={json.dumps(identity['hostname'])};"
+        f"window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__={json.dumps(identity['main_ip'])};"
+        f"window.__ARIAFLOW_DASHBOARD_LOCAL_IPS__={json.dumps(identity['ips'] or ['127.0.0.1'])};"
     )
     url = backend_url or DEFAULT_BACKEND_URL
     if url != "http://127.0.0.1:8000":
@@ -116,7 +116,7 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
         if path == "/api/web/log":
             qs = parse_qs(parsed.query)
             limit = min(int(qs.get("limit", ["200"])[0]), 500)
-            self._send_json({"items": load_action_log(limit), "source": "ariaflow-web"})
+            self._send_json({"items": load_action_log(limit), "source": "ariaflow-dashboard"})
             return
         self._send_json({"error": "not_found"}, status=404)
 

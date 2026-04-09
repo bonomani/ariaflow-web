@@ -15,9 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from conftest import start_server, stop_server  # noqa: E402
 
-WEBAPP_PY = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "webapp.py"
-APP_JS = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static" / "app.js"
-INDEX_HTML = Path(__file__).resolve().parents[1] / "src" / "ariaflow_web" / "static" / "index.html"
+WEBAPP_PY = Path(__file__).resolve().parents[1] / "src" / "ariaflow_dashboard" / "webapp.py"
+APP_JS = Path(__file__).resolve().parents[1] / "src" / "ariaflow_dashboard" / "static" / "app.js"
+INDEX_HTML = Path(__file__).resolve().parents[1] / "src" / "ariaflow_dashboard" / "static" / "index.html"
 _FRAGMENTS_DIR = INDEX_HTML.parent / "_fragments"
 
 
@@ -369,7 +369,7 @@ class TestApiParamCoverage:
 
         backend_routes = self._extract_backend_routes()
 
-        # Frontend-only routes (not in backend, served by ariaflow-web itself)
+        # Frontend-only routes (not in backend, served by ariaflow-dashboard itself)
         FRONTEND_ONLY = {"/api/discovery"}
 
         # Endpoints accessed via window.open (not apiPath/_fetch)

@@ -1,8 +1,8 @@
-# ariaflow-web Architecture
+# ariaflow-dashboard Architecture
 
 ## 1. Overview
 
-`ariaflow-web` is the browser UI for `ariaflow`.
+`ariaflow-dashboard` is the browser UI for `ariaflow`.
 It reads the backend API, renders engine state, and sends user actions back.
 It does not own engine truth.
 

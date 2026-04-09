@@ -15,7 +15,7 @@ from playwright.sync_api import Page
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from ariaflow_web.webapp import serve  # noqa: E402
+from ariaflow_dashboard.webapp import serve  # noqa: E402
 from conftest import _allocate_port, MockBackendHandler  # noqa: E402
 
 pytestmark = pytest.mark.slow
@@ -243,7 +243,7 @@ def web_server():
     backend_url = f"http://127.0.0.1:{backend_port}"
 
     # Start web server pointing to fake backend
-    p = patch("ariaflow_web.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
+    p = patch("ariaflow_dashboard.webapp.discover_http_services", return_value={"available": False, "items": [], "reason": "none"})
     p.start()
     web_port = _allocate_port()
     web_srv = serve(host="127.0.0.1", port=web_port, backend_url=backend_url)

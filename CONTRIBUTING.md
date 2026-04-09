@@ -1,10 +1,10 @@
-# Contributing to ariaflow-web
+# Contributing to ariaflow-dashboard
 
 ## Setup
 
 ```bash
-git clone https://github.com/bonomani/ariaflow-web.git
-cd ariaflow-web
+git clone https://github.com/bonomani/ariaflow-dashboard.git
+cd ariaflow-dashboard
 pip install -e .
 ```
 
@@ -30,7 +30,7 @@ ruff check src/ tests/
 ## Project Structure
 
 ```
-src/ariaflow_web/
+src/ariaflow_dashboard/
   __init__.py     — version
   cli.py          — CLI entry point (argparse, serve)
   webapp.py       — HTTP server, static file serving

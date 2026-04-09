@@ -2,7 +2,7 @@
 
 JSON Schema documents in this directory describe the **frontend's expectation**
 of backend API response shapes. They are the canonical record of what
-ariaflow-web depends on at the API boundary.
+ariaflow-dashboard depends on at the API boundary.
 
 ## Role in BGS-Verified
 

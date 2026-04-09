@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-bandwidth-probe.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-bandwidth-probe.schema.json",
   "title": "POST /api/bandwidth/probe response (frontend contract)",
   "type": "object",
   "properties": {

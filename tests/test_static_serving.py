@@ -39,11 +39,11 @@ class TestStaticFiles:
 
     def test_html_has_version_substituted(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
-        assert "__ARIAFLOW_WEB_VERSION__" not in body and "v0." in body
+        assert "__ARIAFLOW_DASHBOARD_VERSION__" not in body and "v0." in body
 
     def test_html_has_pid_substituted(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
-        assert "__ARIAFLOW_WEB_PID__" not in body
+        assert "__ARIAFLOW_DASHBOARD_PID__" not in body
 
 
 class TestPathTraversal:
@@ -72,7 +72,7 @@ class TestHTMLValidation:
     def test_html_is_valid_structure(self, web_server: str) -> None:
         soup = BeautifulSoup(urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode(), "html.parser")
         assert soup.find("html") and soup.find("head") and soup.find("body")
-        assert soup.find("title").string == "ariaflow-web"
+        assert soup.find("title").string == "ariaflow-dashboard"
 
     def test_all_ids_are_unique(self, web_server: str) -> None:
         soup = BeautifulSoup(urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode(), "html.parser")

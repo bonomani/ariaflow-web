@@ -24,8 +24,8 @@ document.addEventListener('alpine:init', () => {
     lastRev: null,
     page: 'dashboard',
     DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
-    localIps: window.__ARIAFLOW_WEB_LOCAL_IPS__ || ['127.0.0.1'],
-    localMainIp: window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__ || '127.0.0.1',
+    localIps: window.__ARIAFLOW_DASHBOARD_LOCAL_IPS__ || ['127.0.0.1'],
+    localMainIp: window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__ || '127.0.0.1',
     // Bonjour health: pending (initial) → ok / broken / unavailable after discovery
     bonjourState: 'pending',
     backendInput: '',
@@ -171,7 +171,7 @@ document.addEventListener('alpine:init', () => {
     get sumQueued() { return this.lastStatus?.summary?.queued ?? 0; },
     get sumDone() { return this.filterCounts.done ?? 0; },
     get sumError() { return this.filterCounts.error ?? 0; },
-    get canArchive() { return this.sumDone > 0 || this.sumError > 0; },
+    get canArchive() { return (this.lastStatus?.summary?.archivable_count ?? (this.sumDone + this.sumError)) > 0; },
     get archiveBtnDisabled() { return !this.backendReachable || !this.canArchive; },
 
     // bandwidth panel getters
@@ -565,7 +565,7 @@ document.addEventListener('alpine:init', () => {
       // against our injected local hostname — exact, case-insensitive match.
       // Fallbacks (for old backends without the TXT field): .local hostname
       // parsing, IP match, loopback detection.
-      const localHostLower = String(window.__ARIAFLOW_WEB_HOSTNAME__ || '').toLowerCase();
+      const localHostLower = String(window.__ARIAFLOW_DASHBOARD_HOSTNAME__ || '').toLowerCase();
       const selfLocal = localHostLower ? `${localHostLower}.local` : '';
       const localIps = this.localIps || [];
       const isSelf = (item) => {
@@ -615,8 +615,8 @@ document.addEventListener('alpine:init', () => {
       try { addr = new URL(url).host; } catch { /* keep raw */ }
       // Default backend: substitute real LAN IP (Google trick) for loopback
       if (url === this.DEFAULT_BACKEND_URL) {
-        const host = window.__ARIAFLOW_WEB_HOSTNAME__ || 'localhost';
-        const mainIp = window.__ARIAFLOW_WEB_LOCAL_MAIN_IP__ || '127.0.0.1';
+        const host = window.__ARIAFLOW_DASHBOARD_HOSTNAME__ || 'localhost';
+        const mainIp = window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__ || '127.0.0.1';
         let port = '8000';
         try { port = new URL(url).port || '8000'; } catch { /* keep default */ }
         return `${host} (${mainIp}:${port})`;

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-lifecycle.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-lifecycle.schema.json",
   "title": "GET /api/lifecycle response (frontend contract)",
   "description": "Frontend-owned shape contract for /api/lifecycle. The response is a flat object: per-target entries keyed by target name (each with meta + result), plus session metadata at the top level.",
   "type": "object",

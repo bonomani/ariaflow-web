@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bonomani/ariaflow-web/docs/schemas/api-declaration.schema.json",
+  "$id": "https://github.com/bonomani/ariaflow-dashboard/docs/schemas/api-declaration.schema.json",
   "title": "GET /api/declaration response (frontend contract)",
   "description": "Frontend-owned shape contract for /api/declaration. Captures the subset the dashboard consumes from the backend's UIC/UCC/policy declaration.",
   "type": "object",

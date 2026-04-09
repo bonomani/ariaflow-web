@@ -1,211 +1,34 @@
 # Plan
 
-## Contract-governance migration — DONE
+## Done (history in git)
 
-BGS decision in `docs/bgs-decision.yaml`. UCC declarations in
-`docs/ucc-declarations.yaml`. Frontend JSON schemas in `docs/schemas/`.
-All 149 tests pass (13 test files), including:
-`test_api_response_shapes`, `test_openapi_alignment`,
-`test_ucc_declarations_schema`, `test_bgs_compliance`,
-`test_bgs_sha_drift` (warning-only, accepted per FE-19),
-`test_api_params`, `test_coverage_check`.
+- Contract-governance migration (BGS, UCC, schemas, alignment tests).
+- Header / tabs separation refactor (fragment includes, LOADERS manifest, CSS tokens).
 
-## Header / tabs separation refactor — DONE
+## Cross-platform installation — DONE
 
-Completed: index.html split into `_fragments/header.html` + 7 `tab_*.html`
-files. `webapp.py` expands `<!--INCLUDE:-->` markers at startup. Timer model
-replaced with `LOADERS` manifest (per-tab `{fn, k}` entries, cadence = `k * R`).
-`_refreshAll` / `_refreshTabOnly` handle init / navigateTo / visibility resume /
-backend switch. Material-style nav tabs with per-tab badges. CSS unified to
-xs/sm/md/lg/xl token scale + 7 design axes (emphasis, status, shape, state,
-elevation, density, breakpoint).
+PyPI publishing, optional `[local]` dependency, and per-platform aria2 docs
+are all in place. Remaining future items:
 
-## Cross-platform installation
+- **(Future) winget package for Windows.** Low priority — `pipx install` works today.
+- **(Future) Verify `brew install ariaflow-dashboard` on Linux.** Homebrew/Linuxbrew may work out of the box.
 
-### Target state
+## Open gaps
 
-| Platform | Install ariaflow-web | Install ariaflow (backend) | aria2 dependency | Effort |
-|---|---|---|---|---|
-| All | `pipx install ariaflow-web` (PyPI) | `pipx install ariaflow` (PyPI) | User's job | Low |
-| macOS | `brew install ariaflow-web` | `brew install ariaflow` | Handled by brew | Done |
-| Windows | `pipx install ariaflow-web` now, winget later | `winget install aria2` + pipx | winget install aria2 | Low now, moderate later |
-| Linux | `pipx install ariaflow-web` | `pipx install ariaflow` | `apt install aria2` / `dnf install aria2` | Low |
+| Gap | Status | Notes |
+|---|---|---|
+| FE-18 | Deferred | SSE smoke test — add when/if payload drift causes a regression |
 
-### Current state
+Resolved gaps (BG-12–14, FE-15–20) — see git history and `FRONTEND_GAPS.md`.
 
-- **ariaflow (backend)**: ✅ already on PyPI, has `ariaflow` console script,
-  brew formula, and twine upload in CI.
-- **ariaflow-web (frontend)**: ⚠️ has `ariaflow-web` console script and brew
-  formula, but **no PyPI publishing** in the release workflow.
+## Rename: ariaflow-web → ariaflow-dashboard — DONE
 
-### Steps
+All code, docs, URLs, schemas, and scripts renamed. Remaining external steps:
 
-1. **Add PyPI publishing to `ariaflow-web` release workflow.**
-   The backend's `.github/workflows/release.yml` already has a working
-   `twine upload` step with `PYPI_TOKEN`. Mirror that pattern:
-   - `python -m build --sdist`
-   - `python -m twine upload dist/*`
-   - Requires `PYPI_TOKEN` secret configured on the GitHub repo.
-
-2. **Add `ariaflow` as a Python dependency in `pyproject.toml`.**
-   The Homebrew formula already declares `depends_on "ariaflow"` but
-   `pyproject.toml` has an empty `dependencies = []`. Adding
-   `dependencies = ["ariaflow"]` means `pipx install ariaflow-web`
-   automatically pulls the backend too — matching the brew behavior.
-   If the backend is optional (user might point at a remote backend),
-   make it an extra: `[project.optional-dependencies] local = ["ariaflow"]`.
-
-3. **Verify `pipx install ariaflow-web` works end-to-end.**
-   After step 1 ships, test on a clean venv:
-   - `pipx install ariaflow-web`
-   - `ariaflow-web` starts the dashboard
-   - Dashboard connects to a local or remote ariaflow backend
-   - All tabs render, timers run, SSE connects.
-
-4. **Document platform-specific aria2 installation.**
-   aria2 is a system dependency, not a Python package. The user must install
-   it separately. Add a section to README.md:
-   - macOS: `brew install aria2` (or handled by `brew install ariaflow`)
-   - Linux: `apt install aria2` / `dnf install aria2` / `pacman -S aria2`
-   - Windows: download from https://aria2.github.io or `winget install aria2`
-
-5. **(Future) winget package for Windows.**
-   Create a winget manifest for ariaflow-web. This requires a `.exe` or
-   `.msi` installer, which means either:
-   - PyInstaller / Nuitka single-file build in CI, or
-   - An MSI wrapper around the Python package.
-   Low priority — `pipx install` works on Windows today.
-
-6. **(Future) Verify `brew install ariaflow-web` on Linux.**
-   Homebrew/Linuxbrew works on Linux. The existing formula may work
-   out of the box. Test and document if it does.
-
-## Gap resolution plan
-
-### BG-12: Remove `/api/sessions/new` — backend action needed
-- **Owner:** backend agent (separate session in `../ariaflow`).
-- **Step 1:** Commit the BG-12 entry already written in
-  `../ariaflow/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md`.
-- **Step 2:** Backend removes route, handler, OpenAPI entry, discovery
-  entry, and tests for `/api/sessions/new`.
-- **Step 3:** Frontend removes `DELIBERATELY_UNUSED` workaround in
-  `tests/test_api_params.py`.
-- **Priority:** low. No functional impact.
-
-### BG-13 (to file): WSL download-dir detection
-- **Owner:** backend.
-- **Problem:** On WSL, aria2 downloads to the Linux filesystem by default.
-  Files are slow to access from Windows Explorer (`\\wsl$\...`).
-- **Desired:** Backend detects WSL (`/proc/version` contains "microsoft")
-  and defaults download dir to `/mnt/c/Users/$USER/Downloads` so files
-  land on the Windows filesystem and are accessible from both sides.
-- **Frontend impact:** None — download dir is a backend config. Dashboard
-  could show a hint ("WSL detected — downloads go to Windows filesystem")
-  but that's cosmetic.
-- **Blocks local gap:** (none).
-- **Priority:** medium — quality-of-life for WSL users.
-
-### BG-14 (to file): Expose archivable count or criteria
-- **Owner:** backend.
-- **Problem:** Frontend enables the Archive button when `sumDone > 0 ||
-  sumError > 0`, but backend `cleanup()` applies extra rules
-  (`max_done_age_days: 7`, `max_done_count: 100`). User clicks Archive,
-  gets "0 archived" — confusing.
-- **Desired:** Either:
-  (a) Backend exposes an `archivable_count` field on `/api/status` so the
-  frontend can disable the button when nothing is actually archivable, or
-  (b) Backend documents the cleanup criteria in the OpenAPI spec so the
-  frontend can replicate the logic locally.
-- **Blocks local gap:** FE-20.
-- **Priority:** low.
-
-### FE-20 (to file): Archive button enabled with nothing archivable
-- **Owner:** frontend.
-- **Problem:** `canArchive` (app.js) only checks `sumDone > 0 || sumError > 0`
-  — doesn't know about the 7-day age threshold the backend enforces.
-- **Blocked by:** BG-14 (need the backend to expose archivable count or
-  document criteria).
-- **Workaround available:** After a cleanup returns "0 archived", disable
-  the button until the next status refresh changes the counts. Not ideal
-  but prevents repeated clicks.
-- **Priority:** low.
-
-### FE-18: SSE smoke test (deferred)
-- **Owner:** frontend.
-- **Resolution path:** Add an SSE integration test when/if SSE payload
-  drift causes a regression. No regressions reported yet.
-- **Priority:** low.
-
-### Action summary
-
-| Gap | Status |
-|---|---|
-| BG-12 | Resolved — backend removed endpoint |
-| BG-13 | Filed — awaiting backend (WSL detection) |
-| BG-14 | Filed — awaiting backend (archivable count) |
-| FE-17 | Closed — won't-fix |
-| FE-18 | Deferred |
-| FE-19 | Closed — accepted |
-| FE-20 | Filed — blocked by BG-14 |
-
-## Rename: ariaflow-web → ariaflow-dashboard
-
-Full rebrand of package, module, CLI, UI, and all references.
-
-### Package & build
-- `pyproject.toml` — name, entry point, package-data key
-- Rename directory `src/ariaflow_web/` → `src/ariaflow_dashboard/`
-
-### CLI
-- `cli.py` — `prog=` and version string
-
-### UI
-- `static/index.html` — `<title>`
-- `static/_fragments/header.html` — `<h1>`
-
-### Source code
-- `action_log.py` — env var `ARIAFLOW_WEB_LOG` → `ARIAFLOW_DASHBOARD_LOG`,
-  default filename, `"source"` field
-- `webapp.py` — `"source"` field
-
-### JSON schemas (24 files)
-- `docs/schemas/*.schema.json` — all `$id` URLs: `bonomani/ariaflow-web` →
-  `bonomani/ariaflow-dashboard`
-- `docs/schemas/ucc-declarations.schema.json` — title and description
-
-### Documentation
-- `README.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, `ACTIONS.md`,
-  `CLAUDE.md`, `BGS.md`, `RELEASE.md`, `docs/PLAN.md`,
-  `docs/bgs-decision.yaml`, `docs/ucc-declarations.yaml`
-
-### GitHub workflows
-- `.github/workflows/release.yml` — commit messages, formula paths,
-  artifact names
-
-### Scripts
-- `scripts/homebrew_formula.py` — URL and name references
-- `scripts/publish.py` — `REPO` constant and path references
-- `scripts/gen_spec.py` — source paths and title
-
-### Tests (all imports and path references)
-- `test_cli.py`, `test_web.py`, `test_buttons.py`, `conftest.py`,
-  `test_static_serving.py`, `test_download_lifecycle.py`,
-  `test_api_params.py`, `test_coverage_check.py`, `test_quality.py`,
-  `test_homebrew_formula.py`
-
-### Homebrew tap (bonomani/homebrew-ariaflow)
-- `Formula/ariaflow-web.rb` → `Formula/ariaflow-dashboard.rb`
-- Update all references in formula and workflow
-
-### Notes
-- Module rename `ariaflow_web` → `ariaflow_dashboard` is the most invasive
-  change — every import in every file.
-- Env var `ARIAFLOW_WEB_LOG` → `ARIAFLOW_DASHBOARD_LOG` may break existing
-  deployments — document the migration.
-- Coordinate with the Homebrew tap for the formula rename.
-- PyPI: a new package name means a fresh PyPI project (`ariaflow-dashboard`).
-  The old `ariaflow-web` package can be yanked or left with a final version
-  that depends on `ariaflow-dashboard` as a redirect.
+- `gh repo rename ariaflow-dashboard -R bonomani/ariaflow-web`
+- `git remote set-url origin https://github.com/bonomani/ariaflow-dashboard.git`
+- Homebrew tap: `Formula/ariaflow-web.rb` → `Formula/ariaflow-dashboard.rb`
+- PyPI: register `ariaflow-dashboard`; yank or redirect old `ariaflow-web`
 
 ## Deferred
 
