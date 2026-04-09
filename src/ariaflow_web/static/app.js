@@ -1174,7 +1174,7 @@ document.addEventListener('alpine:init', () => {
           ? 'Downloads paused'
           : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to pause' : 'Pause failed'));
         this.resultJson = JSON.stringify(data, null, 2);
-        if (data.paused && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
+        if (this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
       } catch (e) {
         this.resultText = `Pause failed: ${e.message}`;
       }
@@ -1187,7 +1187,7 @@ document.addEventListener('alpine:init', () => {
           ? 'Downloads resumed'
           : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to resume' : 'Resume failed'));
         this.resultJson = JSON.stringify(data, null, 2);
-        if (data.resumed && this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
+        if (this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
       } catch (e) {
         this.resultText = `Resume failed: ${e.message}`;
       }
