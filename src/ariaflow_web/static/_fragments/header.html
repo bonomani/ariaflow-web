@@ -3,14 +3,23 @@
     <div class="nav">
       <a href="/" :class="{ active: page === 'dashboard' }" @click.prevent="navigateTo('dashboard')">
         <span>Dashboard</span>
+        <span x-show="sumQueued" class="tab-badge" x-text="sumQueued"></span>
         <span x-show="sumError" class="tab-badge warn" x-text="sumError"></span>
       </a>
       <a href="/bandwidth" :class="{ active: page === 'bandwidth' }" @click.prevent="navigateTo('bandwidth')">Bandwidth</a>
-      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">Service Status</a>
+      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">
+        <span>Service Status</span>
+        <template x-if="lifecycleRows.filter(r => r.record && r.record.result && r.record.result.reason && r.record.result.reason !== 'match').length">
+          <span class="tab-badge warn" x-text="lifecycleRows.filter(r => r.record && r.record.result && r.record.result.reason && r.record.result.reason !== 'match').length"></span>
+        </template>
+      </a>
       <a href="/options" :class="{ active: page === 'options' }" @click.prevent="navigateTo('options')">Options</a>
       <a href="/log" :class="{ active: page === 'log' }" @click.prevent="navigateTo('log')">Log</a>
       <a href="/dev" :class="{ active: page === 'dev' }" @click.prevent="navigateTo('dev')">Developer</a>
-      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">Archive</a>
+      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">
+        <span>Archive</span>
+        <span x-show="archiveItems.length" class="tab-badge" x-text="archiveItems.length"></span>
+      </a>
       <div class="spacer"></div>
       <label class="refresh-control" for="refresh-interval">
         Refresh
