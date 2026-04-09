@@ -369,12 +369,10 @@ details.debug summary::-webkit-details-marker { display: none; }
 .nav a {
   text-decoration: none;
   padding: var(--pad-btn);
-  border-radius: var(--radius-pill);
-  font-weight: 700;
+  border-radius: 6px;
   background: var(--btn-inactive-bg);
   color: var(--text);
   border: var(--border-none);
-  border-color: var(--line);
   cursor: pointer;
   font-weight: 400;
 }
@@ -382,7 +380,6 @@ details.debug summary::-webkit-details-marker { display: none; }
 .nav a.active {
   background: var(--btn-bg);
   color: var(--btn-text);
-  border-color: transparent;
   font-weight: 700;
   cursor: default;
 }
