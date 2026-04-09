@@ -1,8 +1,8 @@
       <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel">
           <div class="gap-sm mb-md">
-            <button :class="{ secondary: schedulerBtnDisabled }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled">Start</button>
-            <button :class="{ secondary: archiveBtnDisabled }" @click="cleanup()" :disabled="archiveBtnDisabled">Archive</button>
+            <button :class="{ secondary: schedulerBtnDisabled, loading: schedulerLoading }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled || schedulerLoading">Start</button>
+            <button :class="{ secondary: archiveBtnDisabled, loading: archiveLoading }" @click="cleanup()" :disabled="archiveBtnDisabled || archiveLoading">Archive</button>
             <span class="badge" x-text="schedulerStateLabelText">idle</span>
             <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
           </div>

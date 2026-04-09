@@ -404,6 +404,10 @@ details.debug summary::-webkit-details-marker { display: none; }
   margin: 0 0 var(--nav-mb);
   border-bottom: 1px solid var(--line);
   padding: 0 var(--gap-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
 }
 .nav .spacer { flex: 1 1 auto; }
 

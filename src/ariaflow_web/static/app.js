@@ -19,6 +19,8 @@ document.addEventListener('alpine:init', () => {
     GLOBAL_SPEED_MAX: 40,
     previousItemStatuses: {},
     refreshInFlight: false,
+    schedulerLoading: false,
+    archiveLoading: false,
     lastRev: null,
     page: 'dashboard',
     DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
@@ -291,6 +293,14 @@ document.addEventListener('alpine:init', () => {
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }
+
+      // Keyboard shortcuts: 1–7 switch tabs
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+        const tabs = ['dashboard', 'bandwidth', 'lifecycle', 'options', 'log', 'dev', 'archive'];
+        const idx = Number(e.key) - 1;
+        if (idx >= 0 && idx < tabs.length) this.navigateTo(tabs[idx]);
+      });
 
       // SSE for real-time updates (falls back to polling on failure)
       this._initSSE();
@@ -739,12 +749,6 @@ document.addEventListener('alpine:init', () => {
       const stableFilters = new Set(['all', 'downloading', 'paused', 'done', 'error']);
       return stableFilters.has(f) || (this.filterCounts[f] ?? 0) > 0 || this.queueFilter === f;
     },
-    filterBtnLabel(f) {
-      const count = this.filterCounts[f] ?? 0;
-      const label = f.charAt(0).toUpperCase() + f.slice(1);
-      return count > 0 ? `${label} (${count})` : label;
-    },
-
     // queue item helpers for template
     itemNormalizedStatus(item) {
       return (item.status || 'unknown') === 'recovered' ? 'paused' : (item.status || 'unknown');
@@ -1137,9 +1141,12 @@ document.addEventListener('alpine:init', () => {
       reader.readAsDataURL(file);
     },
     async toggleScheduler() {
-      if (!this.state?.running) return this.schedulerAction('start');
-      if (this.state?.paused) return this.resumeDownloads();
-      return this.pauseDownloads();
+      this.schedulerLoading = true;
+      try {
+        if (!this.state?.running) return await this.schedulerAction('start');
+        if (this.state?.paused) return await this.resumeDownloads();
+        return await this.pauseDownloads();
+      } finally { this.schedulerLoading = false; }
     },
     async schedulerAction(action) {
       if (action !== 'start') {
@@ -1267,13 +1274,16 @@ document.addEventListener('alpine:init', () => {
       this.loadArchive();
     },
     async cleanup() {
-      const r = await this._fetch(this.apiPath('/api/downloads/cleanup'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max_done_age_days: 7, max_done_count: 100 }),
-      });
-      const data = await r.json();
-      this.resultText = data.ok ? `Cleanup complete — ${data.archived || 0} archived` : (data.message || 'Cleanup requested');
-      this.resultJson = JSON.stringify(data, null, 2);
+      this.archiveLoading = true;
+      try {
+        const r = await this._fetch(this.apiPath('/api/downloads/cleanup'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ max_done_age_days: 7, max_done_count: 100 }),
+        });
+        const data = await r.json();
+        this.resultText = data.ok ? `Cleanup complete — ${data.archived || 0} archived` : (data.message || 'Cleanup requested');
+        this.resultJson = JSON.stringify(data, null, 2);
+      } finally { this.archiveLoading = false; }
     },
 
     // --- bandwidth ---

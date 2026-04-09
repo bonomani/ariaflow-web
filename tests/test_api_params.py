@@ -162,12 +162,6 @@ class TestPostRun:
         assert isinstance(data, dict)
 
 
-class TestPostSession:
-    def test_valid_new_session(self, web_server: str) -> None:
-        _assert_post_ok(f"{web_server}/api/sessions/new", {"action": "new"})
-
-
-
 class TestPostDeclaration:
     def test_valid_declaration(self, web_server: str) -> None:
         data = _post(f"{web_server}/api/declaration", {"uic": {"preferences": []}})
@@ -468,20 +462,20 @@ class TestApiParamCoverage:
             "annotateQueueItems", "recordGlobalSpeed", "recordSpeed",
             "checkNotifications", "saveDeclaration",
             "pauseDownloads", "resumeDownloads", "itemAction",
-            "apiPath", "newSession", "saveDeclaration",
+            "apiPath", "saveDeclaration",
         }
 
-        # Check each API method is referenced in HTML or called from init/_loadPageData
+        # Check each API method is referenced in HTML, called from init, or
+        # declared in the LOADERS manifest (per-tab timer-driven loaders).
         init_block = js[js.find("init()"):js.find("navigateTo(")]
-        load_block = js[js.find("_loadPageData("):js.find("_loadPageData(") + 500]
+        loaders_block = js[js.find("LOADERS:"):js.find("_tabPollers")]
 
         missing = []
         for method in sorted(api_methods - INTERNAL_METHODS):
             in_html = method in html
             in_init = method in init_block
-            in_load = method in load_block
-            called_by_other = any(f"this.{method}(" in js.replace(f"async {method}(", "") for _ in [1])
-            if not (in_html or in_init or in_load):
+            in_loaders = f"'{method}'" in loaders_block
+            if not (in_html or in_init or in_loaders):
                 missing.append(method)
 
         assert missing == [], (
