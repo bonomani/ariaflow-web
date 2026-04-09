@@ -436,7 +436,7 @@ class TestApiParamCoverage:
         """Verify every async method that calls an API has a UI trigger in HTML.
 
         Each method that posts/fetches should be reachable from a @click,
-        @change, @input, x-show, or called from init/_loadPageData.
+        @change, @input, x-show, called from init, or declared in LOADERS.
         """
         js = APP_JS.read_text(encoding="utf-8")
         html = _read_index_html_assembled()
@@ -460,7 +460,7 @@ class TestApiParamCoverage:
             "loadDeclaration", "loadSessionHistory", "loadArchive",
             "refreshActionLog", "refreshBandwidth", "discoverBackends",
             "annotateQueueItems", "recordGlobalSpeed", "recordSpeed",
-            "checkNotifications", "saveDeclaration",
+            "checkNotifications",
             "pauseDownloads", "resumeDownloads", "itemAction",
             "apiPath", "saveDeclaration",
         }
