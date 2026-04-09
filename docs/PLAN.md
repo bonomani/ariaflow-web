@@ -23,12 +23,8 @@ Resolved gaps (BG-12–14, FE-15–20) — see git history and `FRONTEND_GAPS.md
 
 ## Rename: ariaflow-web → ariaflow-dashboard — DONE
 
-All code, docs, URLs, schemas, and scripts renamed. Remaining external steps:
-
-- `gh repo rename ariaflow-dashboard -R bonomani/ariaflow-web`
-- `git remote set-url origin https://github.com/bonomani/ariaflow-dashboard.git`
-- Homebrew tap: `Formula/ariaflow-web.rb` → `Formula/ariaflow-dashboard.rb`
-- PyPI: register `ariaflow-dashboard`; yank or redirect old `ariaflow-web`
+All code, docs, URLs, schemas, scripts, GitHub repo, remote, and Homebrew
+formula renamed. PyPI `ariaflow-dashboard` will register on next release push.
 
 ## Deferred
 
