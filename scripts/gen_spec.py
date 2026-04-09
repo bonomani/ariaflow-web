@@ -8,7 +8,7 @@ Sources:
   - docs/ucc-declarations.yaml
   - docs/schemas/api-*.schema.json
   - ACTIONS.md, ARCHITECTURE.md (first paragraph each)
-  - BGS.md, docs/bgs-decision.yaml
+  - docs/governance/BGS.md, docs/governance/bgs-decision.yaml
 
 Usage:
     python3 scripts/gen_spec.py
@@ -114,7 +114,7 @@ def load_schemas() -> list[tuple[str, dict]]:
 
 
 def load_bgs_decision() -> dict:
-    return yaml.safe_load((ROOT / "docs" / "bgs-decision.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load((ROOT / "docs" / "governance" / "bgs-decision.yaml").read_text(encoding="utf-8"))
 
 
 def first_paragraph(path: Path) -> str:
@@ -346,7 +346,7 @@ def render() -> str:
     add(
         f"This project claims the **`{decision.get('bgs_slice', '?')}`** slice of "
         "the Boundary Governance Suite. Decision record: "
-        "`docs/bgs-decision.yaml`. Validator: "
+        "`docs/governance/bgs-decision.yaml`. Validator: "
         "`../BGSPrivate/bgs/tools/check-bgs-compliance.py`."
     )
     add("")

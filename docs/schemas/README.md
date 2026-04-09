@@ -7,7 +7,7 @@ ariaflow-dashboard depends on at the API boundary.
 ## Role in BGS-Verified
 
 These schemas are TIC oracles for the BGS-Verified claim authored in
-`../../BGS.md`. They are referenced by `../bgs-decision.yaml` `evidence_refs`
+`../governance/BGS.md`. They are referenced by `../governance/bgs-decision.yaml` `evidence_refs`
 and exercised by tests under `../../tests/`:
 
 - `test_api_response_shapes.py` — validates `tests/conftest.py` mock fixtures

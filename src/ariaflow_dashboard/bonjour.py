@@ -1,6 +1,6 @@
 """Bonjour/mDNS discovery for ariaflow backends.
 
-Browse and resolve _ariaflow._tcp services on the local network.
+Browse _ariaflow-server._tcp and register _ariaflow-dashboard._tcp on the local network.
 Uses dns-sd (macOS/Windows) or avahi-browse (Linux).
 """
 from __future__ import annotations
@@ -12,12 +12,13 @@ import socket
 import subprocess
 
 
-_SERVICE_TYPE = "_ariaflow._tcp"
+_BROWSE_SERVICE_TYPE = "_ariaflow-server._tcp"
+_REGISTER_SERVICE_TYPE = "_ariaflow-dashboard._tcp"
 _DOMAIN = "local"
 
 # dns-sd -B output columns: Timestamp A/R Flags if Domain ServiceType InstanceName
-# Example: " 1:14:41.123  Add  3  4  local.  _ariaflow._tcp.  bc's Mac16,11 AriaFlow"
-_BROWSE_RE = re.compile(r"\bAdd\b.*\s_ariaflow\._tcp\.\s+(.*\S)\s*$")
+# Example: " 1:14:41.123  Add  3  4  local.  _ariaflow-server._tcp.  bc's Mac16,11 AriaFlow"
+_BROWSE_RE = re.compile(r"\bAdd\b.*\s_ariaflow-server\._tcp\.\s+(.*\S)\s*$")
 # dns-sd -L output: "can be reached at <host>:<port>"
 _RESOLVE_HOST_RE = re.compile(r"can be reached at ([^\s]+)\.\s*:(\d+)")
 # TXT record fields
@@ -171,7 +172,7 @@ def _dnssd_browse(timeout: float) -> list[str]:
     binary = _dns_sd_path()
     if not binary:
         return []
-    output = _run_timeout([binary, "-B", _SERVICE_TYPE, _DOMAIN], timeout)
+    output = _run_timeout([binary, "-B", _BROWSE_SERVICE_TYPE, _DOMAIN], timeout)
     names: list[str] = []
     for line in output.splitlines():
         match = _BROWSE_RE.search(line.strip())
@@ -184,7 +185,7 @@ def _dnssd_resolve(name: str, timeout: float) -> dict[str, object] | None:
     binary = _dns_sd_path()
     if not binary:
         return None
-    output = _run_timeout([binary, "-L", name, _SERVICE_TYPE, _DOMAIN], timeout)
+    output = _run_timeout([binary, "-L", name, _BROWSE_SERVICE_TYPE, _DOMAIN], timeout)
     for line in output.splitlines():
         match = _RESOLVE_HOST_RE.search(line)
         if match:
@@ -227,9 +228,9 @@ def _dnssd_discover(timeout: float) -> list[dict[str, object]]:
 # ---------------------------------------------------------------------------
 
 # avahi-browse -rpt output:
-# =;eth0;IPv4;instance name;_ariaflow._tcp;local;hostname.local;192.168.1.x;8080;"path=/api" "tls=0"
+# =;eth0;IPv4;instance name;_ariaflow-server._tcp;local;hostname.local;192.168.1.x;8080;"path=/api" "tls=0"
 _AVAHI_RESOLVE_RE = re.compile(
-    r'^=;[^;]*;[^;]*;([^;]*);_ariaflow\._tcp;[^;]*;([^;]*);([^;]*);(\d+);(.*)$'
+    r'^=;[^;]*;[^;]*;([^;]*);_ariaflow-server\._tcp;[^;]*;([^;]*);([^;]*);(\d+);(.*)$'
 )
 
 
@@ -239,7 +240,7 @@ def _avahi_discover(timeout: float) -> list[dict[str, object]]:
         return []
     try:
         completed = subprocess.run(
-            [binary, "-rpt", _SERVICE_TYPE],
+            [binary, "-rpt", _BROWSE_SERVICE_TYPE],
             capture_output=True, text=True, timeout=timeout, check=False,
         )
         output = completed.stdout or ""

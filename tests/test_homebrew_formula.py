@@ -25,7 +25,7 @@ class HomebrewFormulaScriptTests(unittest.TestCase):
         )
 
         self.assertIn('version "0.1.18"', formula)
-        self.assertIn('depends_on "ariaflow"', formula)
+        self.assertNotIn('depends_on "ariaflow"', formula)  # dashboard works standalone
         self.assertIn('head "https://github.com/bonomani/ariaflow-dashboard.git", branch: "main"', formula)
         self.assertIn('PYTHONPATH="#{libexec}/src:${PYTHONPATH}"', formula)
         self.assertNotIn("#{PYTHONPATH}", formula)

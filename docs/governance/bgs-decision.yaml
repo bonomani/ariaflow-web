@@ -18,36 +18,36 @@ external_controls:
   rate_limiting_and_budget_control: not_applicable
   privacy_and_data_boundary_control: not_applicable
 evidence_refs:
-  - ./ACTIONS.md
-  - ./FRONTEND_GAPS.md
-  - ../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md
-  - ./ARCHITECTURE.md
-  - ./docs/ucc-declarations.yaml
-  - ./docs/schemas/api-status.schema.json
-  - ./tests/test_api_params.py
-  - ./tests/test_coverage_check.py
-  - ./docs/schemas/README.md
-  - ./docs/schemas/api-aria2-get-global-option.schema.json
-  - ./docs/schemas/api-aria2-get-option.schema.json
-  - ./docs/schemas/api-aria2-option-tiers.schema.json
-  - ./docs/schemas/api-bandwidth.schema.json
-  - ./docs/schemas/api-bandwidth-probe.schema.json
-  - ./docs/schemas/api-declaration.schema.json
-  - ./docs/schemas/api-downloads-archive.schema.json
-  - ./docs/schemas/api-health.schema.json
-  - ./docs/schemas/api-lifecycle.schema.json
-  - ./docs/schemas/api-log.schema.json
-  - ./docs/schemas/api-peers.schema.json
-  - ./docs/schemas/api-scheduler.schema.json
-  - ./docs/schemas/api-sessions.schema.json
-  - ./docs/schemas/api-sessions-stats.schema.json
-  - ./docs/schemas/api-torrents.schema.json
-  - ./docs/schemas/ucc-declarations.schema.json
-  - ./tests/test_api_response_shapes.py
-  - ./tests/test_bgs_compliance.py
-  - ./tests/test_bgs_sha_drift.py
-  - ./tests/test_openapi_alignment.py
-  - ./tests/test_ucc_declarations_schema.py
+  - ../../ACTIONS.md
+  - ../../FRONTEND_GAPS.md
+  - ../../../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md
+  - ../../ARCHITECTURE.md
+  - ../ucc-declarations.yaml
+  - ../schemas/api-status.schema.json
+  - ../../tests/test_api_params.py
+  - ../../tests/test_coverage_check.py
+  - ../schemas/README.md
+  - ../schemas/api-aria2-get-global-option.schema.json
+  - ../schemas/api-aria2-get-option.schema.json
+  - ../schemas/api-aria2-option-tiers.schema.json
+  - ../schemas/api-bandwidth.schema.json
+  - ../schemas/api-bandwidth-probe.schema.json
+  - ../schemas/api-declaration.schema.json
+  - ../schemas/api-downloads-archive.schema.json
+  - ../schemas/api-health.schema.json
+  - ../schemas/api-lifecycle.schema.json
+  - ../schemas/api-log.schema.json
+  - ../schemas/api-peers.schema.json
+  - ../schemas/api-scheduler.schema.json
+  - ../schemas/api-sessions.schema.json
+  - ../schemas/api-sessions-stats.schema.json
+  - ../schemas/api-torrents.schema.json
+  - ../schemas/ucc-declarations.schema.json
+  - ../../tests/test_api_response_shapes.py
+  - ../../tests/test_bgs_compliance.py
+  - ../../tests/test_bgs_sha_drift.py
+  - ../../tests/test_openapi_alignment.py
+  - ../../tests/test_ucc_declarations_schema.py
 date: 2026-04-07
 owner: bonomani
 limitations:

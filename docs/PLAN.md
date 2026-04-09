@@ -12,8 +12,16 @@
 | Gap | Status | Notes |
 |---|---|---|
 | FE-18 | Deferred | SSE smoke test — add when/if payload drift causes a regression |
+| FE-21 | Resolved | Bonjour service type fixed |
+| FE-22 | Blocked by BG-15 | Fallback to `/api/peers` when local mDNS unavailable (WSL, containers) |
 
 Resolved gaps (BG-12–14, FE-15–20) — see git history and `FRONTEND_GAPS.md`.
+
+## Done (cont.)
+
+- Governance alignment: Makefile (`check-drift`, `verify`, `ci` targets),
+  `scripts/check_bgs_drift.py`, `.github/workflows/test.yml` (CI gate),
+  BGS files moved to `docs/governance/`.
 
 ## Deferred
 

@@ -2,7 +2,7 @@
 #
 # This file is the canonical machine-readable declaration of what the
 # frontend expects from the backend boundary. It's referenced by
-# docs/bgs-decision.yaml as evidence for the UCC member of BGS-Verified.
+# docs/governance/bgs-decision.yaml as evidence for the UCC member of BGS-Verified.
 #
 # Loaded by tests/test_api_params.py and tests/test_coverage_check.py at
 # import time. Edit here, not in the test files.

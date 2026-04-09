@@ -20,8 +20,8 @@ repos:
     hooks:
       - id: bgs-compliance
         name: BGS compliance check
-        description: Run the BGS adopter validator on BGS.md / docs/bgs-decision.yaml
+        description: Run the BGS adopter validator on docs/governance/BGS.md / docs/governance/bgs-decision.yaml
         entry: python3 -m pytest tests/test_bgs_compliance.py -q
         language: system
         pass_filenames: false
-        files: ^(BGS\.md|docs/bgs-decision\.yaml|docs/ucc-declarations\.yaml|docs/schemas/.*)$
+        files: ^(docs/governance/BGS\.md|docs/governance/bgs-decision\.yaml|docs/ucc-declarations\.yaml|docs/schemas/.*)$

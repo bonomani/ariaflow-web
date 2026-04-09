@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DECISION = REPO_ROOT / "docs" / "bgs-decision.yaml"
+DECISION = REPO_ROOT / "docs" / "governance" / "bgs-decision.yaml"
 BGS_ROOT = Path(os.environ.get("ARIAFLOW_BGS_ROOT", str(REPO_ROOT.parent / "BGSPrivate")))
 
 

@@ -71,7 +71,7 @@ document.addEventListener('alpine:init', () => {
     get filteredItems() { return this.filterQueueItems(this.itemsWithStatus); },
     get backendReachable() {
       if (!this.lastStatus) return true;
-      return this.lastStatus?.ok !== false && this.lastStatus?.ariaflow?.reachable !== false;
+      return this.lastStatus?.ok !== false && this.lastStatus?.['ariaflow-server']?.reachable !== false;
     },
     get filterCounts() {
       // Use backend summary when available (avoids client-side recount)
@@ -133,12 +133,12 @@ document.addEventListener('alpine:init', () => {
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
-      const v = this.lastStatus?.ariaflow?.version;
+      const v = this.lastStatus?.['ariaflow-server']?.version;
       return v ? `v${v}` : 'unreported';
     },
     get backendPidText() {
       if (!this.backendReachable) return '-';
-      return this.lastStatus?.ariaflow?.pid || 'unreported';
+      return this.lastStatus?.['ariaflow-server']?.pid || 'unreported';
     },
     // Health data now comes from /api/status.health (BG-8). No separate timer needed.
     get lastHealth() { return this.lastStatus?.health || null; },
@@ -161,7 +161,7 @@ document.addEventListener('alpine:init', () => {
       return bw?.cap_mbps ? this.humanCap(this.formatMbps(bw.cap_mbps)) : this.humanCap(bw?.limit || '-');
     },
     get lastErrorText() {
-      if (!this.backendReachable) return this.lastStatus?.ariaflow?.error || 'connection refused';
+      if (!this.backendReachable) return this.lastStatus?.['ariaflow-server']?.error || 'connection refused';
       return this.state.last_error || this.lastStatus?.bandwidth?.reason || 'none';
     },
     get sessionIdText() {
@@ -438,7 +438,7 @@ document.addEventListener('alpine:init', () => {
     },
     _offlineStatusLabel() {
       const data = this.lastStatus;
-      const error = data?.ariaflow?.error || data?.error || 'backend unavailable';
+      const error = data?.['ariaflow-server']?.error || data?.error || 'backend unavailable';
       return `Backend unavailable · ${error}`;
     },
 
@@ -860,7 +860,7 @@ document.addEventListener('alpine:init', () => {
           const data = JSON.parse(e.data);
           // If backend pushes full payload (has items array), assign directly
           if (data?.items) {
-            if (data?.ok === false || data?.ariaflow?.reachable === false) {
+            if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) {
               this._consecutiveFailures++;
               if (!this.lastStatus || this._consecutiveFailures >= 3) this.lastStatus = data;
               return;
@@ -960,7 +960,7 @@ document.addEventListener('alpine:init', () => {
         const data = await r.json();
         if (data?._rev && this.lastRev === data._rev) return;
         this.lastRev = data?._rev || null;
-        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+        if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) {
           this._consecutiveFailures++;
           // Show offline immediately if no prior data, or after 3 consecutive failures to avoid flicker
           if (!this.lastStatus || this._consecutiveFailures >= 3) this.lastStatus = data;
@@ -980,8 +980,8 @@ document.addEventListener('alpine:init', () => {
           this.lastStatus = {
             ...(this.lastStatus || {}),
             ok: false,
-            ariaflow: {
-              ...(this.lastStatus?.ariaflow || {}),
+            'ariaflow-server': {
+              ...(this.lastStatus?.['ariaflow-server'] || {}),
               reachable: false,
               error: message,
             },
@@ -1019,7 +1019,7 @@ document.addEventListener('alpine:init', () => {
       if (!force && this.lastDeclaration && this.lastDeclaration.ok !== false && Date.now() - this._declarationLoadedAt < 30000) return;
       const r = await this._fetch(this.apiPath('/api/declaration'));
       this.lastDeclaration = await r.json();
-      if (this.lastDeclaration?.ok === false || this.lastDeclaration?.ariaflow?.reachable === false) return;
+      if (this.lastDeclaration?.ok === false || this.lastDeclaration?.['ariaflow-server']?.reachable === false) return;
       this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
       this._declarationLoadedAt = Date.now();
     },
@@ -1319,12 +1319,12 @@ document.addEventListener('alpine:init', () => {
         const r = await this._fetch(this.apiPath('/api/lifecycle'));
         const data = await r.json();
         this.lastLifecycle = data;
-        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+        if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) {
           this.lifecycleRows = [];
           return;
         }
         this.lifecycleRows = [
-          { name: 'ariaflow', record: data.ariaflow, actions: [{ target: 'ariaflow', action: 'install', label: 'Install / Update' }, { target: 'ariaflow', action: 'uninstall', label: 'Remove' }] },
+          { name: 'ariaflow-server', record: data['ariaflow-server'], actions: [{ target: 'ariaflow-server', action: 'install', label: 'Install / Update' }, { target: 'ariaflow-server', action: 'uninstall', label: 'Remove' }] },
           { name: 'aria2', record: data.aria2, actions: [] },
           { name: 'networkquality', record: data.networkquality, actions: [] },
           { name: 'aria2 auto-start (advanced)', record: data['aria2-launchd'], actions: [{ target: 'aria2-launchd', action: 'install', label: 'Load' }, { target: 'aria2-launchd', action: 'uninstall', label: 'Unload' }] },
@@ -1354,7 +1354,7 @@ document.addEventListener('alpine:init', () => {
     lifecycleStateLabel(name, record) {
       const result = record && record.result ? record.result : {};
       const reason = result.reason || '';
-      if (name === 'ariaflow') {
+      if (name === 'ariaflow-server') {
         if (reason === 'match') return 'installed · current';
         if (reason === 'missing') return 'absent';
         return result.outcome || 'unknown';
@@ -1435,7 +1435,7 @@ document.addEventListener('alpine:init', () => {
       try {
         const r = await this._fetch(this.apiPath(`/api/log?limit=${this.logLimit}`));
         const data = await r.json();
-        if (data?.ok === false || data?.ariaflow?.reachable === false) {
+        if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) {
           this.actionLogEntries = [];
           return;
         }

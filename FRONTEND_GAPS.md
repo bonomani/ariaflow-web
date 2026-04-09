@@ -20,7 +20,25 @@ Needed:
 - Add an event-stream test strategy only if SSE payload stability becomes a
   recurring source of regressions. Otherwise keep this explicitly deferred.
 
+### FE-22: Fallback to `/api/peers` when local mDNS unavailable
+
+When the dashboard runs in environments without mDNS (WSL NAT, containers,
+VMs), `discoverBackends()` gets no results from local browse. The backend's
+`/api/peers` endpoint can provide peer info because the backend *does* have
+mDNS access on the host network.
+
+Blocked by: BG-15 (backend discovery uses stale service type, so
+`/api/peers` returns nothing even when it should work).
+
+Once BG-15 is fixed, the frontend should:
+1. Try local mDNS browse first (current behavior).
+2. If local browse returns nothing, fall back to `GET /api/peers` on the
+   current backend and merge those results into `mergeDiscoveredBackends()`.
+
 ## Resolved
+
+- FE-21: Bonjour service type fixed — now browses `_ariaflow-server._tcp`
+  and registers as `_ariaflow-dashboard._tcp`.
 
 - FE-20: Archive button now uses `archivable_count` from backend summary
   instead of the `sumDone + sumError` heuristic. BG-14 provided the field.
