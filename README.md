@@ -55,6 +55,20 @@ Start-Process ariaflow
 ariaflow-web --host 127.0.0.1 --port 8001
 ```
 
+### Development (git install)
+
+```bash
+git clone https://github.com/bonomani/ariaflow-web.git
+cd ariaflow-web
+pip install -e ".[dev,local]"    # editable install + test deps + backend
+pytest                           # run all unit/contract tests
+pytest -m slow                   # run browser tests (needs playwright)
+```
+
+The app auto-detects a git checkout (`ariaflow_web.__install_mode__ == "git"`)
+vs a PyPI release (`"release"`). This lets tests and dev tooling know whether
+the full source tree (docs, schemas, paired repo) is available.
+
 ## Features
 
 - **7 tabs:** Dashboard, Bandwidth, Service Status, Options, Log, Developer, Archive

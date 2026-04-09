@@ -11,6 +11,8 @@ dependencies = []
 
 [project.optional-dependencies]
 local = ["ariaflow"]
+dev = ["pytest", "pyyaml"]
+test-browser = ["pytest", "pyyaml", "playwright"]
 
 [project.scripts]
 ariaflow-web = "ariaflow_web.cli:main"
