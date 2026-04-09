@@ -1327,6 +1327,19 @@ document.addEventListener('alpine:init', () => {
         this.lifecycleRows = [];
       }
     },
+    // True if a lifecycle row is in a healthy state. Used by the
+    // Service Status nav badge so optional / informational rows
+    // (notably aria2-launchd) and "ready" probes don't false-positive.
+    lifecycleHealthy(row) {
+      const reason = row?.record?.result?.reason || '';
+      const name = row?.name || '';
+      if (name === 'networkquality') return reason === 'ready';
+      if (name.includes('aria2 auto-start')) return true; // optional
+      return reason === 'match';
+    },
+    get lifecycleErrorCount() {
+      return (this.lifecycleRows || []).filter((r) => !this.lifecycleHealthy(r)).length;
+    },
     lifecycleStateLabel(name, record) {
       const result = record && record.result ? record.result : {};
       const reason = result.reason || '';
