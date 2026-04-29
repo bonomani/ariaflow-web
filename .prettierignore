@@ -1,0 +1,3 @@
+src/ariaflow_dashboard/static/dist/
+src/ariaflow_dashboard/static/ts/app.ts
+node_modules/
