@@ -1,24 +1,30 @@
-/* Sparkline SVG rendering — no Alpine dependency. */
+// Sparkline SVG rendering — no Alpine dependency.
 
-function sparklinePoints(data, max, w, h) {
+declare function formatRate(bps: number): string;
+
+function sparklinePoints(data: number[], max: number, w: number, h: number): string {
   const step = w / (data.length - 1);
-  return data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`).join(' ');
+  return data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * (h - 2) - 1).toFixed(1)}`)
+    .join(' ');
 }
 
-function renderItemSparkline(data) {
+export function renderItemSparkline(data: number[] | null | undefined): string {
   if (!data || data.length < 2) return '';
   const max = Math.max(...data, 1);
-  const w = 120, h = 28;
+  const w = 120;
+  const h = 28;
   const points = sparklinePoints(data, max, w, h);
   return `<svg width="${w}" height="${h}" style="display:block;margin-top:6px;" viewBox="0 0 ${w} ${h}">
     <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
   </svg>`;
 }
 
-function renderGlobalSparkline(dl, ul) {
+export function renderGlobalSparkline(dl: number[], ul: number[]): string {
   if (dl.length < 2) return '';
   const max = Math.max(...dl, ...ul, 1);
-  const w = 200, h = 40;
+  const w = 200;
+  const h = 40;
   const dlPoints = sparklinePoints(dl, max, w, h);
   const ulPoints = ul.length >= 2 ? sparklinePoints(ul, max, w, h) : '';
   const peakDl = formatRate(Math.max(...dl));
