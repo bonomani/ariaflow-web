@@ -29,6 +29,40 @@ Resolved gaps (BG-12–14, FE-15–20) — see git history and `FRONTEND_GAPS.md
 - **Generated `BGS.md`.** Too small to justify generation.
 - **BGS Grade-2 style profiles/policies.** No clear value for this repo.
 
+## Active: TypeScript migration of frontend JS
+
+Migrate `src/ariaflow_dashboard/static/*.js` (1853 LOC across `app.js`,
+`formatters.js`, `sparkline.js`) to TypeScript. `alpine.min.js` stays
+vendored. Python is out of scope.
+
+Steps:
+
+1. **Toolchain.** Add `package.json`, `tsconfig.json` (strict), devDeps
+   (`typescript`, `esbuild`, `@types/alpinejs`). Add `static/dist/` and
+   `node_modules/` to `.gitignore`.
+2. **Source layout.** New `src/ariaflow_dashboard/static/ts/` for `.ts`
+   sources. Bundle to `static/dist/app.js`. Update `index.html`.
+3. **Build integration.** `npm run build` (esbuild) and `npm run dev`
+   (watch). Wire `make build-frontend` into `make verify` / `make ci`.
+   Ensure `pyproject.toml` ships `static/dist/` in package data.
+4. **Migrate file-by-file** (smallest first): `sparkline.ts` →
+   `formatters.ts` → split `app.js` into `types.ts` / `api.ts` /
+   `state.ts` / `components/*.ts` / `main.ts`.
+5. **Backend DTO types.** Hand-write interfaces matching JSON
+   endpoints from `../ariaflow-server`. Log shape gaps in
+   `FRONTEND_GAPS.md`.
+6. **Strictness ramp.** Land migration with `strict: false`, then
+   enable `noImplicitAny` → `strictNullChecks` → full `strict` in
+   small follow-up PRs.
+7. **Lint & format.** ESLint + `@typescript-eslint` + Prettier; hook
+   into `make ci`.
+8. **Tests.** Port any JS tests (or add a smoke test with `node:test`
+   + `tsx`) for pure modules. Manual browser smoke per AGENTS policy.
+9. **Cleanup.** Remove old `.js` sources once `.ts` ships and
+   `index.html` points at `dist/`. Update `ARCHITECTURE.md`.
+10. **CI.** `make ci` runs `npm ci && tsc --noEmit && npm run build`
+    before push.
+
 ## To study — patterns from `claude-sub-proxy/ui` worth borrowing
 
 Comparative review captured 2026-04-26 against `claude-sub-proxy` commit

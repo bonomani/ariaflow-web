@@ -1,0 +1,17 @@
+{
+  "name": "ariaflow-dashboard-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TypeScript sources for the ariaflow-dashboard frontend (bundled into src/ariaflow_dashboard/static/dist/).",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/ariaflow_dashboard/static/ts/main.ts --bundle --format=esm --target=es2020 --sourcemap --outfile=src/ariaflow_dashboard/static/dist/app.js",
+    "dev": "npm run build -- --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/alpinejs": "^3.13.10",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

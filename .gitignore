@@ -17,6 +17,7 @@ htmlcov/
 # Build artifacts
 dist/
 build/
+node_modules/
 
 # IDE / Editor
 .vscode/
