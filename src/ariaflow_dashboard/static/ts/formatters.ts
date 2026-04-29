@@ -56,10 +56,10 @@ export function shortName(value: string | null | undefined): string {
   try {
     const url = new URL(value);
     const parts = url.pathname.split('/').filter(Boolean);
-    return parts.length ? parts[parts.length - 1] : url.hostname;
+    return parts.length ? parts[parts.length - 1]! : url.hostname;
   } catch {
     const parts = value.split('/').filter(Boolean);
-    return parts.length ? parts[parts.length - 1] : value;
+    return parts.length ? parts[parts.length - 1]! : value;
   }
 }
 
