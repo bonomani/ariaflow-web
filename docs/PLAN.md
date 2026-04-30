@@ -87,6 +87,26 @@ venues).
 4. **`revalidate_on` interceptor.** After any `_fetch` POST returns 2xx, invalidate endpoints whose `meta.revalidate_on` matches `<METHOD> <path>`.
 5. **Tests.** Pure unit tests on the router (input: class + visibility + tick → output: action). No timer-based integration tests in this repo.
 
+### Discoverability — `/api/_meta` index + Dev-tab panel
+
+Rule: one declaration site (the endpoint's own `meta`), two read paths
+(runtime router + dev panel). No hand-maintained parallel registry.
+
+**Backend (BG-31, additional items):**
+
+7. **Single registry on the server.** Wrap responses through one helper
+   (e.g. `withMeta(endpoint, body)`) that pulls `freshness`/`ttl_s`/
+   `revalidate_on` from a per-endpoint registration so the same source
+   feeds both the per-call `meta` block and the index.
+8. **`GET /api/_meta`** — returns `{ endpoints: [{ method, path, freshness, ttl_s, revalidate_on, transport? }] }` derived from that registry. `meta.freshness: "bootstrap"` itself.
+9. **Runtime validator (test-only).** A test asserts that every route handler is registered (no implicit endpoints) and that `bootstrap` endpoints return byte-identical bodies across calls.
+
+**Frontend (this repo, paired):**
+
+6. **Consume `/api/_meta` at boot.** Cache the index (it's `bootstrap`); `FreshnessRouter` reads classes from there instead of from each response's inline meta. Inline `meta` stays as a per-response confirmation but the router doesn't depend on it.
+7. **Dev-tab "Freshness map" panel.** Live table: endpoint · declared class · last fetch · next scheduled · visibility state · subscriber count. Plus a runtime warning row when an inline `meta` disagrees with the index (drift detector).
+8. **No separate doc to maintain.** A static snapshot for review (PR descriptions, audit) is generated at build time from `/api/_meta`, never hand-edited. Add `npm run freshness:snapshot` that writes `docs/FRESHNESS_SNAPSHOT.md` from a running backend.
+
 ### Push upstream (only after second consumer proves the taxonomy)
 
 - Propose `x-freshness` as OpenAPI vendor extension.
