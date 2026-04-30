@@ -40,19 +40,21 @@ Items waiting on BG-33 (backend drops `state.paused`, `summary.stopped`):
 - `formatters.ts` `'stopped'` in bad-badge list.
 - `app.ts` `itemCanRetry(...).includes('stopped')`.
 
-Items needing a min-backend-version policy declaration (document in
-`AGENTS.md`, then drop the guards):
+Won't-fix (small dead code, large policy cost):
 
 - `freshness-bootstrap.ts` returns null on `/api/_meta` 404.
 - `app.ts` `_fetch` `if (this._freshnessRouter)` invalidation guard.
 - SSE event-name → "all topics" fallback path.
 
+These would need a declared minimum backend version (banner, version
+detection, upgrade UX) to drop safely — more weight than the ~5 lines
+of guard code they'd remove. Revisit only if a real divergence between
+old and new backend behavior shows up.
+
 ### Sequence
 
 1. Backend lands BG-33; cut over `state.paused` / `s.stopped` / `'stopped'`
    sites the same day.
-2. Declare minimum backend version, drop the `/api/_meta` / router /
-   topics guards.
 
 ### Anti-goals
 
