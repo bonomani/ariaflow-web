@@ -18,6 +18,13 @@ import {
 import { renderItemSparkline, renderGlobalSparkline } from './sparkline';
 import { apiFetch } from './api';
 import {
+  backendUrl as runtimeBackendUrl,
+  dashboardHostname,
+  dashboardHostnameLower,
+  localIps as runtimeLocalIps,
+  localMainIp as runtimeLocalMainIp,
+} from './runtime';
+import {
   readBackends,
   readRefreshInterval,
   readSelectedBackend,
@@ -55,9 +62,9 @@ document.addEventListener('alpine:init', () => {
     archiveLoading: false,
     lastRev: null,
     page: 'dashboard',
-    DEFAULT_BACKEND_URL: window.__ARIAFLOW_BACKEND_URL__ || 'http://127.0.0.1:8000',
-    localIps: window.__ARIAFLOW_DASHBOARD_LOCAL_IPS__ || ['127.0.0.1'],
-    localMainIp: window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__ || '127.0.0.1',
+    DEFAULT_BACKEND_URL: runtimeBackendUrl(),
+    localIps: runtimeLocalIps(),
+    localMainIp: runtimeLocalMainIp(),
     // Bonjour health: pending (initial) → ok / broken / unavailable after discovery
     bonjourState: 'pending',
     backendInput: '',
@@ -594,7 +601,7 @@ document.addEventListener('alpine:init', () => {
       // against our injected local hostname — exact, case-insensitive match.
       // Fallbacks (for old backends without the TXT field): .local hostname
       // parsing, IP match, loopback detection.
-      const localHostLower = String(window.__ARIAFLOW_DASHBOARD_HOSTNAME__ || '').toLowerCase();
+      const localHostLower = dashboardHostnameLower();
       const selfLocal = localHostLower ? `${localHostLower}.local` : '';
       const localIps = this.localIps || [];
       const isSelf = (item) => {
@@ -644,8 +651,8 @@ document.addEventListener('alpine:init', () => {
       try { addr = new URL(url).host; } catch { /* keep raw */ }
       // Default backend: substitute real LAN IP (Google trick) for loopback
       if (url === this.DEFAULT_BACKEND_URL) {
-        const host = window.__ARIAFLOW_DASHBOARD_HOSTNAME__ || 'localhost';
-        const mainIp = window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__ || '127.0.0.1';
+        const host = dashboardHostname();
+        const mainIp = runtimeLocalMainIp();
         let port = '8000';
         try { port = new URL(url).port || '8000'; } catch { /* keep default */ }
         return `${host} (${mainIp}:${port})`;
