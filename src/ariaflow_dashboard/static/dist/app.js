@@ -66,9 +66,9 @@ function timestampLabel(value) {
   return value ? relativeTime(value) : "-";
 }
 function badgeClass(status) {
-  if (["done", "converged", "ok", "complete"].includes(status)) return "badge good";
-  if (["error", "failed", "missing", "stopped"].includes(status)) return "badge bad";
-  if (["paused", "queued", "waiting", "unchanged", "skipped", "cancelled"].includes(status)) {
+  if (["converged", "ok", "complete"].includes(status)) return "badge good";
+  if (["error", "missing", "removed", "stopped"].includes(status)) return "badge bad";
+  if (["paused", "queued", "waiting", "unchanged", "skipped"].includes(status)) {
     return "badge warn";
   }
   return "badge";
@@ -348,19 +348,12 @@ function urlSessionStats(sessionId) {
 }
 
 // src/ariaflow_dashboard/static/ts/filters.ts
-var FILTER_ALIASES = {
-  downloading: ["downloading", "active"],
-  done: ["done", "complete"]
-};
 function normalizeStatus(status) {
-  const s = (status ?? "unknown").toLowerCase();
-  return s === "recovered" ? "paused" : s;
+  return (status ?? "unknown").toLowerCase();
 }
 function matchesStatusFilter(item, filter) {
   if (filter === "all") return true;
-  const normalized = normalizeStatus(item.status);
-  const accepted = FILTER_ALIASES[filter];
-  return accepted ? accepted.includes(normalized) : normalized === filter;
+  return normalizeStatus(item.status) === filter;
 }
 function matchesSearch(item, search) {
   if (!search) return true;
@@ -375,9 +368,9 @@ function filterQueueItems(items, filter, search) {
 }
 var STABLE_FILTERS = /* @__PURE__ */ new Set([
   "all",
-  "downloading",
+  "active",
   "paused",
-  "done",
+  "complete",
   "error"
 ]);
 function isFilterButtonVisible(filter, filterCounts, selectedFilter) {
@@ -487,7 +480,7 @@ function appendGlobalSpeed(prev, dlSpeed, ulSpeed, cap = GLOBAL_SPEED_MAX) {
 
 // src/ariaflow_dashboard/static/ts/notifications.ts
 function notificationFor(item, status, id) {
-  if (status === "done") {
+  if (status === "complete") {
     return {
       kind: "complete",
       title: "Download complete",
@@ -495,7 +488,7 @@ function notificationFor(item, status, id) {
       tag: `ariaflow-${id}`
     };
   }
-  if (status === "error" || status === "failed") {
+  if (status === "error") {
     return {
       kind: "error",
       title: "Download failed",
@@ -821,27 +814,25 @@ document.addEventListener("alpine:init", () => {
           queued: s.queued || 0,
           waiting: s.waiting || 0,
           discovering: s.discovering || 0,
-          downloading: (s.active || 0) + (s.downloading || 0),
+          active: s.active || 0,
           paused: s.paused || 0,
-          stopped: s.stopped || 0,
-          done: (s.complete || 0) + (s.done || 0),
-          error: (s.error || 0) + (s.failed || 0),
-          cancelled: s.cancelled || 0
+          removed: s.removed ?? s.stopped ?? 0,
+          complete: s.complete || 0,
+          error: s.error || 0
         };
       }
       const items = this.itemsWithStatus;
-      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, downloading: 0, paused: 0, stopped: 0, done: 0, error: 0, cancelled: 0 };
+      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, active: 0, paused: 0, removed: 0, complete: 0, error: 0 };
       items.forEach((item) => {
-        const status = ((item.status || "unknown") === "recovered" ? "paused" : item.status || "unknown").toLowerCase();
+        const status = (item.status || "unknown").toLowerCase();
         if (status === "queued") counts.queued++;
         else if (status === "waiting") counts.waiting++;
         else if (status === "discovering") counts.discovering++;
-        else if (["downloading", "active"].includes(status)) counts.downloading++;
+        else if (status === "active") counts.active++;
         else if (status === "paused") counts.paused++;
-        else if (status === "stopped") counts.stopped++;
-        else if (["done", "complete"].includes(status)) counts.done++;
-        else if (["error", "failed"].includes(status)) counts.error++;
-        else if (status === "cancelled") counts.cancelled++;
+        else if (status === "removed" || status === "stopped") counts.removed++;
+        else if (status === "complete") counts.complete++;
+        else if (status === "error") counts.error++;
       });
       return counts;
     },
@@ -862,7 +853,7 @@ document.addEventListener("alpine:init", () => {
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return "Start";
-      if (this.state?.paused) return "Resume";
+      if (this.state?.dispatch_paused ?? this.state?.paused) return "Resume";
       if (this.state?.running) return "Pause";
       return "Start";
     },
@@ -1175,7 +1166,7 @@ document.addEventListener("alpine:init", () => {
     },
     schedulerOverviewLabel(state, items, active) {
       if (!state?.running) return "scheduler idle";
-      if (state?.paused) return "paused";
+      if (state?.dispatch_paused ?? state?.paused) return "paused";
       if (active && active.status && active.status !== "idle") return active.status;
       if ((items || []).length) return "ready";
       return "idle";
@@ -1195,7 +1186,7 @@ document.addEventListener("alpine:init", () => {
         this.resultText = "Scheduler idle";
         return;
       }
-      this.resultText = this.state?.paused ? "Downloads paused" : "Downloads running";
+      this.resultText = this.state?.dispatch_paused ?? this.state?.paused ? "Downloads paused" : "Downloads running";
     },
     _offlineStatusLabel() {
       const data = this.lastStatus;
@@ -1400,11 +1391,10 @@ document.addEventListener("alpine:init", () => {
     },
     // queue item helpers for template
     itemNormalizedStatus(item) {
-      return (item.status || "unknown") === "recovered" ? "paused" : item.status || "unknown";
+      return item.status || "unknown";
     },
     itemHasActiveStatus(item) {
-      const status = item.status || "unknown";
-      return ["active", "downloading", "paused", "recovered"].includes(status) || item.recovered;
+      return ["active", "paused"].includes(item.status || "unknown");
     },
     itemShortUrl(item) {
       return this.shortName(item.output || item.url || item.live?.url || "(no url)");
@@ -1449,7 +1439,7 @@ document.addEventListener("alpine:init", () => {
       if (item.error_code === "rpc_unreachable" || /timed out/i.test(item.error_message || "")) {
         return "timed out";
       }
-      if (["active", "downloading", "waiting"].includes(this.itemNormalizedStatus(item))) return "stale";
+      if (["active", "waiting"].includes(this.itemNormalizedStatus(item))) return "stale";
       return this.itemNormalizedStatus(item) === "paused" ? "paused" : "idle";
     },
     itemShowPausedAt(item) {
@@ -1481,7 +1471,7 @@ document.addEventListener("alpine:init", () => {
     },
     itemCanPause(item) {
       const aa = this.itemAllowedActions(item);
-      return aa.length ? aa.includes("pause") : ["downloading", "active"].includes(this.itemNormalizedStatus(item));
+      return aa.length ? aa.includes("pause") : this.itemNormalizedStatus(item) === "active";
     },
     itemCanResume(item) {
       const aa = this.itemAllowedActions(item);
@@ -1489,11 +1479,11 @@ document.addEventListener("alpine:init", () => {
     },
     itemCanRetry(item) {
       const aa = this.itemAllowedActions(item);
-      return aa.length ? aa.includes("retry") : ["error", "failed", "stopped"].includes(this.itemNormalizedStatus(item));
+      return aa.length ? aa.includes("retry") : ["error", "removed", "stopped"].includes(this.itemNormalizedStatus(item));
     },
     itemCanRemove(item) {
       const aa = this.itemAllowedActions(item);
-      return aa.length ? aa.includes("remove") : this.itemNormalizedStatus(item) !== "cancelled";
+      return aa.length ? aa.includes("remove") : true;
     },
     itemToggleAction(item) {
       if (this.itemCanPause(item)) return this.itemAction(item.id, "pause");
@@ -1849,7 +1839,7 @@ document.addEventListener("alpine:init", () => {
       this.schedulerLoading = true;
       try {
         if (!this.state?.running) return await this.schedulerAction("start");
-        if (this.state?.paused) return await this.resumeDownloads();
+        if (this.state?.dispatch_paused ?? this.state?.paused) return await this.resumeDownloads();
         return await this.pauseDownloads();
       } finally {
         this.schedulerLoading = false;

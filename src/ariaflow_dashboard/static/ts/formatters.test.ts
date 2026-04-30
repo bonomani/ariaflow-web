@@ -64,7 +64,8 @@ test('relativeTime returns "just now" / Xm ago / Xh ago / Xd ago', () => {
 });
 
 test('badgeClass maps status groups', () => {
-  assert.equal(badgeClass('done'), 'badge good');
+  assert.equal(badgeClass('complete'), 'badge good');
+  assert.equal(badgeClass('removed'), 'badge bad');
   assert.equal(badgeClass('error'), 'badge bad');
   assert.equal(badgeClass('paused'), 'badge warn');
   assert.equal(badgeClass('whatever'), 'badge');

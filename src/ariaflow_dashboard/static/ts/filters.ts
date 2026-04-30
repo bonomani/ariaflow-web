@@ -1,9 +1,25 @@
-// Pure queue-item filtering: status filter (all / downloading / paused
-// / done / error / ...) + free-text search across url, output, and
-// live.url. Stays decoupled from Alpine state so the predicate is
-// reusable and testable.
+// Pure queue-item filtering: status filter (all / active / paused
+// / complete / error / waiting / removed / queued / discovering) +
+// free-text search across url, output, and live.url. Stays decoupled
+// from Alpine state so the predicate is reusable and testable.
+//
+// Vocabulary aligns with aria2 (BG-30): the six aria2-native statuses
+// (active / waiting / paused / error / complete / removed) plus two
+// backend-only pre-aria2 states (discovering / queued). No phantom
+// statuses ('recovered', 'failed', 'downloading', 'done', 'cancelled')
+// — every status here has a real producer.
 
-export type QueueFilter = 'all' | 'downloading' | 'paused' | 'done' | 'error' | string;
+export type QueueFilter =
+  | 'all'
+  | 'active'
+  | 'waiting'
+  | 'paused'
+  | 'complete'
+  | 'error'
+  | 'removed'
+  | 'queued'
+  | 'discovering'
+  | string;
 
 export interface FilterableItem {
   status?: string | null;
@@ -13,25 +29,13 @@ export interface FilterableItem {
   [k: string]: unknown;
 }
 
-// Status aliasing rules used by the dashboard:
-//   - "recovered" is shown alongside "paused"
-//   - "downloading" filter accepts "downloading" + "active"
-//   - "done" filter accepts "done" + "complete"
-const FILTER_ALIASES: Record<string, readonly string[]> = {
-  downloading: ['downloading', 'active'],
-  done: ['done', 'complete'],
-};
-
 export function normalizeStatus(status: string | null | undefined): string {
-  const s = (status ?? 'unknown').toLowerCase();
-  return s === 'recovered' ? 'paused' : s;
+  return (status ?? 'unknown').toLowerCase();
 }
 
 export function matchesStatusFilter(item: FilterableItem, filter: QueueFilter): boolean {
   if (filter === 'all') return true;
-  const normalized = normalizeStatus(item.status);
-  const accepted = FILTER_ALIASES[filter];
-  return accepted ? accepted.includes(normalized) : normalized === filter;
+  return normalizeStatus(item.status) === filter;
 }
 
 export function matchesSearch(item: FilterableItem, search: string): boolean {
@@ -56,9 +60,9 @@ export function filterQueueItems<T extends FilterableItem>(
 // items or when the user has selected them.
 const STABLE_FILTERS: ReadonlySet<string> = new Set([
   'all',
-  'downloading',
+  'active',
   'paused',
-  'done',
+  'complete',
   'error',
 ]);
 

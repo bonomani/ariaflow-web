@@ -1,29 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (3)
-
-### FE-23: Align item-status vocabulary on aria2 (paired with BG-30)
-
-Three layers (aria2 → backend → frontend) use three different vocabularies
-for the same download states. Concrete drift:
-
-- `done` (frontend bucket) vs `complete` (backend, aria2)
-- `downloading` (frontend bucket) vs `active` (backend, aria2)
-- `stopped` (backend, frontend) vs `removed` (aria2)
-- `failed` / `recovered` / `downloading` (frontend `normalizeStatus`) — no producer
-- `cancelled` (backend `ITEM_STATUSES`) — no producer
-- `waiting` (aria2 status) — backend caches in `live_status` but never persists; frontend counter always 0
-- `state.paused` (scheduler-wide) overloads the word with `item.status="paused"` (single download)
-
-Blocked by: BG-30 (backend persists `waiting`, renames `stopped`→`removed` and `state.paused`→`state.dispatch_paused`, drops `cancelled`, makes `active_gid` derived).
-
-Once BG-30 ships dual-keyed, frontend cuts over: drop phantom statuses
-in `filters.ts normalizeStatus`, drop bucket aliases (`done`→`complete`,
-`downloading`→`active`), wire the `waiting` counter, rename
-`state.paused` reads to `state.dispatch_paused`, update `formatters.ts`
-badge map (`removed`), update tests. Then backend drops aliases.
-
-
+## Open (2)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -52,6 +29,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-23 | Aria2-aligned item-status vocabulary (BG-30 cutover): dropped phantom statuses (recovered/failed/downloading/done/cancelled), switched filter buckets to canonical names (active/complete/removed), wired waiting counter, switched to `state.dispatch_paused` reads | 2026-04-30 |
 | FE-21 | Bonjour service type fixed (`_ariaflow-server._tcp` / `_ariaflow-dashboard._tcp`) | 2026-04-09 |
 | FE-20 | Archive button uses `archivable_count` from backend | 2026-04-09 |
 | FE-19 | BGS SHA drift — warning-only, accepted | 2026-04-07 |

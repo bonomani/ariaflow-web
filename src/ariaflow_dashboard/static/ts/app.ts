@@ -168,33 +168,32 @@ document.addEventListener('alpine:init', () => {
       // Use backend summary when available (avoids client-side recount)
       const s = this.lastStatus?.summary;
       if (s && !this.queueSearch) {
+        // BG-30: aria2-aligned vocabulary. Backend dual-keys
+        // removed/stopped during cutover; prefer canonical.
         return {
           all: s.total || 0,
           queued: s.queued || 0,
           waiting: s.waiting || 0,
           discovering: s.discovering || 0,
-          downloading: (s.active || 0) + (s.downloading || 0),
+          active: s.active || 0,
           paused: s.paused || 0,
-          stopped: s.stopped || 0,
-          done: (s.complete || 0) + (s.done || 0),
-          error: (s.error || 0) + (s.failed || 0),
-          cancelled: s.cancelled || 0,
+          removed: s.removed ?? s.stopped ?? 0,
+          complete: s.complete || 0,
+          error: s.error || 0,
         };
       }
-      // Fallback: count from items (needed when search is active)
       const items = this.itemsWithStatus;
-      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, downloading: 0, paused: 0, stopped: 0, done: 0, error: 0, cancelled: 0 };
+      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, active: 0, paused: 0, removed: 0, complete: 0, error: 0 };
       items.forEach((item) => {
-        const status = ((item.status || 'unknown') === 'recovered' ? 'paused' : (item.status || 'unknown')).toLowerCase();
+        const status = (item.status || 'unknown').toLowerCase();
         if (status === 'queued') counts.queued++;
         else if (status === 'waiting') counts.waiting++;
         else if (status === 'discovering') counts.discovering++;
-        else if (['downloading', 'active'].includes(status)) counts.downloading++;
+        else if (status === 'active') counts.active++;
         else if (status === 'paused') counts.paused++;
-        else if (status === 'stopped') counts.stopped++;
-        else if (['done', 'complete'].includes(status)) counts.done++;
-        else if (['error', 'failed'].includes(status)) counts.error++;
-        else if (status === 'cancelled') counts.cancelled++;
+        else if (status === 'removed' || status === 'stopped') counts.removed++;
+        else if (status === 'complete') counts.complete++;
+        else if (status === 'error') counts.error++;
       });
       return counts;
     },
@@ -215,7 +214,7 @@ document.addEventListener('alpine:init', () => {
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return 'Start';
-      if (this.state?.paused) return 'Resume';
+      if (this.state?.dispatch_paused ?? this.state?.paused) return 'Resume';
       if (this.state?.running) return 'Pause';
       return 'Start';
     },
@@ -505,7 +504,7 @@ document.addEventListener('alpine:init', () => {
     },
     schedulerOverviewLabel(state, items, active) {
       if (!state?.running) return 'scheduler idle';
-      if (state?.paused) return 'paused';
+      if (state?.dispatch_paused ?? state?.paused) return 'paused';
       if (active && active.status && active.status !== 'idle') return active.status;
       if ((items || []).length) return 'ready';
       return 'idle';
@@ -525,7 +524,7 @@ document.addEventListener('alpine:init', () => {
         this.resultText = 'Scheduler idle';
         return;
       }
-      this.resultText = this.state?.paused ? 'Downloads paused' : 'Downloads running';
+      this.resultText = (this.state?.dispatch_paused ?? this.state?.paused) ? 'Downloads paused' : 'Downloads running';
     },
     _offlineStatusLabel() {
       const data = this.lastStatus;
@@ -739,11 +738,10 @@ document.addEventListener('alpine:init', () => {
     },
     // queue item helpers for template
     itemNormalizedStatus(item) {
-      return (item.status || 'unknown') === 'recovered' ? 'paused' : (item.status || 'unknown');
+      return item.status || 'unknown';
     },
     itemHasActiveStatus(item) {
-      const status = item.status || 'unknown';
-      return ['active', 'downloading', 'paused', 'recovered'].includes(status) || item.recovered;
+      return ['active', 'paused'].includes(item.status || 'unknown');
     },
     itemShortUrl(item) {
       return this.shortName(item.output || item.url || item.live?.url || '(no url)');
@@ -780,7 +778,7 @@ document.addEventListener('alpine:init', () => {
       if (item.error_code === 'rpc_unreachable' || /timed out/i.test(item.error_message || '')) {
         return 'timed out';
       }
-      if (['active', 'downloading', 'waiting'].includes(this.itemNormalizedStatus(item))) return 'stale';
+      if (['active', 'waiting'].includes(this.itemNormalizedStatus(item))) return 'stale';
       return this.itemNormalizedStatus(item) === 'paused' ? 'paused' : 'idle';
     },
     itemShowPausedAt(item) {
@@ -804,10 +802,10 @@ document.addEventListener('alpine:init', () => {
       return ls ? `${ns} · aria2:${ls}` : ns;
     },
     itemAllowedActions(item) { return item.allowed_actions || []; },
-    itemCanPause(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('pause') : ['downloading', 'active'].includes(this.itemNormalizedStatus(item)); },
+    itemCanPause(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('pause') : this.itemNormalizedStatus(item) === 'active'; },
     itemCanResume(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('resume') : this.itemNormalizedStatus(item) === 'paused'; },
-    itemCanRetry(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('retry') : ['error', 'failed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
-    itemCanRemove(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('remove') : this.itemNormalizedStatus(item) !== 'cancelled'; },
+    itemCanRetry(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('retry') : ['error', 'removed', 'stopped'].includes(this.itemNormalizedStatus(item)); },
+    itemCanRemove(item) { const aa = this.itemAllowedActions(item); return aa.length ? aa.includes('remove') : true; },
     itemToggleAction(item) {
       if (this.itemCanPause(item)) return this.itemAction(item.id, 'pause');
       if (this.itemCanResume(item)) return this.itemAction(item.id, 'resume');
@@ -1155,7 +1153,7 @@ document.addEventListener('alpine:init', () => {
       this.schedulerLoading = true;
       try {
         if (!this.state?.running) return await this.schedulerAction('start');
-        if (this.state?.paused) return await this.resumeDownloads();
+        if (this.state?.dispatch_paused ?? this.state?.paused) return await this.resumeDownloads();
         return await this.pauseDownloads();
       } finally { this.schedulerLoading = false; }
     },

@@ -10,7 +10,7 @@
             <input type="text" placeholder="Search queue..." x-model="queueSearch">
           </div>
           <div class="filter-bar">
-            <template x-for="f in ['all','queued','waiting','discovering','downloading','paused','stopped','done','error','cancelled']" :key="f">
+            <template x-for="f in ['all','queued','waiting','discovering','active','paused','removed','complete','error']" :key="f">
               <button x-show="filterBtnVisible(f)" class="filter-btn" :class="{ active: queueFilter === f }" @click="setQueueFilter(f)">
                 <span x-text="f.charAt(0).toUpperCase() + f.slice(1)"></span>
                 <span x-show="(filterCounts[f] ?? 0) > 0" class="tab-badge" :class="{ warn: f === 'error' }" x-text="filterCounts[f]"></span>

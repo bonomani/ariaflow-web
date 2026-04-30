@@ -16,18 +16,17 @@ const items: FilterableItem[] = [
   { status: 'complete', url: 'https://other.org/baz.tar', output: '/tmp/baz.tar' },
   { status: 'error', url: 'https://example.com/qux.deb', output: '/tmp/qux.deb' },
   {
-    status: 'recovered',
+    status: 'waiting',
     url: 'https://example.com/quux.iso',
     output: '/tmp/quux.iso',
     live: { url: 'http://mirror.example.com/quux.iso' },
   },
 ];
 
-test('normalizeStatus lowercases and aliases recovered → paused', () => {
+test('normalizeStatus lowercases', () => {
   assert.equal(normalizeStatus(undefined), 'unknown');
   assert.equal(normalizeStatus(null), 'unknown');
   assert.equal(normalizeStatus('Active'), 'active');
-  assert.equal(normalizeStatus('recovered'), 'paused');
 });
 
 test('matchesStatusFilter "all" accepts every item', () => {
@@ -36,25 +35,11 @@ test('matchesStatusFilter "all" accepts every item', () => {
   }
 });
 
-test('matchesStatusFilter "downloading" accepts downloading and active', () => {
-  assert.equal(matchesStatusFilter({ status: 'active' }, 'downloading'), true);
-  assert.equal(matchesStatusFilter({ status: 'downloading' }, 'downloading'), true);
-  assert.equal(matchesStatusFilter({ status: 'paused' }, 'downloading'), false);
-});
-
-test('matchesStatusFilter "done" accepts done and complete', () => {
-  assert.equal(matchesStatusFilter({ status: 'complete' }, 'done'), true);
-  assert.equal(matchesStatusFilter({ status: 'done' }, 'done'), true);
-  assert.equal(matchesStatusFilter({ status: 'error' }, 'done'), false);
-});
-
-test('matchesStatusFilter aliases recovered → paused', () => {
-  assert.equal(matchesStatusFilter({ status: 'recovered' }, 'paused'), true);
-});
-
-test('matchesStatusFilter falls through to direct comparison for unknown filters', () => {
+test('matchesStatusFilter direct comparison only (no aliases)', () => {
+  assert.equal(matchesStatusFilter({ status: 'active' }, 'active'), true);
+  assert.equal(matchesStatusFilter({ status: 'complete' }, 'complete'), true);
+  assert.equal(matchesStatusFilter({ status: 'paused' }, 'active'), false);
   assert.equal(matchesStatusFilter({ status: 'queued' }, 'queued'), true);
-  assert.equal(matchesStatusFilter({ status: 'queued' }, 'paused'), false);
 });
 
 test('matchesSearch is case-insensitive across url, output, live.url', () => {
@@ -71,7 +56,7 @@ test('matchesSearch with empty search matches everything', () => {
 });
 
 test('filterQueueItems composes status + search', () => {
-  const r = filterQueueItems(items, 'downloading', 'foo');
+  const r = filterQueueItems(items, 'active', 'foo');
   assert.equal(r.length, 1);
   assert.equal(r[0]!.url, 'https://example.com/foo.iso');
 });
@@ -80,16 +65,8 @@ test('filterQueueItems with all + empty search returns input unchanged', () => {
   assert.equal(filterQueueItems(items, 'all', '').length, items.length);
 });
 
-test('filterQueueItems "paused" includes recovered items', () => {
-  const r = filterQueueItems(items, 'paused', '');
-  assert.deepEqual(
-    r.map((i) => i.status),
-    ['paused', 'recovered'],
-  );
-});
-
 test('isFilterButtonVisible always shows stable filters', () => {
-  for (const f of ['all', 'downloading', 'paused', 'done', 'error']) {
+  for (const f of ['all', 'active', 'paused', 'complete', 'error']) {
     assert.equal(isFilterButtonVisible(f, {}, 'all'), true);
   }
 });

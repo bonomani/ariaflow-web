@@ -33,7 +33,7 @@ function notificationFor(
   status: string,
   id: string,
 ): DesktopNotification | null {
-  if (status === 'done') {
+  if (status === 'complete') {
     return {
       kind: 'complete',
       title: 'Download complete',
@@ -41,7 +41,7 @@ function notificationFor(
       tag: `ariaflow-${id}`,
     };
   }
-  if (status === 'error' || status === 'failed') {
+  if (status === 'error') {
     return {
       kind: 'error',
       title: 'Download failed',
