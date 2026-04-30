@@ -54,6 +54,12 @@ import {
   parseStateChangedEvent,
   shouldShowOfflineStatus,
 } from './events';
+import {
+  appendGlobalSpeed,
+  recordItemSpeed,
+  GLOBAL_SPEED_MAX,
+  SPEED_HISTORY_MAX,
+} from './speed_history';
 
 declare const Alpine: any;
 
@@ -72,10 +78,10 @@ document.addEventListener('alpine:init', () => {
     queueFilter: 'all',
     queueSearch: '',
     speedHistory: {},
-    SPEED_HISTORY_MAX: 30,
+    SPEED_HISTORY_MAX,
     globalSpeedHistory: [0, 0],
     globalUploadHistory: [0, 0],
-    GLOBAL_SPEED_MAX: 40,
+    GLOBAL_SPEED_MAX,
     previousItemStatuses: {},
     refreshInFlight: false,
     schedulerLoading: false,
@@ -503,20 +509,18 @@ document.addEventListener('alpine:init', () => {
 
     // --- sparklines (rendering delegated to sparkline.js) ---
     recordSpeed(itemId, speed) {
-      if (!itemId) return;
-      const s = Number(speed || 0);
-      const current = this.speedHistory[itemId] || [];
-      // Skip if speed unchanged — avoids Alpine reactivity churn
-      if (current.length && current[current.length - 1] === s && s === 0) return;
-      const updated = [...current, s];
-      this.speedHistory = { ...this.speedHistory, [itemId]: updated.length > this.SPEED_HISTORY_MAX ? updated.slice(-this.SPEED_HISTORY_MAX) : updated };
+      const next = recordItemSpeed(this.speedHistory, itemId, speed);
+      if (next !== this.speedHistory) this.speedHistory = next;
     },
     renderSparkline(itemId) { return renderItemSparkline(this.speedHistory[itemId]); },
     recordGlobalSpeed(dlSpeed, ulSpeed) {
-      const dlUpdated = [...this.globalSpeedHistory, Number(dlSpeed || 0)];
-      this.globalSpeedHistory = dlUpdated.length > this.GLOBAL_SPEED_MAX ? dlUpdated.slice(-this.GLOBAL_SPEED_MAX) : dlUpdated;
-      const ulUpdated = [...this.globalUploadHistory, Number(ulSpeed || 0)];
-      this.globalUploadHistory = ulUpdated.length > this.GLOBAL_SPEED_MAX ? ulUpdated.slice(-this.GLOBAL_SPEED_MAX) : ulUpdated;
+      const next = appendGlobalSpeed(
+        { download: this.globalSpeedHistory, upload: this.globalUploadHistory },
+        dlSpeed,
+        ulSpeed,
+      );
+      this.globalSpeedHistory = next.download;
+      this.globalUploadHistory = next.upload;
     },
     get globalSparklineSvg() { return renderGlobalSparkline(this.globalSpeedHistory, this.globalUploadHistory); },
 
