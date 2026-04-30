@@ -17,6 +17,16 @@ import {
 } from './formatters';
 import { renderItemSparkline, renderGlobalSparkline } from './sparkline';
 import { apiFetch } from './api';
+import {
+  readBackends,
+  readRefreshInterval,
+  readSelectedBackend,
+  readTheme,
+  writeBackends,
+  writeRefreshInterval,
+  writeSelectedBackend,
+  writeTheme,
+} from './storage';
 
 declare const Alpine: any;
 
@@ -310,7 +320,7 @@ document.addEventListener('alpine:init', () => {
       });
 
       // First load: refresh header + active tab once, then arm fast timer.
-      this.refreshInterval = Number(localStorage.getItem('ariaflow.refresh_interval')) || 10000;
+      this.refreshInterval = readRefreshInterval(10000);
       this._refreshAll();
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
@@ -518,21 +528,21 @@ document.addEventListener('alpine:init', () => {
         ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         : saved;
       root.dataset.theme = next;
-      localStorage.setItem('ariaflow.theme', saved);
+      writeTheme(saved);
       this.themeLabel = saved === 'system' ? 'Theme: system' : `Theme: ${saved}`;
     },
     initTheme() {
-      const saved = localStorage.getItem('ariaflow.theme') || 'system';
+      const saved = readTheme();
       this.applyTheme(saved);
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const sync = () => {
-        if ((localStorage.getItem('ariaflow.theme') || 'system') === 'system') this.applyTheme('system');
+        if (readTheme() === 'system') this.applyTheme('system');
       };
       if (mq.addEventListener) mq.addEventListener('change', sync);
       else if (mq.addListener) mq.addListener(sync);
     },
     toggleTheme() {
-      const current = localStorage.getItem('ariaflow.theme') || 'system';
+      const current = readTheme();
       const next = current === 'system' ? 'dark' : current === 'dark' ? 'light' : 'system';
       this.applyTheme(next);
     },
@@ -544,10 +554,9 @@ document.addEventListener('alpine:init', () => {
 
     // --- backend management ---
     loadBackendState() {
-      let backends = [];
-      try { backends = JSON.parse(localStorage.getItem('ariaflow.backends') || '[]'); } catch (e) { backends = []; }
-      backends = [...new Set(backends.map((item) => String(item || '').trim()).filter((item) => item && item !== this.DEFAULT_BACKEND_URL))];
-      const selected = (localStorage.getItem('ariaflow.selected_backend') || '').trim();
+      const stored = readBackends();
+      const backends = [...new Set(stored.filter((item) => item && item !== this.DEFAULT_BACKEND_URL))];
+      const selected = readSelectedBackend();
       return {
         backends,
         selected: selected === this.DEFAULT_BACKEND_URL || backends.includes(selected) ? selected : this.DEFAULT_BACKEND_URL,
@@ -556,8 +565,8 @@ document.addEventListener('alpine:init', () => {
     saveBackendState(backends, selected) {
       const clean = [...new Set((backends || []).map((item) => String(item || '').trim()).filter((item) => item && item !== this.DEFAULT_BACKEND_URL))];
       const nextSelected = selected === this.DEFAULT_BACKEND_URL || clean.includes(selected) ? selected : this.DEFAULT_BACKEND_URL;
-      localStorage.setItem('ariaflow.backends', JSON.stringify(clean));
-      localStorage.setItem('ariaflow.selected_backend', nextSelected);
+      writeBackends(clean);
+      writeSelectedBackend(nextSelected);
       this._cachedBackends = clean;
       this._cachedSelectedBackend = nextSelected;
     },
@@ -930,7 +939,7 @@ document.addEventListener('alpine:init', () => {
     // --- refresh ---
     setRefreshInterval(value) {
       this.refreshInterval = Number(value) || 0;
-      localStorage.setItem('ariaflow.refresh_interval', String(this.refreshInterval));
+      writeRefreshInterval(this.refreshInterval);
       if (this.refreshTimer) {
         clearInterval(this.refreshTimer);
         this.refreshTimer = null;
