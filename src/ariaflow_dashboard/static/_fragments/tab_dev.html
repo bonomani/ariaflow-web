@@ -74,3 +74,49 @@
           </details>
         </div>
       </div>
+
+      <!-- FE-24: Freshness map (BG-31 contract observability) -->
+      <div class="span-12" x-show="page === 'dev'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Freshness map</h2>
+            <div class="hint">Per-endpoint refresh class declared by the backend (<code>/api/_meta</code>) and current router state.</div>
+          </div>
+          <div x-show="freshnessStatus.length === 0" class="text-muted">
+            Router not booted (legacy backend without <code>/api/_meta</code>, or not yet loaded).
+          </div>
+          <table x-show="freshnessStatus.length > 0" class="text-sm">
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Class</th>
+                <th>TTL</th>
+                <th>Subscribers</th>
+                <th>Host</th>
+                <th>Last fetch</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="row in freshnessStatus" :key="row.endpoint">
+                <tr>
+                  <td class="text-mono" x-text="row.endpoint"></td>
+                  <td><span class="badge" x-text="row.freshness"></span></td>
+                  <td x-text="row.ttl_s != null ? row.ttl_s + 's' : '-'"></td>
+                  <td>
+                    <span x-text="row.visibleSubscribers"></span>
+                    <span class="text-muted" x-show="row.hiddenSubscribers > 0" x-text="' (+' + row.hiddenSubscribers + ' hidden)'"></span>
+                  </td>
+                  <td>
+                    <span class="badge" :class="row.hostVisible ? 'good' : 'warn'" x-text="row.hostVisible ? 'visible' : 'hidden'"></span>
+                  </td>
+                  <td x-text="row.lastFetchAt ? relativeTime(new Date(row.lastFetchAt).toISOString()) : 'never'"></td>
+                  <td>
+                    <span class="badge" :class="row.active ? 'good' : ''" x-text="row.active ? 'on' : 'off'"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
