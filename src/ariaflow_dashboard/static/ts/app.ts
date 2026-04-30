@@ -61,6 +61,7 @@ import {
   SPEED_HISTORY_MAX,
 } from './speed_history';
 import { diffItemStatuses } from './notifications';
+import { normalizeFiles, selectedFileIndexes } from './file_selection';
 
 declare const Alpine: any;
 
@@ -1193,14 +1194,14 @@ document.addEventListener('alpine:init', () => {
       try {
         const r = await this._fetch(this.apiPath(urlItemFiles(itemId)));
         const data = await r.json();
-        this.fileSelectionFiles = (data.files || []).map((f) => ({ ...f, selected: f.selected !== false }));
+        this.fileSelectionFiles = normalizeFiles(data.files);
       } catch (e) {
         this.fileSelectionFiles = [];
       }
       this.fileSelectionLoading = false;
     },
     async saveFileSelection() {
-      const selected = this.fileSelectionFiles.filter((f) => f.selected).map((f) => f.index);
+      const selected = selectedFileIndexes(this.fileSelectionFiles);
       const r = await this._fetch(this.apiPath(urlItemFiles(this.fileSelectionItemId)), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ select: selected }),
