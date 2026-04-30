@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { apiFetch } from './api.js';
+import { apiFetch, joinUrl, getJson, ApiError } from './api.js';
 
 test('apiFetch resolves with the fetch response', async () => {
   const fakeResponse = { ok: true, status: 200 } as Response;
@@ -39,4 +39,28 @@ test('apiFetch forwards method, headers, body', async () => {
   assert.equal(captured?.method, 'POST');
   assert.deepEqual(captured?.headers, { 'Content-Type': 'application/json' });
   assert.equal(captured?.body, '{"a":1}');
+});
+
+test('joinUrl strips trailing slashes from base', () => {
+  assert.equal(joinUrl('http://h:8000', '/api/x'), 'http://h:8000/api/x');
+  assert.equal(joinUrl('http://h:8000/', '/api/x'), 'http://h:8000/api/x');
+  assert.equal(joinUrl('http://h:8000///', '/api/x'), 'http://h:8000/api/x');
+});
+
+test('getJson resolves with parsed body on 2xx', async () => {
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ ok: true, n: 42 }), { status: 200 });
+  const body = await getJson<{ ok: boolean; n: number }>('/api/x');
+  assert.equal(body.ok, true);
+  assert.equal(body.n, 42);
+});
+
+test('getJson throws ApiError with status on non-2xx', async () => {
+  globalThis.fetch = async () => new Response('boom', { status: 503 });
+  await assert.rejects(getJson('/api/x'), (err: unknown) => {
+    assert.ok(err instanceof ApiError);
+    assert.equal((err as ApiError).status, 503);
+    assert.equal((err as ApiError).url, '/api/x');
+    return true;
+  });
 });
