@@ -68,7 +68,11 @@ export function isLifecycleHealthy(record: LifecycleRecord | null | undefined): 
     return true;
   }
   // Fallback: legacy reason-enum.
-  return result.reason === 'match' || result.reason === 'ready';
+  return (
+    result.reason === 'match' ||
+    result.reason === 'ready' ||
+    result.reason === 'probe_complete'
+  );
 }
 
 // Compose the user-facing one-liner label from the three axes. Falls
@@ -120,7 +124,7 @@ function labelFromLegacy(name: string, result: LifecycleResult): string {
     return result.outcome ?? 'unknown';
   }
   if (name === 'networkquality') {
-    if (reason === 'ready') return 'installed · usable';
+    if (reason === 'ready' || reason === 'probe_complete') return 'installed · usable';
     if (
       reason === 'timeout' ||
       reason === 'probe_timeout_no_parse' ||

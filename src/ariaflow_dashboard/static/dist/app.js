@@ -589,7 +589,7 @@ function isLifecycleHealthy(record) {
     }
     return true;
   }
-  return result.reason === "match" || result.reason === "ready";
+  return result.reason === "match" || result.reason === "ready" || result.reason === "probe_complete";
 }
 function describeLifecycleStatus(name, record) {
   const result = record?.result ?? {};
@@ -628,7 +628,7 @@ function labelFromLegacy(name, result) {
     return result.outcome ?? "unknown";
   }
   if (name === "networkquality") {
-    if (reason === "ready") return "installed \xB7 usable";
+    if (reason === "ready" || reason === "probe_complete") return "installed \xB7 usable";
     if (reason === "timeout" || reason === "probe_timeout_no_parse" || reason === "probe_timeout_partial_capture") {
       return "installed \xB7 probe timeout";
     }
