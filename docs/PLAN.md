@@ -64,6 +64,38 @@ Diagram: `discovering → queued → (active ⇄ waiting ⇄ paused) → {comple
 ### Sequence
 - BG-30 filed (frontend) → backend lands #1–6 dual-keyed → frontend lands #1–6 → backend drops aliases.
 
+## Active: Freshness axis (BG-31) + visibility-aware refresh
+
+Goal: replace the current "SSE tick → refetch everything" pattern with
+per-endpoint freshness classes declared by the backend, modulated by
+tab/host visibility. Design captured in `docs/FRESHNESS_AXIS.md`
+(seven classes, visibility table, prior-art comparison, upstream-push
+venues).
+
+### Backend (paired-repo, file as BG-31)
+
+1. Add a `meta` block to every JSON endpoint: `{ freshness, ttl_s?, revalidate_on? }`.
+2. Default unknown endpoints to `warm` + `ttl_s: 30` so the rollout is incremental.
+3. Document the vocabulary in `ariaflow-server/docs/FRESHNESS.md` (server-side mirror of the frontend design note).
+4. Validate at test time: `bootstrap` endpoints must return identical bodies across calls; `live` endpoints must declare a transport.
+
+### Frontend (this repo, after backend ships meta)
+
+1. **`FreshnessRouter` module.** Single `setVisible(bool)` entry, maps class → strategy (SSE subscribe / setInterval / on-mount fetch / SWR cache / no-op).
+2. **Replace eager SSE-tick refetch.** Today every `state_changed` triggers a full `/api/status` GET; route per-class instead.
+3. **Visibility wiring.** Listen to `document.visibilitychange` + `postMessage({type:'visibility'})` from host shell; first event wins, both call `setVisible`.
+4. **`revalidate_on` interceptor.** After any `_fetch` POST returns 2xx, invalidate endpoints whose `meta.revalidate_on` matches `<METHOD> <path>`.
+5. **Tests.** Pure unit tests on the router (input: class + visibility + tick → output: action). No timer-based integration tests in this repo.
+
+### Push upstream (only after second consumer proves the taxonomy)
+
+- Propose `x-freshness` as OpenAPI vendor extension.
+- JSON:API meta extension proposal.
+- HTTP `Freshness-Class:` response header alongside `Cache-Control`.
+- Blog post / ADR comparing to TanStack Query / SWR / Apollo policy locations.
+
+Sequence: file BG-31 → backend lands `meta` on `/api/status`, `/api/lifecycle`, `/api/bandwidth` first → frontend ships `FreshnessRouter` consuming those three → expand backend coverage → consider upstream.
+
 ## Active: TypeScript migration of frontend JS
 
 Migrate `src/ariaflow_dashboard/static/*.js` (1853 LOC across `app.js`,
