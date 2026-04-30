@@ -16,7 +16,7 @@ import {
   sessionLabel,
 } from './formatters';
 import { renderItemSparkline, renderGlobalSparkline } from './sparkline';
-import { apiFetch } from './api';
+import { apiFetch, postEmpty } from './api';
 import {
   backendUrl as runtimeBackendUrl,
   localIps as runtimeLocalIps,
@@ -1152,7 +1152,7 @@ document.addEventListener('alpine:init', () => {
     async pauseDownloads() {
       this.resultText = '';
       try {
-        const r = await this._fetch(this.apiPath(urlScheduler('pause')), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlScheduler('pause')));
         const data = await r.json();
         this.resultText = data.paused
           ? 'Downloads paused'
@@ -1166,7 +1166,7 @@ document.addEventListener('alpine:init', () => {
     async resumeDownloads() {
       this.resultText = '';
       try {
-        const r = await this._fetch(this.apiPath(urlScheduler('resume')), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlScheduler('resume')));
         const data = await r.json();
         this.resultText = data.resumed
           ? 'Downloads resumed'
@@ -1190,7 +1190,7 @@ document.addEventListener('alpine:init', () => {
       }
       let r, data;
       try {
-        r = await this._fetch(this.apiPath(urlItemAction(itemId, action)), { method: 'POST' });
+        r = await postEmpty(this.apiPath(urlItemAction(itemId, action)));
         data = await r.json();
       } catch (e) {
         this.resultText = `${action} failed: ${e.message}`;
@@ -1268,7 +1268,7 @@ document.addEventListener('alpine:init', () => {
       this.probeRunning = true;
       this.resultText = 'Probe running...';
       try {
-        const r = await this._fetch(this.apiPath('/api/bandwidth/probe'), { method: 'POST' });
+        const r = await postEmpty(this.apiPath('/api/bandwidth/probe'));
         const data = await r.json();
         this.resultText = data.ok ? 'Probe complete' : (data.message || 'Probe finished');
         this.resultJson = JSON.stringify(data, null, 2);
@@ -1366,7 +1366,7 @@ document.addEventListener('alpine:init', () => {
     },
     async lifecycleAction(target, action) {
       try {
-        const r = await this._fetch(this.apiPath(urlLifecycleAction(target, action)), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlLifecycleAction(target, action)));
         const data = await r.json();
         this.lastLifecycle = data.lifecycle || data;
         this.resultText = `${target} ${action} requested`;
@@ -1380,7 +1380,7 @@ document.addEventListener('alpine:init', () => {
     // --- log ---
     async preflightRun() {
       try {
-        const r = await this._fetch(this.apiPath(urlScheduler('preflight')), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlScheduler('preflight')));
         const data = await r.json();
         this.resultText = data.status === 'pass' ? 'Preflight passed' : 'Preflight needs attention';
         this.resultJson = JSON.stringify(data, null, 2);
@@ -1391,7 +1391,7 @@ document.addEventListener('alpine:init', () => {
     },
     async uccRun() {
       try {
-        const r = await this._fetch(this.apiPath(urlScheduler('ucc')), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlScheduler('ucc')));
         const data = await r.json();
         const outcome = data.result?.outcome || 'unknown';
         this.resultText = `UCC result: ${outcome}`;
@@ -1657,7 +1657,7 @@ document.addEventListener('alpine:init', () => {
     },
     async stopTorrent(infohash) {
       try {
-        const r = await this._fetch(this.apiPath(urlTorrentStop(infohash)), { method: 'POST' });
+        const r = await postEmpty(this.apiPath(urlTorrentStop(infohash)));
         const data = await r.json();
         this.resultText = data.ok !== false ? `Stopped seeding ${infohash.slice(0, 8)}` : (data.message || 'Stop failed');
         await this.loadTorrents();
