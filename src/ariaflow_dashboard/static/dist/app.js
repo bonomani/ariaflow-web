@@ -589,7 +589,11 @@ function isLifecycleHealthy(record) {
   if (hasAxes(result)) {
     if (result.installed === false) return false;
     if (result.current === false) return false;
-    if (result.running === false) return false;
+    if (result.expected_running != null) {
+      if (result.running !== result.expected_running) return false;
+    } else if (result.running === false) {
+      return false;
+    }
     return true;
   }
   return result.reason === "match" || result.reason === "ready";
@@ -615,8 +619,12 @@ function labelFromAxes(name, result) {
     if (v && ev) return `update available (${v} \u2192 ${ev})`;
     return "update available";
   }
+  const suffix = result.managed_by ? ` (${result.managed_by})` : "";
+  if (result.expected_running === false && running === false) {
+    return `idle \xB7 on-demand${suffix}`;
+  }
   if (running === false) return "installed \xB7 stopped";
-  if (running === true) return "running \xB7 current";
+  if (running === true) return `running \xB7 current${suffix}`;
   return "installed \xB7 current";
 }
 function labelFromLegacy(name, result) {

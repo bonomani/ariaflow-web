@@ -14,6 +14,11 @@ export interface LifecycleAxes {
   installed?: boolean | null;
   current?: boolean | null;
   running?: boolean | null;
+  // BG-29: on-demand semantics. expected_running lets a daemon
+  // (e.g. aria2) be "healthy idle" — running matches expectation.
+  // managed_by tells us who owns the process lifecycle.
+  expected_running?: boolean | null;
+  managed_by?: 'launchd' | 'external' | 'ariaflow' | null;
 }
 
 export interface LifecycleResultLegacy {
@@ -53,7 +58,13 @@ export function isLifecycleHealthy(record: LifecycleRecord | null | undefined): 
   if (hasAxes(result)) {
     if (result.installed === false) return false;
     if (result.current === false) return false;
-    if (result.running === false) return false;
+    // BG-29: when expected_running is set, healthy = running matches
+    // expectation (an on-demand daemon idling is healthy).
+    if (result.expected_running != null) {
+      if (result.running !== result.expected_running) return false;
+    } else if (result.running === false) {
+      return false;
+    }
     return true;
   }
   // Fallback: legacy reason-enum.
@@ -91,9 +102,13 @@ function labelFromAxes(name: string, result: LifecycleResult): string {
     return 'update available';
   }
   // installed && current at this point.
+  const suffix = result.managed_by ? ` (${result.managed_by})` : '';
+  // BG-29: on-demand idle is healthy.
+  if (result.expected_running === false && running === false) {
+    return `idle · on-demand${suffix}`;
+  }
   if (running === false) return 'installed · stopped';
-  if (running === true) return 'running · current';
-  // running === null → not applicable, just report installed/current.
+  if (running === true) return `running · current${suffix}`;
   return 'installed · current';
 }
 

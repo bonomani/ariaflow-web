@@ -136,6 +136,45 @@ test('describeLifecycleStatus axes — running=null collapses to installed/curre
   );
 });
 
+test('isLifecycleHealthy BG-29 — on-demand idle is healthy', () => {
+  assert.equal(
+    isLifecycleHealthy({
+      result: { installed: true, current: true, running: false, expected_running: false },
+    }),
+    true,
+  );
+  assert.equal(
+    isLifecycleHealthy({
+      result: { installed: true, current: true, running: true, expected_running: false },
+    }),
+    false,
+  );
+});
+
+test('describeLifecycleStatus BG-29 — on-demand idle label', () => {
+  assert.equal(
+    describeLifecycleStatus('aria2', {
+      result: {
+        installed: true,
+        current: true,
+        running: false,
+        expected_running: false,
+        managed_by: 'ariaflow',
+      },
+    }),
+    'idle · on-demand (ariaflow)',
+  );
+});
+
+test('describeLifecycleStatus BG-29 — managed_by suffix on running', () => {
+  assert.equal(
+    describeLifecycleStatus('aria2', {
+      result: { installed: true, current: true, running: true, managed_by: 'launchd' },
+    }),
+    'running · current (launchd)',
+  );
+});
+
 // ---------- describeLifecycleStatus legacy fallback ----------
 
 test('describeLifecycleStatus legacy — ariaflow-server reason match', () => {
