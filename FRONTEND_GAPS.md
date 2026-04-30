@@ -1,6 +1,16 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (3)
+## Open (4)
+
+### FE-25: Drop legacy alias fallbacks (paired with BG-33)
+
+After BG-33 lands, drop the dual-key reads in the frontend:
+- `state.dispatch_paused ?? state.paused` (5 sites in `app.ts`) → drop legacy half.
+- `s.removed ?? s.stopped` (filterCounts) → drop legacy half.
+- `itemCanRetry` allowance for `'stopped'` → drop.
+- `formatters.ts badgeClass` `'stopped'` in bad-list → drop.
+
+Blocked by: BG-33.
 
 ### FE-24: Per-endpoint freshness routing + Dev-tab map (paired with BG-31)
 
