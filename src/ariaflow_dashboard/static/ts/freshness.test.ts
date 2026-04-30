@@ -299,3 +299,56 @@ test('runFetch dedupes overlapping requests', async () => {
   // Hard to assert count without a counter; this exercises the path.
   assert.ok(true);
 });
+
+// ---------- onUpdate notify hook (FE-26 prerequisite) ----------
+
+test('onUpdate fires after each successful fetch', async () => {
+  const { adapters, fakeClock } = makeAdapters({ responses: { 'GET /api/lifecycle': { ok: true, n: 1 } } });
+  const r = new FreshnessRouter(adapters);
+  r.registerMeta(META_LIFECYCLE);
+  const seen: unknown[] = [];
+  r.subscribe('GET', '/api/lifecycle', 'c', { visible: true, onUpdate: (v) => seen.push(v) });
+  advance(fakeClock, 0);
+  await tick();
+  assert.deepEqual(seen, [{ ok: true, n: 1 }]);
+});
+
+test('onUpdate fires synchronously on subscribe when value already cached', async () => {
+  const { adapters, fakeClock } = makeAdapters({ responses: { 'GET /api/lifecycle': { ok: true, n: 2 } } });
+  const r = new FreshnessRouter(adapters);
+  r.registerMeta(META_LIFECYCLE);
+  r.subscribe('GET', '/api/lifecycle', 'a', { visible: true });
+  advance(fakeClock, 0);
+  await tick();
+  const seen: unknown[] = [];
+  r.subscribe('GET', '/api/lifecycle', 'b', { visible: true, onUpdate: (v) => seen.push(v) });
+  assert.deepEqual(seen, [{ ok: true, n: 2 }]);
+});
+
+test('unsubscribe stops further onUpdate calls', async () => {
+  const { adapters, fakeClock } = makeAdapters({ responses: { 'GET /api/lifecycle': { ok: true } } });
+  const r = new FreshnessRouter(adapters);
+  r.registerMeta(META_LIFECYCLE);
+  let count = 0;
+  r.subscribe('GET', '/api/lifecycle', 'c', { visible: true, onUpdate: () => count++ });
+  advance(fakeClock, 0);
+  await tick();
+  assert.equal(count, 1);
+  r.unsubscribe('GET', '/api/lifecycle', 'c');
+  r.subscribe('GET', '/api/lifecycle', 'd', { visible: true });
+  advance(fakeClock, 60_000);
+  await tick();
+  assert.equal(count, 1);
+});
+
+test('onUpdate exception is isolated — other subscribers still fire', async () => {
+  const { adapters, fakeClock } = makeAdapters({ responses: { 'GET /api/lifecycle': { ok: true } } });
+  const r = new FreshnessRouter(adapters);
+  r.registerMeta(META_LIFECYCLE);
+  let bGotIt = false;
+  r.subscribe('GET', '/api/lifecycle', 'a', { visible: true, onUpdate: () => { throw new Error('boom'); } });
+  r.subscribe('GET', '/api/lifecycle', 'b', { visible: true, onUpdate: () => { bGotIt = true; } });
+  advance(fakeClock, 0);
+  await tick();
+  assert.equal(bGotIt, true);
+});

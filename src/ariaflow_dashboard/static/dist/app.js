@@ -596,15 +596,29 @@ var FreshnessRouter = class {
       timer: null
     });
   }
-  /** Subscribe a component to an endpoint. */
+  /**
+   * Subscribe a component to an endpoint.
+   *
+   * `onUpdate`, if provided, fires after every successful fetch with the
+   * parsed value. Use it to drive view state in the subscriber. Callback
+   * exceptions are isolated — one bad subscriber doesn't break others.
+   * If the endpoint already has a cached value at subscribe time, the
+   * callback fires once synchronously with that cached value so the
+   * subscriber can render immediately without waiting for the next fetch.
+   */
   subscribe(method, path, subscriberId, opts) {
     const key = endpointKey(method, path);
     const ep = this.endpoints.get(key);
     if (!ep) {
       throw new Error(`FreshnessRouter: no meta registered for ${key}`);
     }
-    ep.subscribers.set(subscriberId, { id: subscriberId, visible: opts.visible });
+    const rec = { id: subscriberId, visible: opts.visible };
+    if (opts.onUpdate) rec.onUpdate = opts.onUpdate;
+    ep.subscribers.set(subscriberId, rec);
     this.log(key, "subscribe", { subscriberId, visible: opts.visible });
+    if (opts.onUpdate && ep.lastValue !== void 0) {
+      this.invokeOne(rec, ep.lastValue);
+    }
     this.reconcile(key);
   }
   unsubscribe(method, path, subscriberId) {
@@ -755,6 +769,7 @@ var FreshnessRouter = class {
       ep.lastFetchAt = this.adapters.now();
       ep.inflight = null;
       this.log(key, "fetch-end");
+      for (const sub of ep.subscribers.values()) this.invokeOne(sub, value);
       return value;
     }).catch((err) => {
       ep.inflight = null;
@@ -763,6 +778,22 @@ var FreshnessRouter = class {
     });
     ep.inflight = promise;
     return promise;
+  }
+  invokeOne(sub, value) {
+    if (!sub.onUpdate) return;
+    try {
+      sub.onUpdate(value);
+    } catch (err) {
+      this.adapters.log?.({
+        at: this.adapters.now(),
+        endpoint: "",
+        event: "fetch-error",
+        detail: {
+          subscriberId: sub.id,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      });
+    }
   }
   log(endpoint, event, detail) {
     if (!this.adapters.log) return;
