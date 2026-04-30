@@ -29,6 +29,41 @@ Resolved gaps (BG-12–14, FE-15–20) — see git history and `FRONTEND_GAPS.md
 - **Generated `BGS.md`.** Too small to justify generation.
 - **BGS Grade-2 style profiles/policies.** No clear value for this repo.
 
+## Active: Download state machine consistency (BG-30)
+
+Goal: align item-status vocabulary across **aria2 → backend → frontend**
+on aria2's six canonical statuses, plus two backend-only pre-aria2
+states. Today three layers use three vocabularies; phantom states exist
+in code with no producer; `paused` is overloaded across scheduler vs
+item; `waiting` is dropped on the floor.
+
+**Canonical states (target):**
+- aria2-native: `active`, `waiting`, `paused`, `error`, `complete`, `removed`
+- backend-only (pre-aria2): `discovering`, `queued`
+
+Diagram: `discovering → queued → (active ⇄ waiting ⇄ paused) → {complete, error, removed}`
+
+### Backend (paired-repo, file as BG-30)
+
+1. **Persist `waiting`.** When `pollActiveItems` sees aria2's `live_status="waiting"`, transition `item.status` to `waiting` (today only cached in `live_status`). Add `waiting` to `summarizeQueue` buckets.
+2. **Rename `stopped` → `removed`.** Match aria2's vocabulary. Ship dual-keyed for one release (`status: "removed"`, alias counter `summary.stopped` mirrors `summary.removed`), then drop alias.
+3. **Delete `cancelled`.** Unreachable in `ITEM_STATUSES` — no producer. Remove from policy + types.
+4. **Disambiguate scheduler pause.** Rename `state.paused` → `state.dispatch_paused` (item-level `paused` keeps its name). Endpoints stay `/api/scheduler/{pause,resume}` but the JSON field renames. Dual-key for one release.
+5. **`active_gid` derived, not stored.** Compute from `aria2.tellActive()` on `/api/status` read instead of stamping in `tick`/`poll`. Removes stale-after-crash class.
+6. **Document the state diagram** in `ariaflow-server/docs/STATE_MACHINE.md` (8 states, transitions, who can trigger each).
+
+### Frontend (this repo, after backend ships)
+
+1. **Drop phantom statuses.** Remove `recovered`, `failed`, `downloading` from `filters.ts normalizeStatus`. Use `paused`/`error`/`active` directly.
+2. **Drop bucket aliases.** `done` → `complete`, `downloading` → `active` in filter labels. Update tab counts and badges.
+3. **Wire `waiting` bucket.** Remove the always-zero counter once backend emits it.
+4. **Rename `state.paused` → `state.dispatch_paused`** in `app.ts` reads. Update `schedulerOverviewLabel`.
+5. **Update `formatters.ts` badge map.** Add `removed` (yellow), drop `stopped` once backend cuts over.
+6. **Update tests** in `filters.test.ts` / `lifecycle.test.ts` for new vocabulary.
+
+### Sequence
+- BG-30 filed (frontend) → backend lands #1–6 dual-keyed → frontend lands #1–6 → backend drops aliases.
+
 ## Active: TypeScript migration of frontend JS
 
 Migrate `src/ariaflow_dashboard/static/*.js` (1853 LOC across `app.js`,

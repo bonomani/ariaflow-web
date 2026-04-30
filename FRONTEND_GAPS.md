@@ -1,58 +1,62 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open
+## Open (3)
 
-### FE-18: No schema/test oracle for `/api/events`
+### FE-23: Align item-status vocabulary on aria2 (paired with BG-30)
 
-The schema migration now covers JSON endpoints, but the SSE stream at
-`/api/events` is still outside that contract layer.
+Three layers (aria2 → backend → frontend) use three different vocabularies
+for the same download states. Concrete drift:
 
-Current state:
-- JSON response shapes are covered by `docs/schemas/` plus validation tests.
-- `/api/events` is only checked for existence/behavior, not for event payload
-  structure.
+- `done` (frontend bucket) vs `complete` (backend, aria2)
+- `downloading` (frontend bucket) vs `active` (backend, aria2)
+- `stopped` (backend, frontend) vs `removed` (aria2)
+- `failed` / `recovered` / `downloading` (frontend `normalizeStatus`) — no producer
+- `cancelled` (backend `ITEM_STATUSES`) — no producer
+- `waiting` (aria2 status) — backend caches in `live_status` but never persists; frontend counter always 0
+- `state.paused` (scheduler-wide) overloads the word with `item.status="paused"` (single download)
 
-Impact:
-- SSE payload drift can break the live dashboard without being caught by the
-  new schema-backed tests.
+Blocked by: BG-30 (backend persists `waiting`, renames `stopped`→`removed` and `state.paused`→`state.dispatch_paused`, drops `cancelled`, makes `active_gid` derived).
 
-Needed:
-- Add an event-stream test strategy only if SSE payload stability becomes a
-  recurring source of regressions. Otherwise keep this explicitly deferred.
+Once BG-30 ships dual-keyed, frontend cuts over: drop phantom statuses
+in `filters.ts normalizeStatus`, drop bucket aliases (`done`→`complete`,
+`downloading`→`active`), wire the `waiting` counter, rename
+`state.paused` reads to `state.dispatch_paused`, update `formatters.ts`
+badge map (`removed`), update tests. Then backend drops aliases.
+
+
+
+### FE-18: No schema/test oracle for `/api/events` (deferred)
+
+SSE stream at `/api/events` is outside the contract layer. Add an
+event-stream test strategy only if SSE payload drift causes a regression.
 
 ### FE-22: Fallback to `/api/peers` when local mDNS unavailable
 
 When the dashboard runs in environments without mDNS (WSL NAT, containers,
 VMs), `discoverBackends()` gets no results from local browse. The backend's
-`/api/peers` endpoint can provide peer info because the backend *does* have
-mDNS access on the host network.
+`/api/peers` endpoint can provide peer info as a fallback.
 
 Blocked by: BG-15 (backend discovery uses stale service type, so
-`/api/peers` returns nothing even when it should work).
+`/api/peers` returns nothing).
 
 Once BG-15 is fixed, the frontend should:
 1. Try local mDNS browse first (current behavior).
 2. If local browse returns nothing, fall back to `GET /api/peers` on the
-   current backend and merge those results into `mergeDiscoveredBackends()`.
+   current backend and merge results into `mergeDiscoveredBackends()`.
+
+---
+
+_End of open gaps._
 
 ## Resolved
 
-- FE-21: Bonjour service type fixed — now browses `_ariaflow-server._tcp`
-  and registers as `_ariaflow-dashboard._tcp`.
+| ID | Summary | Date |
+|----|---------|------|
+| FE-21 | Bonjour service type fixed (`_ariaflow-server._tcp` / `_ariaflow-dashboard._tcp`) | 2026-04-09 |
+| FE-20 | Archive button uses `archivable_count` from backend | 2026-04-09 |
+| FE-19 | BGS SHA drift — warning-only, accepted | 2026-04-07 |
+| FE-17 | No CI for BGS — won't-fix (BGSPrivate is private) | 2026-04-07 |
+| FE-16 | Health from `/api/status.health`, no separate timer | 2026-04-06 |
+| FE-15 | Log tab uses SSE `action_logged` events | 2026-04-06 |
 
-- FE-20: Archive button now uses `archivable_count` from backend summary
-  instead of the `sumDone + sumError` heuristic. BG-14 provided the field.
-- FE-19: Manual BGS SHA maintenance — closed as accepted. The drift test
-  (`test_bgs_sha_drift.py`) warns on mismatch; warning-only is sufficient
-  for this repo's governance level. No code change needed.
-- FE-17: No CI enforcement for BGS compliance — closed as won't-fix.
-  The validator depends on the private `../BGSPrivate` sibling repo which
-  cannot be cloned in CI without exposing credentials. Local-only
-  enforcement (pre-commit + `test_bgs_compliance.py`) is the permanent
-  design. Documented as a known limitation.
-- FE-15: Log tab no longer depends on polling once backend `action_logged`
-  SSE events are available.
-- FE-16: Hero/health data no longer depends on a dedicated `/api/health`
-  polling timer; health now comes from `/api/status.health`.
-- Legacy inline contract declarations are being migrated into
-  `docs/ucc-declarations.yaml` and `docs/schemas/`.
+Details for all resolved entries are preserved in git history.
