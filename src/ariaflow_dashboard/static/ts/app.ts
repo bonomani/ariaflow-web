@@ -44,6 +44,10 @@ import {
   urlSessionStats,
   urlTorrentStop,
 } from './actions';
+import {
+  filterQueueItems as composeFilterQueueItems,
+  isFilterButtonVisible,
+} from './filters';
 
 declare const Alpine: any;
 
@@ -696,34 +700,14 @@ document.addEventListener('alpine:init', () => {
       });
     },
     filterQueueItems(items) {
-      let filtered = items;
-      if (this.queueFilter !== 'all') {
-        filtered = filtered.filter((item) => {
-          const status = (item.status || 'unknown').toLowerCase();
-          const normalized = status === 'recovered' ? 'paused' : status;
-          if (this.queueFilter === 'downloading') return ['downloading', 'active'].includes(normalized);
-          if (this.queueFilter === 'done') return ['done', 'complete'].includes(normalized);
-          return normalized === this.queueFilter;
-        });
-      }
-      if (this.queueSearch) {
-        const search = this.queueSearch.toLowerCase();
-        filtered = filtered.filter((item) => {
-          const url = (item.url || '').toLowerCase();
-          const output = (item.output || '').toLowerCase();
-          const liveUrl = (item.live?.url || '').toLowerCase();
-          return url.includes(search) || output.includes(search) || liveUrl.includes(search);
-        });
-      }
-      return filtered;
+      return composeFilterQueueItems(items, this.queueFilter, this.queueSearch);
     },
     setQueueFilter(filter) {
       this.queueFilter = filter;
       this._statusETag = null;
     },
     filterBtnVisible(f) {
-      const stableFilters = new Set(['all', 'downloading', 'paused', 'done', 'error']);
-      return stableFilters.has(f) || (this.filterCounts[f] ?? 0) > 0 || this.queueFilter === f;
+      return isFilterButtonVisible(f, this.filterCounts, this.queueFilter);
     },
     // queue item helpers for template
     itemNormalizedStatus(item) {
