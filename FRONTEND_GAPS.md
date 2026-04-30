@@ -1,6 +1,22 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
+## Open (3)
+
+### FE-24: Per-endpoint freshness routing + Dev-tab map (paired with BG-31)
+
+Replace today's "every SSE tick refetches everything" with a
+`FreshnessRouter` that consumes the backend's per-endpoint `meta.freshness`
+and routes to the right strategy (SSE subscribe / setInterval / on-mount /
+SWR / no-op). Visibility (`document.visibilitychange` + host postMessage)
+modulates cadence. Dev tab gets a "Freshness map" panel showing every
+endpoint, its declared class, last fetch, next scheduled fetch, and any
+inline-vs-index drift warnings. `npm run freshness:snapshot` writes a
+build-time markdown snapshot from `/api/_meta` for audit/PR review.
+
+Blocked by: BG-31 (backend ships `meta.freshness` + `/api/_meta` index).
+
+Design rationale and seven-class taxonomy in `docs/FRESHNESS_AXIS.md`.
+Work split in `docs/PLAN.md`.
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
