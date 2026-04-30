@@ -89,6 +89,29 @@ To my knowledge, no widely-adopted spec defines a small enum of **freshness clas
 4. **Auditable.** "Why is the dashboard hammering this endpoint?" becomes a contract question, answerable from the OpenAPI doc.
 5. **Pushable upstream.** Once this lives in the OpenAPI / JSON:API world, every framework's data layer can adopt the vocabulary without inventing its own.
 
+## Visibility — an orthogonal modifier
+
+Freshness class says *how often the data wants to refresh*. **Visibility** says *whether anyone is looking*. They multiply.
+
+| Class | Tab visible | Tab hidden | Embedded but host hidden |
+|---|---|---|---|
+| **bootstrap** | fetch once | (already fetched) | (already fetched) |
+| **live** | SSE connected | SSE connected but render throttled, OR disconnected if cost matters | disconnected; reconnect on `visibility: visible` |
+| **warm** | poll at `ttl_s` | poll at `ttl_s × 4` or stop | stop |
+| **cold** | fetch on tab open | n/a (tab not open) | n/a |
+| **on-action** | refetch on action | (no actions while hidden) | (no actions while hidden) |
+| **swr** | revalidate at `ttl_s` | serve cached, no revalidate | serve cached |
+| **derived** | recompute on dep change | recompute on dep change | recompute on dep change |
+
+Two visibility signals to listen to (whichever fires first wins):
+
+1. `document.visibilitychange` — standalone tabs (browser tab switch / minimize)
+2. `postMessage` from a host shell with `{type: "visibility", visible: bool}` — when the dashboard is embedded in an iframe and the host hides it without changing browser tab visibility
+
+The `FreshnessRouter` should expose a single `setVisible(bool)` entry point that drives all timers/streams; the two listeners both call it.
+
+This matters because today our SSE keeps polling and the lifecycle / bandwidth refetches keep firing when the tab is in the background — burning bandwidth and the user's battery for nobody to read.
+
 ## Anti-goals
 
 - **Not a cache implementation.** This is a *declaration*; clients still implement caching with whatever they prefer (TanStack Query, plain Map, IndexedDB).
