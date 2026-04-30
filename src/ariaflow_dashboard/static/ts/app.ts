@@ -19,21 +19,22 @@ import { renderItemSparkline, renderGlobalSparkline } from './sparkline';
 import { apiFetch } from './api';
 import {
   backendUrl as runtimeBackendUrl,
-  dashboardHostname,
-  dashboardHostnameLower,
   localIps as runtimeLocalIps,
   localMainIp as runtimeLocalMainIp,
 } from './runtime';
 import {
-  readBackends,
   readRefreshInterval,
-  readSelectedBackend,
   readTheme,
-  writeBackends,
   writeRefreshInterval,
-  writeSelectedBackend,
   writeTheme,
 } from './storage';
+import {
+  apiPath as composeApiPath,
+  backendDisplayName as composeBackendDisplayName,
+  loadBackendState as loadBackendStateFromStorage,
+  mergeDiscoveredItems,
+  saveBackendState as persistBackendState,
+} from './backend';
 
 declare const Alpine: any;
 
@@ -559,116 +560,46 @@ document.addEventListener('alpine:init', () => {
       return apiFetch(url, { ...opts, timeoutMs: timeout });
     },
 
-    // --- backend management ---
+    // --- backend management (delegates to ts/backend.ts) ---
     loadBackendState() {
-      const stored = readBackends();
-      const backends = [...new Set(stored.filter((item) => item && item !== this.DEFAULT_BACKEND_URL))];
-      const selected = readSelectedBackend();
-      return {
-        backends,
-        selected: selected === this.DEFAULT_BACKEND_URL || backends.includes(selected) ? selected : this.DEFAULT_BACKEND_URL,
-      };
+      return loadBackendStateFromStorage(this.DEFAULT_BACKEND_URL);
     },
     saveBackendState(backends, selected) {
-      const clean = [...new Set((backends || []).map((item) => String(item || '').trim()).filter((item) => item && item !== this.DEFAULT_BACKEND_URL))];
-      const nextSelected = selected === this.DEFAULT_BACKEND_URL || clean.includes(selected) ? selected : this.DEFAULT_BACKEND_URL;
-      writeBackends(clean);
-      writeSelectedBackend(nextSelected);
-      this._cachedBackends = clean;
-      this._cachedSelectedBackend = nextSelected;
+      const next = persistBackendState(backends || [], selected, this.DEFAULT_BACKEND_URL);
+      this._cachedBackends = next.backends;
+      this._cachedSelectedBackend = next.selected;
     },
     mergeDiscoveredBackends(items) {
-      // Extract backend-role services only (skip web frontends).
-      const list = Array.isArray(items)
-        ? items.filter((item) => !item?.role || item.role !== 'web')
-        : [];
-      // Build URL→metadata map for friendly display.
-      const meta = { ...this.backendMeta };
-      for (const item of list) {
-        const url = String(item?.url || '').trim();
-        if (!url) continue;
-        meta[url] = {
-          name: String(item?.name || '').trim(),
-          host: String(item?.host || '').trim(),
-          ip: String(item?.ip || '').trim(),
-          txt_hostname: String(item?.txt_hostname || '').trim(),
-        };
+      const result = mergeDiscoveredItems(
+        items,
+        this.backendMeta,
+        this.loadBackendState(),
+        { defaultBackendUrl: this.DEFAULT_BACKEND_URL, localIps: this.localIps || [] },
+      );
+      this.backendMeta = result.meta;
+      // saveBackendState already ran inside mergeDiscoveredItems; mirror
+      // the cached fields the Alpine component reads in templates.
+      this._cachedBackends = result.state.backends;
+      this._cachedSelectedBackend = result.state.selected;
+      if (result.autoSelectedUrl) {
+        this._closeSSE();
+        this._initSSE();
+        this.deferRefresh(0);
       }
-      this.backendMeta = meta;
-
-      // Determine which items refer to this same machine (self).
-      // Primary check: compare the backend's hostname TXT record (from BG-6)
-      // against our injected local hostname — exact, case-insensitive match.
-      // Fallbacks (for old backends without the TXT field): .local hostname
-      // parsing, IP match, loopback detection.
-      const localHostLower = dashboardHostnameLower();
-      const selfLocal = localHostLower ? `${localHostLower}.local` : '';
-      const localIps = this.localIps || [];
-      const isSelf = (item) => {
-        // Primary: TXT hostname (BG-6)
-        const txtHost = String(item?.txt_hostname || '').toLowerCase();
-        if (txtHost && localHostLower && txtHost === localHostLower) return true;
-        // Fallback: SRV .local hostname (strip trailing dot, lowercase)
-        const host = String(item?.host || '').toLowerCase().replace(/\.$/, '');
-        if (selfLocal && host === selfLocal) return true;
-        // Fallback: IP match
-        const ip = String(item?.ip || '');
-        if (ip && localIps.includes(ip)) return true;
-        if (ip && ip.startsWith('127.')) return true;
-        try {
-          const urlIp = new URL(String(item?.url || '')).hostname;
-          if (urlIp === '127.0.0.1') return true;
-        } catch { /* ignore */ }
-        return false;
-      };
-
-      // Dedupe by instance name, then drop self entries for the dropdown.
-      const seenNames = new Set();
-      const deduped = [];
-      for (const item of list) {
-        const name = String(item?.name || '').trim();
-        if (name && seenNames.has(name)) continue;
-        if (name) seenNames.add(name);
-        deduped.push(item);
-      }
-      const remote = deduped.filter((item) => !isSelf(item));
-      const discovered = remote.map((i) => String(i?.url || '').trim()).filter(Boolean);
-
-      if (!discovered.length) return;
-      const state = this.loadBackendState();
-      const merged = [...new Set([...state.backends, ...discovered])];
-      const firstDiscovered = discovered[0];
-      const autoSelect = discovered.length === 1
-        && state.selected === this.DEFAULT_BACKEND_URL
-        && firstDiscovered !== state.selected;
-      this.saveBackendState(merged, autoSelect ? firstDiscovered : state.selected);
-      if (autoSelect) { this._closeSSE(); this._initSSE(); this.deferRefresh(0); }
     },
     backendDisplayName(url) {
-      if (!url) return '-';
-      // Extract address (host:port) shown in parens
-      let addr = url;
-      try { addr = new URL(url).host; } catch { /* keep raw */ }
-      // Default backend: substitute real LAN IP (Google trick) for loopback
-      if (url === this.DEFAULT_BACKEND_URL) {
-        const host = dashboardHostname();
-        const mainIp = runtimeLocalMainIp();
-        let port = '8000';
-        try { port = new URL(url).port || '8000'; } catch { /* keep default */ }
-        return `${host} (${mainIp}:${port})`;
-      }
-      // Discovered backend with Bonjour name
-      const meta = this.backendMeta[url];
-      if (meta?.name) {
-        const name = meta.name.replace(/\s*\(\d+\)\s*$/, '');
-        return `${name} (${addr})`;
-      }
-      // Fallback: host:port only
-      return addr;
+      return composeBackendDisplayName(
+        url,
+        this.backendMeta,
+        this.DEFAULT_BACKEND_URL,
+        runtimeLocalMainIp(),
+      );
     },
     apiPath(path) {
-      const backend = this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;
-      return `${backend.replace(/\/+$/, '')}${path}`;
+      return composeApiPath(
+        this.loadBackendState().selected || this.DEFAULT_BACKEND_URL,
+        path,
+      );
     },
     backendBaseUrl() {
       return this.loadBackendState().selected || this.DEFAULT_BACKEND_URL;
