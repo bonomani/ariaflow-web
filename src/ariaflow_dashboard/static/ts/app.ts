@@ -610,8 +610,15 @@ document.addEventListener('alpine:init', () => {
           now: () => Date.now(),
           setTimer: (cb, ms) => setTimeout(cb, ms),
           clearTimer: (token) => clearTimeout(token),
-          fetchJson: async (method, path) => {
-            const r = await apiFetch(this.apiPath(path), { method, timeoutMs: 8000 });
+          fetchJson: async (method, path, params) => {
+            let url = this.apiPath(path);
+            if (params) {
+              const qs = new URLSearchParams();
+              for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
+              const s = qs.toString();
+              if (s) url += (url.includes('?') ? '&' : '?') + s;
+            }
+            const r = await apiFetch(url, { method, timeoutMs: 8000 });
             return r.json();
           },
         });

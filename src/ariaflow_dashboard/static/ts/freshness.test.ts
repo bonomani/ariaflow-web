@@ -341,6 +341,38 @@ test('unsubscribe stops further onUpdate calls', async () => {
   assert.equal(count, 1);
 });
 
+test('subscribe with params: passes them to fetchJson and refetches on change', async () => {
+  const fakeClock: FakeClock = { now: 1_000_000, timers: new Map(), nextId: 1 };
+  const calls: Array<{ path: string; params?: Record<string, string | number> }> = [];
+  const adapters: RouterAdapters = {
+    now: () => fakeClock.now,
+    setTimer: (cb, ms) => { const id = fakeClock.nextId++; fakeClock.timers.set(id, { fireAt: fakeClock.now + ms, cb }); return id; },
+    clearTimer: (token) => { fakeClock.timers.delete(token as number); },
+    fetchJson: async (_method, path, params) => { calls.push({ path, params }); return { ok: true }; },
+  };
+  const r = new FreshnessRouter(adapters);
+  r.registerMeta({ method: 'GET', path: '/api/downloads/archive', freshness: 'swr', ttl_s: 60 });
+  r.subscribe('GET', '/api/downloads/archive', 'archive', { visible: true, params: { limit: 100 } });
+  advance(fakeClock, 0);
+  await tick();
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].params, { limit: 100 });
+
+  // Same params → no new fetch on resubscribe
+  r.unsubscribe('GET', '/api/downloads/archive', 'archive');
+  r.subscribe('GET', '/api/downloads/archive', 'archive', { visible: true, params: { limit: 100 } });
+  await tick();
+  assert.equal(calls.length, 1, 'unchanged params should reuse cache');
+
+  // Changed params → cache invalidated, refetch
+  r.unsubscribe('GET', '/api/downloads/archive', 'archive');
+  r.subscribe('GET', '/api/downloads/archive', 'archive', { visible: true, params: { limit: 200 } });
+  advance(fakeClock, 0);
+  await tick();
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[1].params, { limit: 200 });
+});
+
 test('onUpdate exception is isolated — other subscribers still fire', async () => {
   const { adapters, fakeClock } = makeAdapters({ responses: { 'GET /api/lifecycle': { ok: true } } });
   const r = new FreshnessRouter(adapters);

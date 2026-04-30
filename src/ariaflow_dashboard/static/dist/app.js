@@ -573,6 +573,15 @@ function distinctTargets(entries) {
 function endpointKey(method, path) {
   return `${method.toUpperCase()} ${path}`;
 }
+function paramsEqual(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return !a && !b;
+  const ak = Object.keys(a);
+  const bk = Object.keys(b);
+  if (ak.length !== bk.length) return false;
+  for (const k of ak) if (String(a[k]) !== String(b[k])) return false;
+  return true;
+}
 var FreshnessRouter = class {
   constructor(adapters) {
     this.endpoints = /* @__PURE__ */ new Map();
@@ -587,14 +596,15 @@ var FreshnessRouter = class {
       existing.meta = meta;
       return;
     }
-    this.endpoints.set(key, {
+    const next = {
       meta,
       subscribers: /* @__PURE__ */ new Map(),
       lastFetchAt: null,
       lastValue: void 0,
       inflight: null,
       timer: null
-    });
+    };
+    this.endpoints.set(key, next);
   }
   /**
    * Subscribe a component to an endpoint.
@@ -611,6 +621,12 @@ var FreshnessRouter = class {
     const ep = this.endpoints.get(key);
     if (!ep) {
       throw new Error(`FreshnessRouter: no meta registered for ${key}`);
+    }
+    const paramsChanged = opts.params !== void 0 && !paramsEqual(ep.currentParams, opts.params);
+    if (paramsChanged) {
+      ep.currentParams = opts.params;
+      ep.lastValue = void 0;
+      ep.lastFetchAt = null;
     }
     const rec = { id: subscriberId, visible: opts.visible };
     if (opts.onUpdate) rec.onUpdate = opts.onUpdate;
@@ -764,7 +780,7 @@ var FreshnessRouter = class {
     if (!ep) return void 0;
     if (ep.inflight) return ep.inflight;
     this.log(key, "fetch-start");
-    const promise = this.adapters.fetchJson(ep.meta.method, ep.meta.path).then((value) => {
+    const promise = this.adapters.fetchJson(ep.meta.method, ep.meta.path, ep.currentParams).then((value) => {
       ep.lastValue = value;
       ep.lastFetchAt = this.adapters.now();
       ep.inflight = null;
@@ -1516,8 +1532,15 @@ document.addEventListener("alpine:init", () => {
           now: () => Date.now(),
           setTimer: (cb, ms) => setTimeout(cb, ms),
           clearTimer: (token) => clearTimeout(token),
-          fetchJson: async (method, path) => {
-            const r = await apiFetch(this.apiPath(path), { method, timeoutMs: 8e3 });
+          fetchJson: async (method, path, params) => {
+            let url = this.apiPath(path);
+            if (params) {
+              const qs = new URLSearchParams();
+              for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
+              const s = qs.toString();
+              if (s) url += (url.includes("?") ? "&" : "?") + s;
+            }
+            const r = await apiFetch(url, { method, timeoutMs: 8e3 });
             return r.json();
           }
         });

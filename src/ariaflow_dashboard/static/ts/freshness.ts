@@ -41,9 +41,12 @@ export function endpointKey(method: string, path: string): EndpointKey {
   return `${method.toUpperCase()} ${path}`;
 }
 
+export type QueryParams = Record<string, string | number>;
+
 export interface RouterAdapters {
-  /** Performs a one-shot fetch. Resolves with parsed JSON or rejects. */
-  fetchJson: (method: string, path: string) => Promise<unknown>;
+  /** Performs a one-shot fetch. Resolves with parsed JSON or rejects.
+   *  `params` is the current subscriber-supplied query string, if any. */
+  fetchJson: (method: string, path: string, params?: QueryParams) => Promise<unknown>;
   /** Returns current monotonic time in ms. Override in tests. */
   now: () => number;
   /** Schedule a callback after `ms`. Returns a token cancellable via clearTimer. */
@@ -83,6 +86,19 @@ interface EndpointState {
   lastValue: unknown;
   inflight: Promise<unknown> | null;
   timer: unknown;
+  /** Last params used (or about to be used) for a fetch on this endpoint.
+   *  Latest subscribe() with params wins; cache invalidates on change. */
+  currentParams?: QueryParams;
+}
+
+function paramsEqual(a?: QueryParams, b?: QueryParams): boolean {
+  if (a === b) return true;
+  if (!a || !b) return !a && !b;
+  const ak = Object.keys(a);
+  const bk = Object.keys(b);
+  if (ak.length !== bk.length) return false;
+  for (const k of ak) if (String(a[k]) !== String(b[k])) return false;
+  return true;
 }
 
 export interface RouterStatus {
@@ -114,14 +130,15 @@ export class FreshnessRouter {
       existing.meta = meta;
       return;
     }
-    this.endpoints.set(key, {
+    const next: EndpointState = {
       meta,
       subscribers: new Map(),
       lastFetchAt: null,
       lastValue: undefined,
       inflight: null,
       timer: null,
-    });
+    };
+    this.endpoints.set(key, next);
   }
 
   /**
@@ -138,12 +155,21 @@ export class FreshnessRouter {
     method: string,
     path: string,
     subscriberId: string,
-    opts: { visible: boolean; onUpdate?: (value: unknown) => void },
+    opts: { visible: boolean; onUpdate?: (value: unknown) => void; params?: QueryParams },
   ): void {
     const key = endpointKey(method, path);
     const ep = this.endpoints.get(key);
     if (!ep) {
       throw new Error(`FreshnessRouter: no meta registered for ${key}`);
+    }
+    // If the new subscriber supplies params and they differ from the
+    // current ones, invalidate the cache — last writer wins. Designed for
+    // single-active-subscriber endpoints (e.g. archive/sessions limit).
+    const paramsChanged = opts.params !== undefined && !paramsEqual(ep.currentParams, opts.params);
+    if (paramsChanged) {
+      ep.currentParams = opts.params;
+      ep.lastValue = undefined;
+      ep.lastFetchAt = null;
     }
     const rec: SubscriberRecord = { id: subscriberId, visible: opts.visible };
     if (opts.onUpdate) rec.onUpdate = opts.onUpdate;
@@ -318,7 +344,7 @@ export class FreshnessRouter {
     if (ep.inflight) return ep.inflight;
     this.log(key, 'fetch-start');
     const promise = this.adapters
-      .fetchJson(ep.meta.method, ep.meta.path)
+      .fetchJson(ep.meta.method, ep.meta.path, ep.currentParams)
       .then((value) => {
         ep.lastValue = value;
         ep.lastFetchAt = this.adapters.now();
