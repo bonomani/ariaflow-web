@@ -36,7 +36,7 @@ test('urlScheduler accepts pause / resume / preflight / ucc', () => {
 });
 
 test('urlAria2GetOption encodes gid', () => {
-  assert.equal(urlAria2GetOption('g 1'), '/api/aria2/get_option?gid=g%201');
+  assert.equal(urlAria2GetOption('g 1'), '/api/aria2/option?gid=g%201');
 });
 
 test('urlSessionStats encodes session_id', () => {

@@ -39,6 +39,26 @@ def _load_ucc_declarations() -> dict:
 _UCC = _load_ucc_declarations()
 
 
+def _request(url: str, method: str, payload: object = None, expect_status: int | None = None) -> dict:
+    data = json.dumps(payload).encode("utf-8") if payload is not None else b"{}"
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method=method)
+    try:
+        resp = urllib.request.urlopen(req, timeout=5)
+        result = json.loads(resp.read().decode())
+        if expect_status is not None:
+            assert resp.status == expect_status, f"Expected {expect_status}, got {resp.status}"
+        return result
+    except urllib.error.HTTPError as exc:
+        result = json.loads(exc.read().decode())
+        if expect_status is not None:
+            assert exc.code == expect_status, f"Expected {expect_status}, got {exc.code}"
+        return result
+
+
+def _put(url: str, payload: object = None, expect_status: int | None = None) -> dict:
+    return _request(url, "PUT", payload, expect_status)
+
+
 def _post(url: str, payload: object = None, expect_status: int | None = None) -> dict:
     data = json.dumps(payload).encode("utf-8") if payload is not None else b"{}"
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
@@ -142,10 +162,10 @@ class TestGetEndpoints:
 
 class TestPostAdd:
     def test_valid_add(self, web_server: str) -> None:
-        _assert_post_ok(f"{web_server}/api/downloads/add", {"items": [{"url": "http://example.com/f"}]})
+        _assert_post_ok(f"{web_server}/api/downloads", {"items": [{"url": "http://example.com/f"}]})
 
     def test_add_empty_items(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/downloads/add", {"items": []})
+        data = _post(f"{web_server}/api/downloads", {"items": []})
         assert isinstance(data, dict)
 
 
@@ -164,16 +184,16 @@ class TestPostRun:
 
 class TestPostDeclaration:
     def test_valid_declaration(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/declaration", {"uic": {"preferences": []}})
+        data = _put(f"{web_server}/api/declaration", {"uic": {"preferences": []}})
         assert "uic" in data
 
     def test_empty_declaration(self, web_server: str) -> None:
-        data = _post(f"{web_server}/api/declaration", {})
+        data = _put(f"{web_server}/api/declaration", {})
         assert isinstance(data, dict)
 
     def test_declaration_non_object(self, web_server: str) -> None:
         # Should still work — coerced to {}
-        data = _post(f"{web_server}/api/declaration", "not json object")
+        data = _put(f"{web_server}/api/declaration", "not json object")
         assert isinstance(data, dict)
 
 
@@ -251,10 +271,10 @@ class TestPostMisc:
         _assert_get_ok(f"{web_server}/api/health")
 
     def test_aria2_get_option(self, web_server: str) -> None:
-        _assert_get_ok(f"{web_server}/api/aria2/get_option?gid=dummy")
+        _assert_get_ok(f"{web_server}/api/aria2/option?gid=dummy")
 
     def test_aria2_get_global_option(self, web_server: str) -> None:
-        _assert_get_ok(f"{web_server}/api/aria2/get_global_option")
+        _assert_get_ok(f"{web_server}/api/aria2/global_option")
 
     def test_aria2_option_tiers(self, web_server: str) -> None:
         _assert_get_ok(f"{web_server}/api/aria2/option_tiers")
@@ -288,7 +308,7 @@ class TestPostMisc:
 
     def test_invalid_json_body(self, web_server: str) -> None:
         req = urllib.request.Request(
-            f"{web_server}/api/downloads/add",
+            f"{web_server}/api/downloads",
             data=b"not json {{{",
             headers={"Content-Type": "application/json"},
             method="POST",

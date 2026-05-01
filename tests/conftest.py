@@ -197,7 +197,7 @@ class MockBackendHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
@@ -233,9 +233,9 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send(DEFAULT_TORRENTS)
         elif path == "/api/peers":
             self._send(DEFAULT_PEERS)
-        elif path == "/api/aria2/get_option":
+        elif path == "/api/aria2/option":
             self._send(DEFAULT_ARIA2_GET_OPTION)
-        elif path == "/api/aria2/get_global_option":
+        elif path == "/api/aria2/global_option":
             self._send(DEFAULT_ARIA2_GET_GLOBAL_OPTION)
         elif path == "/api/aria2/option_tiers":
             self._send(DEFAULT_ARIA2_OPTION_TIERS)
@@ -254,7 +254,7 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send({"ok": False, "error": "invalid_json"}, status=400)
             return
 
-        if path == "/api/downloads/add":
+        if path == "/api/downloads":
             items = payload.get("items", [])
             self._send({"ok": True, "count": len(items), "added": [{"url": item.get("url", "")} for item in items]})
         elif path == "/api/scheduler/resume":
@@ -265,9 +265,6 @@ class MockBackendHandler(BaseHTTPRequestHandler):
             self._send(self.preflight_data)
         elif path == "/api/scheduler/ucc":
             self._send({"result": {"outcome": "converged", "observation": "ok"}, "meta": {"contract": "UCC", "version": "1.0"}})
-        elif path == "/api/declaration":
-            self.declaration_data = payload if isinstance(payload, dict) and payload.get("uic") else self.declaration_data
-            self._send(self.declaration_data)
         elif path.startswith("/api/lifecycle/"):
             self._send({"ok": True, "lifecycle": self.lifecycle_data})
         elif path == "/api/sessions/new":
@@ -296,6 +293,22 @@ class MockBackendHandler(BaseHTTPRequestHandler):
                     self._send({"error": "not_found"}, status=404)
             else:
                 self._send({"error": "not_found"}, status=404)
+        else:
+            self._send({"error": "not_found"}, status=404)
+
+    def do_PUT(self) -> None:  # noqa: N802
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+        try:
+            payload = json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            self._send({"ok": False, "error": "invalid_json"}, status=400)
+            return
+
+        if path == "/api/declaration":
+            self.declaration_data = payload if isinstance(payload, dict) and payload.get("uic") else self.declaration_data
+            self._send(self.declaration_data)
         else:
             self._send({"error": "not_found"}, status=404)
 

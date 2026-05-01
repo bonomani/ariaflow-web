@@ -35,9 +35,9 @@ export function urlScheduler(action: SchedulerAction | 'preflight' | 'ucc'): str
   return `/api/scheduler/${action}`;
 }
 
-// /api/aria2/get_option?gid=:gid
+// /api/aria2/option?gid=:gid
 export function urlAria2GetOption(gid: string): string {
-  return `/api/aria2/get_option?gid=${encodeURIComponent(gid)}`;
+  return `/api/aria2/option?gid=${encodeURIComponent(gid)}`;
 }
 
 // /api/sessions/stats?session_id=:id

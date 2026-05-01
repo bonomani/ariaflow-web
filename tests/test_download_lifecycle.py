@@ -197,7 +197,7 @@ class FakeBackendHandler(MockBackendHandler):
 
     # Routes handled by FakeBackend (checked before reading body)
     _FAKE_POST_ROUTES = {
-        "/api/downloads/add", "/api/scheduler/pause", "/api/scheduler/resume",
+        "/api/downloads", "/api/scheduler/pause", "/api/scheduler/resume",
     }
 
     def do_GET(self) -> None:  # noqa: N802
@@ -217,7 +217,7 @@ class FakeBackendHandler(MockBackendHandler):
         raw = self.rfile.read(length).decode("utf-8") if length else "{}"
         payload = json.loads(raw or "{}")
 
-        if path == "/api/downloads/add":
+        if path == "/api/downloads":
             self._send(backend.add_items(payload.get("items", [])))
         elif path == "/api/scheduler/pause":
             self._send(backend.pause_queue())

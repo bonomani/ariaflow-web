@@ -341,7 +341,7 @@ function urlScheduler(action) {
   return `/api/scheduler/${action}`;
 }
 function urlAria2GetOption(gid) {
-  return `/api/aria2/get_option?gid=${encodeURIComponent(gid)}`;
+  return `/api/aria2/option?gid=${encodeURIComponent(gid)}`;
 }
 function urlSessionStats(sessionId) {
   return `/api/sessions/stats?session_id=${encodeURIComponent(sessionId)}`;
@@ -1337,7 +1337,7 @@ document.addEventListener("alpine:init", () => {
         { method: "GET", path: "/api/lifecycle", apply: (s, d) => s._applyLifecycle(d) }
       ],
       options: [
-        { method: "GET", path: "/api/aria2/get_global_option", apply: (s, d) => s._applyAria2GlobalOption(d) },
+        { method: "GET", path: "/api/aria2/global_option", apply: (s, d) => s._applyAria2GlobalOption(d) },
         { method: "GET", path: "/api/aria2/option_tiers", apply: (s, d) => s._applyAria2OptionTiers(d) },
         { method: "GET", path: "/api/torrents", apply: (s, d) => s._applyTorrents(d) },
         { method: "GET", path: "/api/peers", apply: (s, d) => s._applyPeers(d) },
@@ -2051,7 +2051,7 @@ document.addEventListener("alpine:init", () => {
         this.resultText = `Invalid JSON: ${e.message}`;
         return;
       }
-      const r = await this._fetch(this.apiPath("/api/declaration"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(parsed) });
+      const r = await this._fetch(this.apiPath("/api/declaration"), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(parsed) });
       const data = await r.json();
       this.lastDeclaration = data.declaration || data;
       this.resultText = "Declaration saved";
@@ -2132,7 +2132,7 @@ document.addEventListener("alpine:init", () => {
         return item;
       });
       const payload = { items };
-      const r = await this._fetch(this.apiPath("/api/downloads/add"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const r = await this._fetch(this.apiPath("/api/downloads"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (!r.ok || data.ok === false) {
         this.resultText = data.message || "Add request failed";
@@ -2551,7 +2551,7 @@ document.addEventListener("alpine:init", () => {
     },
     async loadAria2Options() {
       try {
-        const r = await this._fetch(this.apiPath("/api/aria2/get_global_option"));
+        const r = await this._fetch(this.apiPath("/api/aria2/global_option"));
         this._applyAria2GlobalOption(await r.json());
       } catch (e) {
         this.aria2Options = {};
