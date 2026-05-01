@@ -177,8 +177,7 @@ document.addEventListener('alpine:init', () => {
       // Use backend summary when available (avoids client-side recount)
       const s = this.lastStatus?.summary;
       if (s && !this.queueSearch) {
-        // BG-30: aria2-aligned vocabulary. Backend dual-keys
-        // removed/stopped during cutover; prefer canonical.
+        // BG-30 vocabulary: 6 aria2-native + 2 pre-aria2 statuses.
         return {
           all: s.total || 0,
           queued: s.queued || 0,
@@ -1430,9 +1429,9 @@ document.addEventListener('alpine:init', () => {
         this.lifecycleRows = [];
       }
     },
-    // True if a lifecycle row is in a healthy state. Reads BG-27's
-    // three axes when present; falls back to the BG-20 reason-enum
-    // for backward compatibility.
+    // True if a lifecycle row is in a healthy state — checks the BG-27
+    // three axes (installed / current / running, with expected_running
+    // from BG-29 modulating the running check).
     lifecycleHealthy(row) {
       // aria2-launchd is optional plumbing — treat as healthy regardless
       // so the Service Status nav badge doesn't false-positive on a

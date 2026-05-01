@@ -2365,9 +2365,9 @@ document.addEventListener("alpine:init", () => {
         this.lifecycleRows = [];
       }
     },
-    // True if a lifecycle row is in a healthy state. Reads BG-27's
-    // three axes when present; falls back to the BG-20 reason-enum
-    // for backward compatibility.
+    // True if a lifecycle row is in a healthy state — checks the BG-27
+    // three axes (installed / current / running, with expected_running
+    // from BG-29 modulating the running check).
     lifecycleHealthy(row) {
       if (row?.name?.includes("aria2 auto-start")) return true;
       return isLifecycleHealthy(row?.record);
