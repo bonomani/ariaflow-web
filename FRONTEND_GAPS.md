@@ -1,6 +1,17 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (3)
+## Open (4)
+
+### FE-27: Snapshot test asserting unread `/api/status` payload keys are gone (paired with BG-35)
+
+After BG-35 ships, add a frontend snapshot regression test asserting
+that `dispatch_paused` (top-level) and `filtered` no longer appear in
+the `/api/status` response shape consumed by this dashboard. Mirrors
+the BG-33 negative-snapshot pattern (`state.paused`, `summary.stopped`,
+`status:"stopped"`) on the FE side so any future drift is caught
+before it lands.
+
+Blocked by: BG-35.
 
 ### FE-24: Per-endpoint freshness routing + Dev-tab map (paired with BG-31)
 
