@@ -1325,35 +1325,41 @@ document.addEventListener("alpine:init", () => {
     // the tab is entered (init / navigateTo / visibility resume / backend switch).
     // Note: declaration response field "policies" is surfaced via loadDeclaration.
     LOADERS: {
-      dashboard: [
-        { fn: "loadDeclaration", k: 12 }
-      ],
-      bandwidth: [
-        { fn: "refreshBandwidth", k: 3 },
-        { fn: "loadDeclaration", k: 12 }
-      ],
-      lifecycle: [
-        { fn: "loadLifecycle", k: 3 }
-      ],
-      options: [
-        { fn: "loadAria2Options", k: 12 },
-        { fn: "loadTorrents", k: 12 },
-        { fn: "loadPeers", k: 12 },
-        { fn: "loadDeclaration", k: 12 }
-      ],
-      log: [
-        { fn: "loadWebLog", k: 3 },
-        { fn: "loadSessionHistory", k: 12 },
-        { fn: "loadDeclaration", k: 12 }
-      ],
+      dashboard: [],
+      bandwidth: [],
+      lifecycle: [],
+      options: [],
+      log: [],
       archive: [],
       dev: []
     },
     // FE-26: per-tab router subscriptions. Each entry maps a tab to one
-    // or more endpoints; the router decides when to fetch (class+ttl) and
-    // calls `apply(self, data)` to update view state. As tabs migrate off
-    // the LOADERS manifest, their entries land here.
+    // endpoint; the router decides when to fetch (class+ttl) and calls
+    // `apply(self, data)` to update view state. Replaces the LOADERS
+    // manifest's per-tab cadence multipliers.
     TAB_SUBS: {
+      dashboard: [
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
+      ],
+      bandwidth: [
+        { method: "GET", path: "/api/bandwidth", apply: (s, d) => s._applyBandwidth(d) },
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
+      ],
+      lifecycle: [
+        { method: "GET", path: "/api/lifecycle", apply: (s, d) => s._applyLifecycle(d) }
+      ],
+      options: [
+        { method: "GET", path: "/api/aria2/get_global_option", apply: (s, d) => s._applyAria2GlobalOption(d) },
+        { method: "GET", path: "/api/aria2/option_tiers", apply: (s, d) => s._applyAria2OptionTiers(d) },
+        { method: "GET", path: "/api/torrents", apply: (s, d) => s._applyTorrents(d) },
+        { method: "GET", path: "/api/peers", apply: (s, d) => s._applyPeers(d) },
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
+      ],
+      log: [
+        { method: "GET", path: "/api/web/log", getParams: () => ({ limit: 100 }), apply: (s, d) => s._applyWebLog(d) },
+        { method: "GET", path: "/api/sessions", getParams: () => ({ limit: 50 }), apply: (s, d) => s._applySessionHistory(d) },
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
+      ],
       archive: [
         {
           method: "GET",
@@ -1365,6 +1371,13 @@ document.addEventListener("alpine:init", () => {
         }
       ]
     },
+    // FE-26: synthetic metadata for endpoints not in /api/_meta. The
+    // dashboard's own /api/web/log and aria2's option_tiers are not
+    // ariaflow-server endpoints, so they need local registration.
+    LOCAL_METAS: [
+      { method: "GET", path: "/api/web/log", freshness: "warm", ttl_s: 30 },
+      { method: "GET", path: "/api/aria2/option_tiers", freshness: "cold" }
+    ],
     _tabPollers: [],
     _tabHidden: false,
     _currentTabSubs: [],
@@ -1599,6 +1612,12 @@ document.addEventListener("alpine:init", () => {
           }
         });
         if (!router) return;
+        for (const m of this.LOCAL_METAS || []) {
+          try {
+            router.registerMeta(m);
+          } catch (e) {
+          }
+        }
         this._freshnessRouter = router;
         this._freshnessVisibility = wireHostVisibility(router);
         this._subscribeTab(this.page);
@@ -2079,13 +2098,16 @@ document.addEventListener("alpine:init", () => {
       return pref ? pref.value : void 0;
     },
     _declarationLoadedAt: 0,
+    _applyDeclaration(data) {
+      this.lastDeclaration = data;
+      if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) return;
+      this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
+      this._declarationLoadedAt = Date.now();
+    },
     async loadDeclaration(force = false) {
       if (!force && this.lastDeclaration && this.lastDeclaration.ok !== false && Date.now() - this._declarationLoadedAt < 3e4) return;
       const r = await this._fetch(this.apiPath("/api/declaration"));
-      this.lastDeclaration = await r.json();
-      if (this.lastDeclaration?.ok === false || this.lastDeclaration?.["ariaflow-server"]?.reachable === false) return;
-      this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
-      this._declarationLoadedAt = Date.now();
+      this._applyDeclaration(await r.json());
     },
     async saveDeclaration() {
       let parsed;
@@ -2375,58 +2397,58 @@ document.addEventListener("alpine:init", () => {
         this.probeRunning = false;
       }
     },
+    _applyBandwidth(data) {
+      if (data && data.ok !== false) {
+        this.lastStatus = { ...this.lastStatus || {}, bandwidth: data };
+      }
+    },
     async refreshBandwidth() {
       try {
         const r = await this._fetch(this.apiPath("/api/bandwidth"));
-        const data = await r.json();
-        if (data && data.ok !== false) {
-          this.lastStatus = { ...this.lastStatus || {}, bandwidth: data };
-        }
+        this._applyBandwidth(await r.json());
       } catch (e) {
         console.warn("refreshBandwidth:", e.message);
       }
     },
     // --- lifecycle ---
+    _applyLifecycle(data) {
+      this.lastLifecycle = data;
+      if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) {
+        this.lifecycleRows = [];
+        return;
+      }
+      const ariaflowLegacy = [
+        { target: "ariaflow-server", action: "install", label: "Install / Update" },
+        { target: "ariaflow-server", action: "uninstall", label: "Remove" }
+      ];
+      const launchdLegacy = [
+        { target: "aria2-launchd", action: "install", label: "Load" },
+        { target: "aria2-launchd", action: "uninstall", label: "Unload" }
+      ];
+      this.lifecycleRows = [
+        {
+          name: "ariaflow-server",
+          record: data["ariaflow-server"],
+          actions: lifecycleActionsFor("ariaflow-server", data["ariaflow-server"], ariaflowLegacy)
+        },
+        { name: "aria2", record: data.aria2, actions: lifecycleActionsFor("aria2", data.aria2, []) },
+        { name: "networkquality", record: data.networkquality, actions: [] },
+        {
+          name: "aria2 auto-start (advanced)",
+          record: data["aria2-launchd"],
+          actions: lifecycleActionsFor(
+            "aria2 auto-start (advanced)",
+            data["aria2-launchd"],
+            launchdLegacy
+          )
+        }
+      ];
+      this._lifecycleSession = data?.session_id ? data : null;
+    },
     async loadLifecycle() {
       try {
         const r = await this._fetch(this.apiPath("/api/lifecycle"));
-        const data = await r.json();
-        this.lastLifecycle = data;
-        if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) {
-          this.lifecycleRows = [];
-          return;
-        }
-        const ariaflowLegacy = [
-          { target: "ariaflow-server", action: "install", label: "Install / Update" },
-          { target: "ariaflow-server", action: "uninstall", label: "Remove" }
-        ];
-        const launchdLegacy = [
-          { target: "aria2-launchd", action: "install", label: "Load" },
-          { target: "aria2-launchd", action: "uninstall", label: "Unload" }
-        ];
-        this.lifecycleRows = [
-          {
-            name: "ariaflow-server",
-            record: data["ariaflow-server"],
-            actions: lifecycleActionsFor("ariaflow-server", data["ariaflow-server"], ariaflowLegacy)
-          },
-          { name: "aria2", record: data.aria2, actions: lifecycleActionsFor("aria2", data.aria2, []) },
-          { name: "networkquality", record: data.networkquality, actions: [] },
-          {
-            name: "aria2 auto-start (advanced)",
-            record: data["aria2-launchd"],
-            actions: lifecycleActionsFor(
-              "aria2 auto-start (advanced)",
-              data["aria2-launchd"],
-              launchdLegacy
-            )
-          }
-        ];
-        if (data?.session_id) {
-          this._lifecycleSession = data;
-        } else {
-          this._lifecycleSession = null;
-        }
+        this._applyLifecycle(await r.json());
       } catch (e) {
         this.lifecycleRows = [];
       }
@@ -2507,11 +2529,13 @@ document.addEventListener("alpine:init", () => {
         this.actionLogEntries = [];
       }
     },
+    _applyWebLog(data) {
+      this.webLogEntries = data?.items || [];
+    },
     async loadWebLog() {
       try {
         const r = await this._fetch("/api/web/log?limit=100");
-        const data = await r.json();
-        this.webLogEntries = data.items || [];
+        this._applyWebLog(await r.json());
       } catch (e) {
         this.webLogEntries = [];
       }
@@ -2601,11 +2625,13 @@ document.addEventListener("alpine:init", () => {
       }
     },
     // --- session history ---
+    _applySessionHistory(data) {
+      this.sessionHistory = data?.sessions || [];
+    },
     async loadSessionHistory() {
       try {
         const r = await this._fetch(this.apiPath("/api/sessions?limit=50"));
-        const data = await r.json();
-        this.sessionHistory = data.sessions || [];
+        this._applySessionHistory(await r.json());
       } catch (e) {
         this.sessionHistory = [];
       }
@@ -2626,18 +2652,22 @@ document.addEventListener("alpine:init", () => {
       return liveItems.find((item) => item && (item.gid === active?.gid || state?.active_gid && item.gid === state.active_gid || active?.url && item.url && active.url === item.url)) || liveItems.find((item) => item && (Number(item.downloadSpeed) > 0 || Number(item.uploadSpeed) > 0)) || active || null;
     },
     // --- aria2 options ---
+    _applyAria2GlobalOption(data) {
+      if (data && data.ok !== false) this.aria2Options = data;
+    },
+    _applyAria2OptionTiers(data) {
+      if (data && !data.error) this.aria2Tiers = data;
+    },
     async loadAria2Options() {
       try {
         const r = await this._fetch(this.apiPath("/api/aria2/get_global_option"));
-        const data = await r.json();
-        if (data && data.ok !== false) this.aria2Options = data;
+        this._applyAria2GlobalOption(await r.json());
       } catch (e) {
         this.aria2Options = {};
       }
       try {
         const r = await this._fetch(this.apiPath("/api/aria2/option_tiers"));
-        const data = await r.json();
-        if (data && !data.error) this.aria2Tiers = data;
+        this._applyAria2OptionTiers(await r.json());
       } catch (e) {
         console.warn("loadAria2Tiers:", e.message);
       }
@@ -2736,21 +2766,25 @@ document.addEventListener("alpine:init", () => {
       }
     },
     // --- torrents ---
+    _applyPeers(data) {
+      this.peerList = data?.peers || [];
+    },
     async loadPeers() {
       try {
         const r = await this._fetch(this.apiPath("/api/peers"));
-        const data = await r.json();
-        this.peerList = data.peers || [];
+        this._applyPeers(await r.json());
       } catch (e) {
         this.peerList = [];
       }
+    },
+    _applyTorrents(data) {
+      this.torrentList = data?.torrents || data?.items || [];
     },
     async loadTorrents() {
       this.torrentLoading = true;
       try {
         const r = await this._fetch(this.apiPath("/api/torrents"));
-        const data = await r.json();
-        this.torrentList = data.torrents || data.items || [];
+        this._applyTorrents(await r.json());
       } catch (e) {
         this.torrentList = [];
       } finally {

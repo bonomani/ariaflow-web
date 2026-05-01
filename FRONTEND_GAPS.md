@@ -1,33 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (4)
-
-### FE-26: Replace LOADERS manifest with FreshnessRouter subscriptions (paired with BG-34)
-
-Today every tab's data refresh runs through `app.ts LOADERS` — a static
-manifest of `{fn, k}` per tab that fires each loader once on entry and
-then on `setInterval(k * refreshInterval)`. With BG-31's freshness
-contract shipped, the router knows each endpoint's class + ttl + topics;
-the manifest is now a parallel source of truth for cadence.
-
-Replace it with subscriber-driven router calls per page. Each tab
-component becomes a subscriber; the router decides when to fetch based
-on class + visibility + ref-count. Eliminates the manifest, the per-tab
-`k` multipliers, `_startTabPollers`, and `_stopTabPollers`.
-
-Two prerequisites:
-
-1. **Router needs a fetch-result notify hook** (`onUpdate(endpoint, cb)`
-   or per-subscribe callback). Today the router caches `lastValue` but
-   doesn't notify; without that, ports can't drive Alpine state on each
-   refresh. Frontend-only design.
-2. **BG-34** — five tab endpoints are unregistered in `/api/_meta`
-   (`/api/torrents`, `/api/peers`, `/api/downloads/archive`,
-   `/api/sessions`, `/api/declaration`). Without registration the router
-   can't drive them, so the manifest can't go away cleanly.
-
-Blocked by: BG-34 (partial — frontend can ship the router callback API
-and port already-registered tabs first).
+## Open (3)
 
 ### FE-24: Per-endpoint freshness routing + Dev-tab map (paired with BG-31)
 
@@ -72,6 +45,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-26 | LOADERS manifest replaced by `TAB_SUBS` declarations driven by `FreshnessRouter`. All six tabs (dashboard, bandwidth, lifecycle, options, log, archive) subscribe through the router; per-tab `k` multipliers gone. Two prereqs landed first: `onUpdate` notify hook (commit 6777814) and `subscribe(params)` for query-stringed endpoints (`?limit=` on archive/sessions). Synthetic meta registered for `/api/web/log` and `/api/aria2/option_tiers` (not in `/api/_meta`). Loader functions kept as `_apply<X>(data)` helpers + thin fetch wrappers for explicit-call paths (e.g. `loadLifecycle()` after a lifecycle action). `_startTabPollers`/`_stopTabPollers` retained as harness; LOADERS now empty for every tab — follow-up commit can remove them outright | 2026-05-01 |
 | FE-25 | Dropped legacy alias fallbacks (paired with BG-33): `state.dispatch_paused ?? state.paused` collapsed to `dispatch_paused` only, `s.removed ?? s.stopped` to `removed`, `'stopped'` removed from `itemCanRetry` allow-list and `formatters.badgeClass` bad-list. Earlier this session: `lifecycle.ts` `labelFromLegacy` + axes-absent fallbacks deleted | 2026-04-30 |
 | FE-23 | Aria2-aligned item-status vocabulary (BG-30 cutover): dropped phantom statuses (recovered/failed/downloading/done/cancelled), switched filter buckets to canonical names (active/complete/removed), wired waiting counter, switched to `state.dispatch_paused` reads | 2026-04-30 |
 | FE-21 | Bonjour service type fixed (`_ariaflow-server._tcp` / `_ariaflow-dashboard._tcp`) | 2026-04-09 |
