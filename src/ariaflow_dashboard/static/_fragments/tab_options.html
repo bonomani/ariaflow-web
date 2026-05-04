@@ -130,6 +130,23 @@
         </div>
       </div>
 
+      <!-- Declaration — moved from Log tab; UIC declaration is config, not log data -->
+      <div class="span-12" x-show="page === 'options'">
+        <div class="panel declaration">
+          <div class="section-title">
+            <h2>Declaration</h2>
+            <div class="hint">UIC settings and policy</div>
+          </div>
+          <textarea x-model="declarationText" placeholder="Loading declaration..."></textarea>
+          <div class="row">
+            <button :class="{ secondary: !backendReachable }" @click="loadDeclaration(true)" :disabled="!backendReachable">Load</button>
+            <button :class="{ secondary: !backendReachable }" @click="saveDeclaration()" :disabled="!backendReachable">Save</button>
+          </div>
+          <div class="text-muted text-sm mt-sm" x-show="lastDeclaration?.updated_at" x-text="lastDeclaration?.updated_at ? 'Last modified ' + relativeTime(lastDeclaration.updated_at) : ''"></div>
+          <div class="text-muted text-sm mt-sm" x-show="resultText && resultText !== 'Idle'" x-text="resultText"></div>
+        </div>
+      </div>
+
       <div class="span-12" x-show="page === 'options' && distributeEnabled">
         <div class="panel">
           <div class="section-title">
