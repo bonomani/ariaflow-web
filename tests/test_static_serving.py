@@ -40,7 +40,12 @@ class TestStaticFiles:
 
     def test_html_injects_version_global(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
-        assert 'window.__ARIAFLOW_DASHBOARD_VERSION__="0.' in body
+        import re as _re
+
+        # Match any semver-shaped version, not a hardcoded 0.x prefix —
+        # otherwise the test passes silently on corrupt strings and
+        # would fail on a legitimate 1.0.0 bump.
+        assert _re.search(r'window\.__ARIAFLOW_DASHBOARD_VERSION__="\d+\.\d+\.\d+', body)
 
     def test_html_injects_pid_global(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
