@@ -10,7 +10,7 @@
               <div class="item compact">
                 <div class="item-top">
                   <div class="item-url" x-text="shortName(item.output || item.url || '(no url)')"></div>
-                  <span :class="badgeClass(item.status || 'cancelled')" x-text="item.status || 'cancelled'"></span>
+                  <span :class="badgeClass(item.status || 'removed')" x-text="item.status || 'removed'"></span>
                 </div>
                 <div class="meta">
                   <span x-show="item.cancelled_at" x-text="'Removed ' + relativeTime(item.cancelled_at)"></span>

@@ -1533,6 +1533,8 @@ document.addEventListener("alpine:init", () => {
     aria2Options: {},
     aria2Tiers: { managed: [], safe: [], unsafe_enabled: false },
     aria2OptionResult: "",
+    // openapi spec version (FE-29 / BG-37: detect spec/runtime stamp drift)
+    specVersion: null,
     // test suite
     testRunning: false,
     testSummaryVisible: false,
@@ -1676,6 +1678,7 @@ document.addEventListener("alpine:init", () => {
       const urlMap = { dashboard: "/", bandwidth: "/bandwidth", lifecycle: "/lifecycle", options: "/options", log: "/log", dev: "/dev", archive: "/archive" };
       history.pushState(null, "", urlMap[target] || "/");
       this._refreshTabOnly(target);
+      if (target === "dev") this.loadSpecVersion();
     },
     _onVisibilityChange() {
       const hidden = document.visibilityState === "hidden";
@@ -2936,6 +2939,29 @@ document.addEventListener("alpine:init", () => {
       const url = this.backendBaseUrl();
       if (!/^https?:[/][/]/i.test(url)) return;
       window.open(`${url}/api/openapi.yaml`, "_blank");
+    },
+    async loadSpecVersion() {
+      const url = this.backendBaseUrl();
+      if (!/^https?:[/][/]/i.test(url)) {
+        this.specVersion = null;
+        return;
+      }
+      try {
+        const r = await this._fetch(`${url}/api/openapi.yaml`);
+        if (!r.ok) {
+          this.specVersion = null;
+          return;
+        }
+        const text = await r.text();
+        const m = text.match(/^\s{0,4}version:\s*['"]?([^'"\s]+)['"]?\s*$/m);
+        this.specVersion = m ? m[1] : null;
+      } catch {
+        this.specVersion = null;
+      }
+    },
+    get specVersionMismatch() {
+      const runtime = this.lastStatus?.["ariaflow-server"]?.version;
+      return !!(this.specVersion && runtime && this.specVersion !== runtime);
     },
     async runTests() {
       this.testSummaryVisible = true;

@@ -9,6 +9,13 @@
             <button @click="openDocs()">Open Swagger UI</button>
             <button @click="openSpec()">Download OpenAPI spec</button>
           </div>
+          <div class="chips mt-sm">
+            <div class="chip">Runtime <strong x-text="backendVersionText">-</strong></div>
+            <div class="chip" :class="{ 'badge warn': specVersionMismatch }" x-show="specVersion">
+              Spec <strong x-text="specVersion ? 'v' + specVersion : '-'">-</strong>
+            </div>
+            <div class="chip badge warn" x-show="specVersionMismatch" title="OpenAPI info.version does not match /api/version (BG-37)">version drift</div>
+          </div>
         </div>
       </div>
 
