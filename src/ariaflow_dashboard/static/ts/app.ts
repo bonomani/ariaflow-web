@@ -19,6 +19,8 @@ import { renderItemSparkline, renderGlobalSparkline } from './sparkline';
 import { apiFetch, postEmpty } from './api';
 import {
   backendUrl as runtimeBackendUrl,
+  dashboardPid as runtimeDashboardPid,
+  dashboardVersion as runtimeDashboardVersion,
   localIps as runtimeLocalIps,
   localMainIp as runtimeLocalMainIp,
 } from './runtime';
@@ -124,6 +126,8 @@ document.addEventListener('alpine:init', () => {
     DEFAULT_BACKEND_URL: runtimeBackendUrl(),
     localIps: runtimeLocalIps(),
     localMainIp: runtimeLocalMainIp(),
+    webVersionText: (() => { const v = runtimeDashboardVersion(); return v ? `v${v}` : '-'; })(),
+    webPidText: runtimeDashboardPid() || '-',
     // Bonjour health: pending (initial) → ok / broken / unavailable after discovery
     bonjourState: 'pending',
     backendInput: '',

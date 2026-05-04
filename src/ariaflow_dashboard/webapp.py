@@ -25,11 +25,13 @@ DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
 
 def _read_index_html(backend_url: str | None = None) -> str:
+    from . import __version__
     text = _DIST_INDEX.read_text(encoding="utf-8")
-    text = text.replace("__ARIAFLOW_DASHBOARD_PID__", str(os.getpid()))
     identity = local_identity()
     globals_js = (
         f"<script>"
+        f"window.__ARIAFLOW_DASHBOARD_VERSION__={json.dumps(__version__)};"
+        f"window.__ARIAFLOW_DASHBOARD_PID__={json.dumps(os.getpid())};"
         f"window.__ARIAFLOW_DASHBOARD_HOSTNAME__={json.dumps(identity['hostname'])};"
         f"window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__={json.dumps(identity['main_ip'])};"
         f"window.__ARIAFLOW_DASHBOARD_LOCAL_IPS__={json.dumps(identity['ips'] or ['127.0.0.1'])};"

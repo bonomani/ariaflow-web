@@ -37,13 +37,14 @@ class TestStaticFiles:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
         assert "/static/style.css" in body and "/static/dist/app.js" in body
 
-    def test_html_has_version_substituted(self, web_server: str) -> None:
+    def test_html_injects_version_global(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
-        assert "__ARIAFLOW_DASHBOARD_VERSION__" not in body and "v0." in body
+        assert 'window.__ARIAFLOW_DASHBOARD_VERSION__="0.' in body
 
-    def test_html_has_pid_substituted(self, web_server: str) -> None:
+    def test_html_injects_pid_global(self, web_server: str) -> None:
         body = urllib.request.urlopen(f"{web_server}/", timeout=5).read().decode()
-        assert "__ARIAFLOW_DASHBOARD_PID__" not in body
+        import re as _re
+        assert _re.search(r"window\.__ARIAFLOW_DASHBOARD_PID__=\d+;", body)
 
 
 class TestPathTraversal:

@@ -154,6 +154,14 @@ function localMainIp() {
   const v = window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__;
   return typeof v === "string" && v.length > 0 ? v : DEFAULT_IP;
 }
+function dashboardVersion() {
+  const v = window.__ARIAFLOW_DASHBOARD_VERSION__;
+  return typeof v === "string" && v.length > 0 ? v : "";
+}
+function dashboardPid() {
+  const v = window.__ARIAFLOW_DASHBOARD_PID__;
+  return typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+}
 function localIps() {
   const v = window.__ARIAFLOW_DASHBOARD_LOCAL_IPS__;
   return Array.isArray(v) && v.length > 0 ? v.map(String) : [DEFAULT_IP];
@@ -1256,6 +1264,11 @@ document.addEventListener("alpine:init", () => {
     DEFAULT_BACKEND_URL: backendUrl(),
     localIps: localIps(),
     localMainIp: localMainIp(),
+    webVersionText: (() => {
+      const v = dashboardVersion();
+      return v ? `v${v}` : "-";
+    })(),
+    webPidText: dashboardPid() || "-",
     // Bonjour health: pending (initial) → ok / broken / unavailable after discovery
     bonjourState: "pending",
     backendInput: "",

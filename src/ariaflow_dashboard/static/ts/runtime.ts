@@ -9,6 +9,8 @@
 declare global {
   interface Window {
     __ARIAFLOW_BACKEND_URL__?: string;
+    __ARIAFLOW_DASHBOARD_VERSION__?: string;
+    __ARIAFLOW_DASHBOARD_PID__?: number;
     __ARIAFLOW_DASHBOARD_HOSTNAME__?: string;
     __ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__?: string;
     __ARIAFLOW_DASHBOARD_LOCAL_IPS__?: string[];
@@ -36,6 +38,16 @@ export function dashboardHostnameLower(): string {
 export function localMainIp(): string {
   const v = window.__ARIAFLOW_DASHBOARD_LOCAL_MAIN_IP__;
   return typeof v === 'string' && v.length > 0 ? v : DEFAULT_IP;
+}
+
+export function dashboardVersion(): string {
+  const v = window.__ARIAFLOW_DASHBOARD_VERSION__;
+  return typeof v === 'string' && v.length > 0 ? v : '';
+}
+
+export function dashboardPid(): string {
+  const v = window.__ARIAFLOW_DASHBOARD_PID__;
+  return typeof v === 'number' && Number.isFinite(v) ? String(v) : '';
 }
 
 export function localIps(): string[] {
