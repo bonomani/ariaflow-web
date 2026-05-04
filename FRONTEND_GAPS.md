@@ -1,6 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (4)
+## Open (3)
 
 ### FE-27: Snapshot test asserting unread `/api/status` payload keys are gone (paired with BG-35)
 
@@ -13,22 +13,6 @@ before it lands.
 
 Blocked by: BG-35.
 
-### FE-24: Per-endpoint freshness routing + Dev-tab map (paired with BG-31)
-
-Replace today's "every SSE tick refetches everything" with a
-`FreshnessRouter` that consumes the backend's per-endpoint `meta.freshness`
-and routes to the right strategy (SSE subscribe / setInterval / on-mount /
-SWR / no-op). Visibility (`document.visibilitychange` + host postMessage)
-modulates cadence. Dev tab gets a "Freshness map" panel showing every
-endpoint, its declared class, last fetch, next scheduled fetch, and any
-inline-vs-index drift warnings. `npm run freshness:snapshot` writes a
-build-time markdown snapshot from `/api/_meta` for audit/PR review.
-
-Blocked by: BG-31 (backend ships `meta.freshness` + `/api/_meta` index).
-
-Design rationale and seven-class taxonomy in `docs/FRESHNESS_AXIS.md`.
-Work split in `docs/PLAN.md`.
-
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
 SSE stream at `/api/events` is outside the contract layer. Add an
@@ -40,13 +24,16 @@ When the dashboard runs in environments without mDNS (WSL NAT, containers,
 VMs), `discoverBackends()` gets no results from local browse. The backend's
 `/api/peers` endpoint can provide peer info as a fallback.
 
-Blocked by: BG-15 (backend discovery uses stale service type, so
-`/api/peers` returns nothing).
+BG-15 resolved 2026-04-30 (TS port `discovery/parse.ts` uses the canonical
+`_ariaflow-server._tcp` service type), so this is no longer blocked — only
+unimplemented. `discoverBackends()` (`app.ts:764`) calls `/api/discovery`
+on the dashboard server and stops there; no `/api/peers` merge.
 
-Once BG-15 is fixed, the frontend should:
+Once picked up, the frontend should:
 1. Try local mDNS browse first (current behavior).
-2. If local browse returns nothing, fall back to `GET /api/peers` on the
-   current backend and merge results into `mergeDiscoveredBackends()`.
+2. If local browse returns nothing (`bonjourState === 'broken'`), fall
+   back to `GET /api/peers` on the current backend and merge results
+   into `mergeDiscoveredBackends()`.
 
 ---
 
@@ -56,6 +43,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-24 | Per-endpoint freshness routing + Dev-tab map shipped end-to-end. `FreshnessRouter` (`static/ts/freshness.ts`) consumes BG-31's `/api/_meta`, dispatches per class (live/warm/swr/cold/on-action/bootstrap/derived), ref-counts subscribers, and exposes `status()` for the Dev tab Freshness map (HTML rendered in `_fragments/tab_dev.html`, columns: Endpoint / Class / TTL / Subscribers / Host visibility / Last fetch / Active). Visibility wiring (`wireHostVisibility` in `freshness-bootstrap.ts`) hooks `document.visibilitychange` + host postMessage. `npm run freshness:snapshot` (`scripts/freshness-snapshot.mjs`) writes a build-time markdown audit. Followups (FE-26 TAB_SUBS migration, FE-31 host-aware fetcher) closed the original LOCAL_METAS sync hazards | 2026-05-04 |
 | FE-31 | FreshnessRouter is now host-aware. `EndpointMeta.host: 'backend' \| 'dashboard'` plumbed through `runFetch` → `RouterAdapters.fetchJson(method, path, params, host)`. `bootstrapFreshnessRouter` takes optional `dashboardMetaUrl` and fetches both `/api/_meta` documents, tagging each endpoint with its origin. The app-level fetcher branches on `host`: `'dashboard'` fetches same-origin (port 8001), `'backend'` (default) routes via `apiPath()` to the selected backend. `LOCAL_METAS` shrinks to just `/api/aria2/option_tiers`. New e2e test asserts `/api/web/log` is fetched same-origin and never reaches the backend mock | 2026-05-04 |
 | FE-32 | Playwright e2e smoke harness (`e2e/ui-smoke.spec.ts`): six tests covering header webVersion/webPid injection, dev tab Runtime/Spec version chips + drift badge, archive `'removed'` fallback, freshness map render, lifecycle row paint. `init()` now calls `loadSpecVersion()` for direct `/dev` loads. Drive-by: `canonical-routes.spec.ts` `selectedBackend` localStorage typo fixed and its `/api/_meta` mock seeded with the endpoints the test asserts (`/api/aria2/global_option`, `/api/declaration` with revalidate triggers); all 9 e2e tests now green | 2026-05-04 |
 | FE-30 | Archive tab badge fallback `item.status \|\| 'cancelled'` replaced with `'removed'` (canonical post-BG-30 terminal status) in `static/_fragments/tab_archive.html`. `cancelled` was removed from `ITEM_STATUSES` by BG-30 as unreachable, so the literal was dead | 2026-05-04 |
