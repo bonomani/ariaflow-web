@@ -2675,9 +2675,9 @@ document.addEventListener("alpine:init", () => {
         { name: "aria2", record: data.aria2, actions: lifecycleActionsFor("aria2", data.aria2) },
         { name: "networkquality", record: data.networkquality, actions: [] },
         {
-          name: "aria2 auto-start (advanced)",
+          name: "aria2 auto-start",
           record: data["aria2-launchd"],
-          actions: lifecycleActionsFor("aria2 auto-start (advanced)", data["aria2-launchd"])
+          actions: lifecycleActionsFor("aria2 auto-start", data["aria2-launchd"])
         }
       ];
       this._lifecycleSession = data?.session_id ? data : null;

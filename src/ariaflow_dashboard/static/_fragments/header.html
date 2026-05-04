@@ -66,10 +66,8 @@
                 <div class="chip" :class="issue.level === 'bad' ? 'badge warn' : 'badge'" x-text="issue.label"></div>
               </template>
             </div>
-            <div class="chips mt-sm" x-show="!healthIssues.length">
-              <div class="chip text-muted" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
-            </div>
           </details>
+          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
         </div>
         <!-- L2: Session + cap + disk -->
         <div class="chips mt-sm">

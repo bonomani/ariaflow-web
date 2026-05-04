@@ -121,7 +121,6 @@ coverage_map:
   setDistributePref: "test_every_preference_has_ui_control (distribution prefs)"
   setBandwidthPref: "test_bandwidth_free_percent_input / test_bandwidth_free_absolute_input / test_bandwidth_floor_input"
   setDuplicateAction: "test_duplicate_action_dropdown"
-  setPostActionRule: "test_post_action_rule_dropdown"
   setQueueFilter: "test_filter_button[all-5] through test_filter_button[error-1]"
   setRefreshInterval: "test_refresh_interval_change / test_refresh_off"
   setSimultaneousLimit: "test_simultaneous_downloads_input"

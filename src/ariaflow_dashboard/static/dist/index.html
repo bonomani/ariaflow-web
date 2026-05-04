@@ -77,10 +77,8 @@
                 <div class="chip" :class="issue.level === 'bad' ? 'badge warn' : 'badge'" x-text="issue.label"></div>
               </template>
             </div>
-            <div class="chips mt-sm" x-show="!healthIssues.length">
-              <div class="chip text-muted" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
-            </div>
           </details>
+          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
         </div>
         <!-- L2: Session + cap + disk -->
         <div class="chips mt-sm">
@@ -408,11 +406,9 @@
             <div class="item">
               <div class="item-top">
                 <div class="item-url">Post-action rule</div>
-                <select :value="postActionRuleValue" @change="setPostActionRule($el.value)">
-                  <option value="pending">Pending</option>
-                </select>
+                <span class="badge" x-text="postActionRuleValue || 'pending'">pending</span>
               </div>
-              <div class="meta"><span>Placeholder policy used after a download finishes.</span></div>
+              <div class="meta"><span>Placeholder policy used after a download finishes. Only one option is currently defined; this becomes a real selector once additional rules ship.</span></div>
             </div>
           </div>
 
