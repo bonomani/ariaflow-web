@@ -67,6 +67,9 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Configure git to use HTTPS for github.com
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
       - name: Build frontend bundle
         run: |
           npm ci
