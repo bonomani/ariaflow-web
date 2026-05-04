@@ -21,6 +21,22 @@ try:
 except ModuleNotFoundError:
     sync_playwright = None  # type: ignore[assignment]
 
+
+# Skip collection of browser-driven test files when playwright isn't
+# installed. Each file imports playwright at module scope (`from
+# playwright.sync_api import Page`), so without this hook pytest
+# crashes on collection, not just on a single test. Runs before
+# collection, so test files are never imported in the first place.
+collect_ignore_glob: list[str] = []
+if sync_playwright is None:
+    collect_ignore_glob.extend([
+        "test_behavior.py",
+        "test_buttons.py",
+        "test_download_lifecycle.py",
+        "test_frontend.py",
+        "test_screenshots.py",
+    ])
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ariaflow_dashboard.webapp import serve  # noqa: E402
