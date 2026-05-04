@@ -54,6 +54,23 @@ jobs:
       - name: Install aria2
         run: sudo apt-get update -qq && sudo apt-get install -y aria2
 
+      - name: Start aria2c RPC daemon
+        # /api/aria2/global_option (and other aria2-bridging endpoints)
+        # require a reachable aria2 RPC at 127.0.0.1:6800. apt-get
+        # installs the binary but doesn't run it; start it here.
+        run: |
+          aria2c --enable-rpc --rpc-listen-all=false --rpc-listen-port=6800 \
+                 --daemon=true --quiet=true
+          for i in 1 2 3 4 5; do
+            if curl -fsS -X POST http://127.0.0.1:6800/jsonrpc \
+                 -d '{"jsonrpc":"2.0","method":"aria2.getVersion","id":"x"}' \
+                 >/dev/null 2>&1; then
+              echo "aria2c RPC ready"
+              break
+            fi
+            sleep 1
+          done
+
       - name: Build ariaflow-server
         working-directory: ariaflow-server
         run: |
