@@ -156,11 +156,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run tests
+      - name: Run verify gate (drift check + frontend build/tests + python tests)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m unittest tests.test_web tests.test_cli -v
+          python -m pip install -e ".[dev]"
+          make verify
 
       - name: Build source distribution
         run: |
