@@ -59,8 +59,17 @@
             <strong x-text="backendVersionText">-</strong>
             <span class="text-muted" x-show="backendPidText !== '-' && backendPidText !== 'unreported'" x-text="'· pid ' + backendPidText"></span>
           </div>
-          <div class="chip badge warn" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
-          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText"></div>
+          <details class="chip-details" :title="healthIssues.length ? 'Click for details' : ''">
+            <summary :class="healthBadgeClass" x-text="healthBadgeText">Healthy</summary>
+            <div class="chips mt-sm" x-show="healthIssues.length">
+              <template x-for="issue in healthIssues" :key="issue.label">
+                <div class="chip" :class="issue.level === 'bad' ? 'badge warn' : 'badge'" x-text="issue.label"></div>
+              </template>
+            </div>
+            <div class="chips mt-sm" x-show="!healthIssues.length">
+              <div class="chip text-muted" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
+            </div>
+          </details>
         </div>
         <!-- L2: Session + cap + disk -->
         <div class="chips mt-sm">

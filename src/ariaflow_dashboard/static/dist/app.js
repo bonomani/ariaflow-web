@@ -1445,6 +1445,35 @@ document.addEventListener("alpine:init", () => {
       if (!this.backendReachable) return this.lastStatus?.["ariaflow-server"]?.error || "connection refused";
       return this.state.last_error || this.lastStatus?.bandwidth?.reason || "none";
     },
+    // Consolidated health surface (#3). Single chip in the header lists
+    // a count + opens a panel detailing each issue. Replaces the
+    // separate Error + mDNS L1 chips and the implicit per-tab badge
+    // duplication when several signals fire at once.
+    get healthIssues() {
+      const issues = [];
+      if (!this.backendReachable) {
+        issues.push({ label: `Backend offline: ${this.lastErrorText}`, level: "bad" });
+      } else {
+        const err = this.lastErrorText;
+        if (err && err !== "none") issues.push({ label: `Last error: ${err}`, level: "warn" });
+      }
+      if (this.bonjourState === "broken") {
+        issues.push({ label: "mDNS browse failing", level: "warn" });
+      }
+      if (this.lastHealth && this.lastHealth.disk_ok === false) {
+        issues.push({ label: `Disk: ${this.diskUsageText}`, level: "bad" });
+      }
+      return issues;
+    },
+    get healthBadgeText() {
+      const n = this.healthIssues.length;
+      return n === 0 ? "Healthy" : `${n} issue${n === 1 ? "" : "s"}`;
+    },
+    get healthBadgeClass() {
+      const issues = this.healthIssues;
+      if (issues.length === 0) return "chip badge good";
+      return issues.some((i) => i.level === "bad") ? "chip badge warn" : "chip badge";
+    },
     get sessionIdText() {
       if (!this.backendReachable) return "-";
       return this.sessionLabel(this.state);
