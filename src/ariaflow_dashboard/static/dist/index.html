@@ -1,0 +1,912 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ariaflow-dashboard</title>
+  <link rel="stylesheet" href="/static/vendor/webstyle.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="module" src="/static/dist/app.js"></script>
+  <script src="/static/alpine.min.js" defer></script>
+</head>
+<body class="ws-app" x-data="ariaflow" :class="'page-' + page">
+  <div class="wrap">
+    <div class="nav">
+      <a href="/" :class="{ active: page === 'dashboard' }" @click.prevent="navigateTo('dashboard')">
+        <span>Dashboard</span>
+        <span x-show="sumQueued" class="tab-badge" x-text="sumQueued"></span>
+        <span x-show="sumError" class="tab-badge warn" x-text="sumError"></span>
+      </a>
+      <a href="/bandwidth" :class="{ active: page === 'bandwidth' }" @click.prevent="navigateTo('bandwidth')">Bandwidth</a>
+      <a href="/lifecycle" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">
+        <span>Service Status</span>
+        <span x-show="lifecycleErrorCount" class="tab-badge warn" x-text="lifecycleErrorCount"></span>
+      </a>
+      <a href="/options" :class="{ active: page === 'options' }" @click.prevent="navigateTo('options')">Options</a>
+      <a href="/log" :class="{ active: page === 'log' }" @click.prevent="navigateTo('log')">Log</a>
+      <a href="/dev" :class="{ active: page === 'dev' }" @click.prevent="navigateTo('dev')">Developer</a>
+      <a href="/archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">
+        <span>Archive</span>
+        <span x-show="archiveItems.length" class="tab-badge" x-text="archiveItems.length"></span>
+      </a>
+      <div class="spacer"></div>
+      <label class="refresh-control" for="refresh-interval">
+        Refresh
+        <select id="refresh-interval" x-model="refreshInterval" @change="setRefreshInterval($el.value)">
+          <option value="1500">1.5s</option>
+          <option value="3000">3s</option>
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="30000">30s</option>
+          <option value="0">Off</option>
+        </select>
+      </label>
+      <button class="secondary" @click="toggleTheme()" x-text="themeLabel">Theme</button>
+    </div>
+    <div class="hero">
+      <div class="title">
+        <h1>ariaflow-dashboard</h1>
+        <div class="metric mt-sm">
+          <div class="stat-label">Transfer</div>
+          <div class="stat-value" x-text="transferSpeedText">idle</div>
+          <div class="stat-sub">download ↓ upload ↑</div>
+          <div x-html="globalSparklineSvg" class="mt-sm"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <!-- L1: Scheduler state + backend status + errors -->
+        <div class="chips">
+          <label class="chip" :title="selectedBackend">
+            Backend
+            <select :value="selectedBackend" @change="selectBackend($el.value)">
+              <option :value="DEFAULT_BACKEND_URL" x-text="backendDisplayName(DEFAULT_BACKEND_URL)"></option>
+              <template x-for="backend in backends" :key="backend">
+                <option :value="backend" x-text="backendDisplayName(backend)"></option>
+              </template>
+            </select>
+          </label>
+          <div class="chip">ariaflow-server <strong x-text="backendVersionText">-</strong></div>
+          <div class="chip badge warn" x-show="lastErrorText !== 'none'">Error <strong x-text="lastErrorText">none</strong></div>
+          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText"></div>
+        </div>
+        <!-- L2: Session + cap + disk -->
+        <div class="chips mt-sm">
+          <div class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></div>
+          <div class="chip">Cap <strong x-text="downloadCapText">-</strong></div>
+          <div class="chip" :class="{ 'badge warn': !diskOk }">Disk <strong x-text="diskUsageText">-</strong></div>
+        </div>
+        <!-- L3: PID / version / interfaces (collapsible) -->
+        <details class="mt-sm">
+          <summary class="text-muted text-sm cursor-pointer">System info</summary>
+          <div class="chips mt-sm">
+            <div class="chip">Ariaflow-dashboard <strong>v0.1.348</strong></div>
+            <div class="chip">Web PID <strong>__ARIAFLOW_DASHBOARD_PID__</strong></div>
+            <div class="chip">Backend PID <strong x-text="backendPidText">-</strong></div>
+          </div>
+          <div class="chips mt-sm">
+            <template x-for="ip in localIps" :key="ip">
+              <div class="chip" :class="{ 'badge good': ip === localMainIp }">
+                <span x-text="ip"></span>
+                <strong x-show="ip === localMainIp" x-text="'main'"></strong>
+              </div>
+            </template>
+          </div>
+        </details>
+        <!-- Add backend + remove current (non-default) -->
+        <div class="gap-sm mt-sm">
+          <input x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
+          <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
+          <button x-show="selectedBackend !== DEFAULT_BACKEND_URL" class="secondary" @click="removeBackend(selectedBackend)" title="Remove current backend">Remove current</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      <!-- DASHBOARD -->
+      <div class="span-12" x-show="page === 'dashboard'">
+        <div class="panel">
+          <div class="gap-sm mb-md">
+            <button :class="{ secondary: schedulerBtnDisabled, loading: schedulerLoading }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled || schedulerLoading">Start</button>
+            <button :class="{ secondary: archiveBtnDisabled, loading: archiveLoading }" @click="cleanup()" :disabled="archiveBtnDisabled || archiveLoading">Archive</button>
+            <span class="badge" x-text="schedulerStateLabelText">idle</span>
+            <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
+          </div>
+          <div class="mb-md">
+            <input type="text" placeholder="Search queue..." x-model="queueSearch">
+          </div>
+          <div class="filter-bar">
+            <template x-for="f in ['all','queued','waiting','discovering','active','paused','removed','complete','error']" :key="f">
+              <button x-show="filterBtnVisible(f)" class="filter-btn" :class="{ active: queueFilter === f }" @click="setQueueFilter(f)">
+                <span x-text="f.charAt(0).toUpperCase() + f.slice(1)"></span>
+                <span x-show="(filterCounts[f] ?? 0) > 0" class="tab-badge" :class="{ warn: f === 'error' }" x-text="filterCounts[f]"></span>
+              </button>
+            </template>
+          </div>
+          <div class="list">
+            <!-- Add item card — same layout as queue items -->
+            <div class="item compact add-card">
+              <div class="item-top">
+                <div class="item-url">Add Download</div>
+                <span class="badge">new</span>
+              </div>
+              <div class="meta">
+                <span>Paste one URL per line to queue targets one after another.</span>
+              </div>
+              <div class="add-card-body">
+                <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()">
+              </div>
+              <div class="action-strip mt-sm">
+                <button x-show="urlInput.trim()" @click="add()">Add</button>
+                <details>
+                  <summary class="text-muted text-sm cursor-pointer">Advanced</summary>
+                  <div class="gap-sm-grid mt-sm">
+                    <input x-model="addOutput" placeholder="Output filename (optional)" class="input-md">
+                    <input x-model="addPriority" type="number" placeholder="Priority" class="input-sm">
+                    <textarea x-model="addMirrors" rows="2" placeholder="Mirror URLs, one per line (optional)" class="textarea-sm"></textarea>
+                    <div class="gap-sm">
+                      <label class="text-sm text-muted">.torrent file <input type="file" accept=".torrent" @change="handleFileUpload($event, 'torrent')"></label>
+                      <label class="text-sm text-muted">.metalink file <input type="file" accept=".metalink,.meta4" @change="handleFileUpload($event, 'metalink')"></label>
+                    </div>
+                    <select x-model="addPostActionRule">
+                      <option value="">Post-action rule (default)</option>
+                      <option value="pending">pending</option>
+                    </select>
+                  </div>
+                </details>
+              </div>
+            </div>
+            <template x-if="!backendReachable">
+              <div class="item" x-text="_offlineStatusLabel()"></div>
+            </template>
+            <template x-if="backendReachable && filteredItems.length === 0">
+              <div class="item" x-text="'No ' + (queueFilter === 'all' ? '' : queueFilter + ' ') + 'items.'"></div>
+            </template>
+            <template x-for="item in filteredItems" :key="item.id || item.url">
+              <div class="item compact" :class="{ 'active-item': itemHasActiveStatus(item) }">
+                <div class="item-top">
+                  <div class="item-url" x-text="itemShortUrl(item)"></div>
+                  <span :class="badgeClass(itemNormalizedStatus(item))" x-text="itemStateLabel(item)"></span>
+                  <template x-if="itemModeBadge(item)">
+                    <span class="badge" x-text="itemModeBadge(item)"></span>
+                  </template>
+                  <span x-show="itemPriority(item) != null" class="badge" x-text="'P' + itemPriority(item)"></span>
+                </div>
+                <div class="meta">
+                  <template x-if="itemLiveStatus(item)">
+                    <span :class="badgeClass(itemLiveStatus(item))" x-text="'aria2: ' + itemLiveStatus(item)"></span>
+                  </template>
+                  <span x-show="itemDisplayUrl(item)" :title="itemDisplayUrl(item)" x-text="itemDisplayUrl(item)"></span>
+                  <span x-show="itemDetail(item)" x-text="itemDetail(item)"></span>
+                </div>
+                <template x-if="itemShowTransferPanel(item)">
+                  <div>
+                    <div class="meter"><div :style="'width:' + Math.round(Number(itemProgress(item) || 0)) + '%'"></div></div>
+                    <div class="statusline">
+                      <span x-text="Math.round(Number(itemProgress(item) || 0)) + '% done' + (itemEta(item) ? ' · ETA ' + itemEta(item) : '')"></span>
+                      <span x-text="itemRateLabel(item)"></span>
+                    </div>
+                    <div class="meta">
+                      <span x-show="itemTotalLength(item)" x-text="'Total ' + formatBytes(itemTotalLength(item))"></span>
+                      <span x-show="itemCompletedLength(item)" x-text="'Done ' + formatBytes(itemCompletedLength(item))"></span>
+                      <span x-show="item.recovered_at" x-text="'Recovered ' + (item.recovered_at || '')"></span>
+                      <span x-show="itemShowPausedAt(item)" x-text="'Paused ' + relativeTime(item.paused_at)"></span>
+                      <span x-show="item.rpc_error_message" class="text-muted" x-text="item.rpc_error_message"></span>
+                      <span x-show="item.error_message" x-text="(item.error_code ? '[' + item.error_code + '] ' : '') + (item.error_message || '')"></span>
+                      <span x-show="item.live_status && item.live_status !== itemNormalizedStatus(item)" class="text-muted" x-text="'live: ' + item.live_status"></span>
+                      <span x-show="item.distribute_status" class="text-muted" x-text="'seed: ' + item.distribute_status + (item.distribute_infohash ? ' ' + item.distribute_infohash.slice(0, 8) : '')"></span>
+                    </div>
+                    <div x-html="itemSparklineSvg(item)"></div>
+                  </div>
+                </template>
+                <div x-show="item.id" class="action-strip mt-sm">
+                  <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
+                  <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" @click="openFileSelection(item.id)">Files</button>
+                  <button x-show="item.gid" class="secondary" @click="loadItemOptions(item.gid)">Options</button>
+                  <button x-show="itemCanRemove(item)" @click="itemAction(item.id, 'remove')">Remove</button>
+                </div>
+                <template x-if="item.gid && itemOptionsGid === item.gid && itemOptionsData">
+                  <div class="meta mt-sm text-mono" x-text="JSON.stringify(itemOptionsData, null, 2)"></div>
+                </template>
+              </div>
+            </template>
+          </div>
+          <!-- File selection panel (torrent/metalink) -->
+          <template x-if="fileSelectionItemId">
+            <div class="system-card mt-md">
+              <div class="system-head">
+                <div class="system-copy"><h3>File Selection</h3></div>
+              </div>
+              <template x-if="fileSelectionLoading"><div class="item">Loading files...</div></template>
+              <template x-if="!fileSelectionLoading">
+                <div>
+                  <div class="list">
+                    <template x-for="(file, idx) in fileSelectionFiles" :key="file.index ?? idx">
+                      <div class="item compact">
+                        <label class="gap-sm">
+                          <input type="checkbox" x-model="file.selected">
+                          <span x-text="file.path || file.name || ('File ' + file.index)"></span>
+                          <span x-show="file.length" x-text="formatBytes(file.length)"></span>
+                        </label>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="system-actions"><button @click="saveFileSelection()">Save selection</button> <button @click="closeFileSelection()">Cancel</button></div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+      <!-- BANDWIDTH -->
+      <div class="span-12" x-show="page === 'bandwidth'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Bandwidth</h2>
+            <div class="hint">Probe, reservation policy, and download concurrency</div>
+          </div>
+          <div class="chips mb-md">
+            <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
+            <div class="chip">Download <strong x-text="bwDownBadgeText">-</strong></div>
+            <div class="chip">Upload <strong x-text="bwUpBadgeText">-</strong></div>
+            <div class="chip">Down cap <strong x-text="bwDownCapText">-</strong></div>
+            <div class="chip">Up cap <strong x-text="bwUpCapText">-</strong></div>
+            <div class="chip">Limit <strong x-text="bwCurrentLimitText">-</strong></div>
+            <div class="chip" x-show="bwResponsivenessText !== '-'">RPM <strong x-text="bwResponsivenessText">-</strong></div>
+            <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
+            <div class="chip" x-show="bw.last_probe_at">Probed <strong x-text="bw.last_probe_at ? relativeTime(new Date(bw.last_probe_at * 1000).toISOString()) : '-'">-</strong></div>
+          </div>
+          <details class="mb-md" x-show="bw.last_probe">
+            <summary class="text-muted text-sm cursor-pointer">Last probe payload</summary>
+            <div class="debug-box text-mono text-sm" x-text="JSON.stringify(bw.last_probe, null, 2)"></div>
+          </details>
+          <div class="grid-2col">
+            <div>
+              <h3 class="mt-0 mb-sm">Probe</h3>
+              <div class="list">
+                <div class="item">
+                  <div class="row">
+                    <button :class="{ secondary: probeRunning }" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Auto-probe interval</div>
+                    <label>
+                      <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
+                        <option value="60">60s</option>
+                        <option value="120">120s</option>
+                        <option value="180">180s</option>
+                        <option value="300">300s</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="mt-0 mb-sm">Policy</h3>
+              <div class="list">
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Downlink reserve</div>
+                    <label >
+                      <input type="number" min="0" max="90" step="1" :value="bwDownFreePercent" @input="setBandwidthPref('bandwidth_down_free_percent', Number($el.value), 20)" class="input-sm">
+                      <span>%</span>
+                      <input type="number" min="0" step="0.5" :value="bwDownFreeAbsolute" @input="setBandwidthPref('bandwidth_down_free_absolute_mbps', Number($el.value), 0)" class="input-sm">
+                      <span>Mbps</span>
+                    </label>
+                  </div>
+                  <div class="meta"><span>Reserve % or absolute Mbps of downlink. Stricter wins.</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Uplink reserve</div>
+                    <label >
+                      <input type="number" min="0" max="90" step="1" :value="bwUpFreePercent" @input="setBandwidthPref('bandwidth_up_free_percent', Number($el.value), 50)" class="input-sm">
+                      <span>%</span>
+                      <input type="number" min="0" step="0.5" :value="bwUpFreeAbsolute" @input="setBandwidthPref('bandwidth_up_free_absolute_mbps', Number($el.value), 0)" class="input-sm">
+                      <span>Mbps</span>
+                    </label>
+                  </div>
+                  <div class="meta"><span>Reserve % or absolute Mbps of uplink. Stricter wins.</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Concurrent downloads</div>
+                    <label >
+                      <input type="number" min="1" step="1" :value="bwConcurrency" @input="setSimultaneousLimit($el.value)" class="input-sm">
+                    </label>
+                  </div>
+                  <div class="meta"><span>Max parallel downloads. Default: 1 (sequential).</span></div>
+                </div>
+                <div class="item">
+                  <div class="item-top">
+                    <div class="item-url">Duplicate transfers</div>
+                    <select :value="bwDedupValue" @change="setDuplicateAction($el.value)">
+                      <option value="remove">Remove</option>
+                      <option value="pause">Pause</option>
+                      <option value="ignore">Ignore</option>
+                    </select>
+                  </div>
+                  <div class="meta"><span>Action for duplicate active jobs on the same URL.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- LIFECYCLE -->
+      <div class="span-6" x-show="page === 'lifecycle'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Service Status</h2>
+            <div class="hint">Component lifecycle: ariaflow, aria2, networkquality, launchd</div>
+          </div>
+          <div class="item mb-md">
+            <div class="item-top">
+              <div class="item-url">Update policy</div>
+              <span class="badge">Homebrew tap</span>
+            </div>
+            <div class="meta"><span>Upgrades require Homebrew to install the new version and restart the service.</span></div>
+          </div>
+          <div class="list">
+            <template x-if="_lifecycleSession">
+              <div class="item mb-md">
+                <div class="item-top">
+                  <div class="item-url">Run</div>
+                  <span class="badge" :class="{ warn: _lifecycleSession.session_closed_at, good: !_lifecycleSession.session_closed_at }" x-text="_lifecycleSession.session_closed_at ? 'closed' : 'current'"></span>
+                </div>
+                <div class="meta"><span x-text="_lifecycleSession.session_id"></span></div>
+                <div class="meta">
+                  <span x-text="_lifecycleSession.session_started_at ? 'Started ' + _lifecycleSession.session_started_at : 'Start time unknown'"></span>
+                  <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + _lifecycleSession.session_last_seen_at : 'Last seen unknown'"></span>
+                  <span x-show="_lifecycleSession.session_closed_at" x-text="'Closed ' + (_lifecycleSession.session_closed_at || '') + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '')"></span>
+                </div>
+              </div>
+            </template>
+            <template x-for="row in lifecycleRows" :key="row.name">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="row.name"></div>
+                  <span :class="badgeClass(lifecycleItemOutcome(row.record))" x-text="lifecycleStateLabel(row.name, row.record)"></span>
+                </div>
+                <div class="meta">
+                  <span x-text="lifecycleItemLines(row.record)"></span>
+                </div>
+                <div x-show="row.actions.length" class="action-strip mt-sm">
+                  <template x-for="act in row.actions" :key="act.target + act.action">
+                    <button :class="{ secondary: !backendReachable }" @click="lifecycleAction(act.target, act.action)" x-text="act.label" :disabled="!backendReachable"></button>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <!-- OPTIONS -->
+      <div class="span-6" x-show="page === 'options'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Options</h2>
+            <div class="hint">UIC declaration preferences</div>
+          </div>
+          <div class="list">
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Auto preflight</div>
+                <label ><input type="checkbox" :checked="autoPreflightEnabled" @change="setAutoPreflightPreference($el.checked)">Toggle</label>
+              </div>
+              <div class="meta"><span>Run preflight gate checks automatically before starting the scheduler.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Post-action rule</div>
+                <select :value="postActionRuleValue" @change="setPostActionRule($el.value)">
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+              <div class="meta"><span>Placeholder policy used after a download finishes.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 unsafe mode</div>
+                <label><input type="checkbox" :checked="aria2UnsafeEnabled" @change="setAria2UnsafeOptions($el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Allow setting any aria2 option via API. Bypasses the safe subset.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Max retries</div>
+                <label><input type="number" min="0" max="20" :value="maxRetries" @input="setRetryPref('max_retries', $el.value)" class="input-sm"></label>
+              </div>
+              <div class="meta"><span>Auto-retry failed items. 0 = manual only.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Retry backoff</div>
+                <label><input type="number" min="1" max="300" :value="retryBackoff" @input="setRetryPref('retry_backoff_seconds', $el.value)" class="input-sm"> <span>sec</span></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 max tries</div>
+                <label><input type="number" min="0" max="20" :value="aria2MaxTries" @input="setRetryPref('aria2_max_tries', $el.value)" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 retry wait</div>
+                <label><input type="number" min="0" max="60" :value="aria2RetryWait" @input="setRetryPref('aria2_retry_wait', $el.value)" class="input-sm"> <span>sec</span></label>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Distribute downloads</div>
+                <label><input type="checkbox" :checked="distributeEnabled" @change="setDistributePref('distribute_completed_downloads', $el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Auto-create torrent from completed HTTP downloads.</span></div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Seed ratio</div>
+                <label><input type="number" min="0" max="10" step="0.1" :value="distributeSeedRatio" @input="setDistributePref('distribute_seed_ratio', Number($el.value))" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Max seed hours</div>
+                <label><input type="number" min="0" max="720" :value="distributeMaxSeedHours" @input="setDistributePref('distribute_max_seed_hours', Number($el.value))" class="input-sm"> <span>h</span></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Max active seeds</div>
+                <label><input type="number" min="0" max="20" :value="distributeMaxActiveSeeds" @input="setDistributePref('distribute_max_active_seeds', Number($el.value))" class="input-sm"></label>
+              </div>
+            </div>
+            <div class="item" x-show="distributeEnabled">
+              <div class="item-top">
+                <div class="item-url">Tracker URL</div>
+                <label><input type="text" :value="internalTrackerUrl" @input="setDistributePref('internal_tracker_url', $el.value)" class="input-md"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-6" x-show="page === 'options'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>aria2 Options</h2>
+            <div class="hint" x-text="aria2Tiers.unsafe_enabled ? 'Unsafe mode: all options available' : aria2Tiers.safe.length + ' safe options · ' + aria2Tiers.managed.length + ' managed by ariaflow'">Current aria2 global options.</div>
+          </div>
+          <div class="list">
+            <template x-for="opt in aria2Tiers.safe || []" :key="opt">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="opt"></div>
+                  <label><input type="text" :value="aria2Options[opt] || ''" @input="setAria2Option(opt, $el.value)" class="input-sm"></label>
+                </div>
+              </div>
+            </template>
+            <template x-for="opt in aria2Tiers.managed || []" :key="'m-' + opt">
+              <div class="item dimmed">
+                <div class="item-top">
+                  <div class="item-url" x-text="opt"></div>
+                  <span class="text-muted text-sm" x-text="aria2Options[opt] || '-'"></span>
+                </div>
+                <div class="meta"><span>Managed by ariaflow — read-only</span></div>
+              </div>
+            </template>
+          </div>
+          <div x-show="aria2OptionResult" class="text-muted text-sm mt-sm" x-text="aria2OptionResult"></div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'options' && distributeEnabled">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Active Seeds</h2>
+            <button @click="loadTorrents()">Refresh</button>
+          </div>
+          <div x-show="torrentLoading" class="text-muted text-sm">Loading…</div>
+          <div x-show="!torrentLoading && torrentList.length === 0" class="text-muted text-sm">No active seeds.</div>
+          <div class="list" x-show="!torrentLoading && torrentList.length > 0">
+            <template x-for="t in torrentList" :key="t.infohash">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="t.name || t.infohash"></div>
+                  <a href="#" :href="apiPath('/api/torrents/' + t.infohash + '.torrent')" download class="btn-link secondary">.torrent</a>
+                  <button @click="stopTorrent(t.infohash)">Stop</button>
+                </div>
+                <div class="meta">
+                  <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-show="t.seed_gid" class="text-muted" x-text="'gid:' + t.seed_gid"></span>
+                  <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
+                  <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'options' && peerList.length > 0">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Discovered Peers</h2>
+            <button @click="loadPeers()">Refresh</button>
+          </div>
+          <div class="list">
+            <template x-for="peer in peerList" :key="peer.instance || peer.host">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="peer.instance || peer.host"></div>
+                  <span class="badge" :class="peer.status === 'resolved' ? 'good' : 'warn'" x-text="peer.status || 'unknown'"></span>
+                </div>
+                <div class="meta">
+                  <span x-text="peer.base_url || (peer.host + ':' + peer.port)"></span>
+                  <span x-show="peer.torrent_count != null" x-text="peer.torrent_count + ' torrents'"></span>
+                  <span x-show="peer.last_seen" class="text-muted" x-text="'seen ' + relativeTime(new Date(peer.last_seen * 1000).toISOString())"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <!-- LOG -->
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Log</h2>
+            <div class="hint">UCC contract execution and preflight checks</div>
+          </div>
+          <div class="row mb-md">
+            <button :class="{ secondary: !backendReachable }" @click="uccRun()" :disabled="!backendReachable">Run UCC</button>
+            <button :class="{ secondary: !backendReachable }" @click="preflightRun()" :disabled="!backendReachable">Preflight</button>
+          </div>
+          <div class="list">
+            <template x-if="contractTraceItems">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="(contractTraceItems.meta?.contract || 'UCC') + ' v' + (contractTraceItems.meta?.version || '-')"></div>
+                  <span :class="badgeClass(contractTraceOutcome())" x-text="contractTraceOutcome()"></span>
+                </div>
+                <div class="system-facts">
+                  <div class="system-fact" x-show="contractTraceItems.result?.message"><span>Message</span><strong x-text="contractTraceItems.result?.message"></strong></div>
+                  <div class="system-fact" x-show="contractTraceItems.result?.reason"><span>Reason</span><strong x-text="contractTraceItems.result?.reason"></strong></div>
+                  <div class="system-fact" x-show="contractTraceItems.preflight?.status"><span>Preflight</span><strong x-text="contractTraceItems.preflight?.status"></strong></div>
+                </div>
+              </div>
+            </template>
+            <template x-if="!contractTraceItems">
+              <div class="text-muted text-sm">Run UCC to see results</div>
+            </template>
+          </div>
+          <div class="section-title mt-md">
+            <h2>Preflight</h2>
+            <div class="hint">Pass, warnings, and failures</div>
+          </div>
+          <div class="list">
+            <template x-if="preflightData">
+              <div>
+                <template x-for="gate in (preflightData.gates || [])" :key="gate.name">
+                  <div class="item">
+                    <div class="item-top">
+                      <div class="item-url" x-text="gate.name"></div>
+                      <span :class="gate.satisfied ? 'badge good' : 'badge bad'" x-text="gate.satisfied ? 'ready' : 'blocked'"></span>
+                    </div>
+                    <div class="meta"><span x-text="(gate.class || 'gate') + ' · ' + (gate.blocking || 'unknown')"></span></div>
+                  </div>
+                </template>
+                <template x-for="warning in (preflightData.warnings || [])" :key="warning.name">
+                  <div class="item">
+                    <div class="item-top">
+                      <div class="item-url" x-text="warning.name"></div>
+                      <span class="badge warn">warning</span>
+                    </div>
+                    <div class="meta"><span x-text="warning.message"></span></div>
+                  </div>
+                </template>
+                <template x-for="(failure, idx) in (preflightData.hard_failures || [])" :key="'hf-' + idx">
+                  <div class="item">
+                    <div class="item-top">
+                      <div class="item-url" x-text="failure"></div>
+                      <span class="badge bad">blocked</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!preflightData">
+              <div class="text-muted text-sm">Run Preflight to see results</div>
+            </template>
+          </div>
+          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
+            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
+            <div class="debug-box" x-text="resultJson"></div>
+          </details>
+        </div>
+      </div>
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Action history</h2>
+            <div class="hint">Normalized event log</div>
+          </div>
+          <div class="row mb-md">
+            <select x-model="actionFilter" @change="refreshActionLog()">
+              <option value="all">All actions</option>
+              <template x-for="a in availableActions" :key="a">
+                <option :value="a" x-text="a"></option>
+              </template>
+            </select>
+            <select x-model="targetFilter" @change="refreshActionLog()">
+              <option value="all">All targets</option>
+              <template x-for="t in availableTargets" :key="t">
+                <option :value="t" x-text="t"></option>
+              </template>
+            </select>
+            <select x-model="sessionFilter" @change="refreshActionLog()">
+              <option value="all">All sessions</option>
+              <option value="current" selected>Current run</option>
+            </select>
+            <select x-model="logLimit" @change="refreshActionLog()">
+              <option value="50">50 entries</option>
+              <option value="120" selected>120 entries</option>
+              <option value="250">250 entries</option>
+              <option value="500">500 entries</option>
+            </select>
+          </div>
+          <div class="list">
+            <template x-if="filteredActionLog.length === 0">
+              <div class="item">No action log yet.</div>
+            </template>
+            <template x-for="entry in filteredActionLog" :key="entry.timestamp + (entry.action || '') + (entry.target || '')">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="entry.action || 'event'"></div>
+                  <span :class="badgeClass(entry.outcome || entry.status || 'unknown')" x-text="entry.outcome || entry.status || 'unknown'"></span>
+                  <span x-show="entry.observation && entry.observation !== 'ok'" class="badge warn" x-text="entry.observation"></span>
+                </div>
+                <div class="meta"><span x-text="(entry.action === 'poll' ? 'Historical event' : 'Historical record') + ' · ' + logEntryLines(entry)"></span></div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel declaration">
+          <div class="section-title">
+            <h2>Declaration</h2>
+            <div class="hint">UIC settings and policy</div>
+          </div>
+          <textarea x-model="declarationText" placeholder="Loading declaration..."></textarea>
+          <div class="row">
+            <button :class="{ secondary: !backendReachable }" @click="loadDeclaration(true)" :disabled="!backendReachable">Load</button>
+            <button :class="{ secondary: !backendReachable }" @click="saveDeclaration()" :disabled="!backendReachable">Save</button>
+          </div>
+          <div class="text-muted text-sm mt-sm" x-show="lastDeclaration?.updated_at" x-text="lastDeclaration?.updated_at ? 'Last modified ' + relativeTime(lastDeclaration.updated_at) : ''"></div>
+          <div class="text-muted text-sm mt-sm" x-show="resultText && resultText !== 'Idle'" x-text="resultText"></div>
+        </div>
+      </div>
+
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Session History</h2>
+            <div class="hint">Past sessions from this backend</div>
+          </div>
+          <div class="queue-list">
+            <template x-for="session in sessionHistory" :key="session.session_id">
+              <div class="queue-item cursor-pointer" @click="loadSessionStats(session.session_id)">
+                <div class="queue-item-header">
+                  <span class="badge" :class="session.session_closed_at ? 'warn' : 'good'" x-text="session.session_closed_at ? 'closed' : 'active'"></span>
+                  <strong x-text="session.session_id ? session.session_id.slice(0, 8) : '-'"></strong>
+                </div>
+                <div class="queue-item-detail" x-text="(session.session_started_at ? 'Started ' + relativeTime(session.session_started_at) : '') + (session.session_closed_at ? ' · Closed ' + relativeTime(session.session_closed_at) : '') + (session.items_total != null ? ' · ' + session.items_total + ' items' : '') + (session.items_done ? ', ' + session.items_done + ' done' : '') + (session.items_error ? ', ' + session.items_error + ' errors' : '')"></div>
+                <template x-if="selectedSessionId === session.session_id && selectedSessionStats">
+                  <div class="queue-item-detail mt-sm">
+                    <template x-if="selectedSessionStats.error">
+                      <span x-text="selectedSessionStats.error"></span>
+                    </template>
+                    <template x-if="!selectedSessionStats.error">
+                      <span x-text="(selectedSessionStats.items_total != null ? selectedSessionStats.items_total + ' total' : '') + (selectedSessionStats.items_done ? ', ' + selectedSessionStats.items_done + ' done' : '') + (selectedSessionStats.items_error ? ', ' + selectedSessionStats.items_error + ' errors' : '') + (selectedSessionStats.items_queued ? ', ' + selectedSessionStats.items_queued + ' queued' : '') + (selectedSessionStats.items_active ? ', ' + selectedSessionStats.items_active + ' active' : '') + (selectedSessionStats.bytes_completed ? ' · ' + formatBytes(selectedSessionStats.bytes_completed) : '')"></span>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <div x-show="!sessionHistory.length" class="text-muted">No session history available</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-12" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Web Server Log</h2>
+            <button @click="loadWebLog()">Refresh</button>
+          </div>
+          <div class="list">
+            <template x-if="webLogEntries.length === 0">
+              <div class="text-muted text-sm">No web server log entries.</div>
+            </template>
+            <template x-for="entry in webLogEntries" :key="entry.timestamp + (entry.action || '')">
+              <div class="item">
+                <div class="item-top">
+                  <div class="item-url" x-text="entry.action || 'event'"></div>
+                  <span :class="badgeClass(entry.outcome || 'unknown')" x-text="entry.outcome || 'unknown'"></span>
+                  <span class="text-muted text-sm" x-text="entry.target || ''"></span>
+                </div>
+                <div class="meta">
+                  <span x-show="entry.reason" x-text="entry.reason"></span>
+                  <span x-show="entry.detail" x-text="JSON.stringify(entry.detail)"></span>
+                  <span x-show="entry.timestamp" class="text-muted" x-text="relativeTime(entry.timestamp)"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <!-- DEV -->
+      <div class="span-6" x-show="page === 'dev'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>API Documentation</h2>
+            <div class="hint">Interactive Swagger UI and OpenAPI spec</div>
+          </div>
+          <div class="row">
+            <button @click="openDocs()">Open Swagger UI</button>
+            <button @click="openSpec()">Download OpenAPI spec</button>
+          </div>
+          <div class="chips mt-sm">
+            <div class="chip">Runtime <strong x-text="backendVersionText">-</strong></div>
+            <div class="chip" :class="{ 'badge warn': specVersionMismatch }" x-show="specVersion">
+              Spec <strong x-text="specVersion ? 'v' + specVersion : '-'">-</strong>
+            </div>
+            <div class="chip badge warn" x-show="specVersionMismatch" title="OpenAPI info.version does not match /api/version (BG-37)">version drift</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-6" x-show="page === 'dev'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Server Metrics</h2>
+            <button @click="refresh()">Refresh</button>
+          </div>
+          <div class="chips">
+            <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
+            <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
+            <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
+            <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
+          </div>
+          <div class="chips mt-sm">
+            <div class="chip">Received <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
+            <div class="chip">Sent <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="span-6" x-show="page === 'dev'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Test Suite</h2>
+            <div class="hint">Run the backend test suite from the dashboard</div>
+          </div>
+          <div class="row mb-md">
+            <button :class="{ secondary: testRunning }" @click="runTests()" :disabled="testRunning">Run tests</button>
+          </div>
+          <div class="item" x-show="testSummaryVisible">
+            <div class="item-top">
+              <div class="item-url">Results</div>
+              <span :class="testBadgeClass" x-text="testBadgeText">-</span>
+            </div>
+            <div class="meta"><span x-text="testCountsText">-</span></div>
+          </div>
+          <div class="list mt-md">
+            <template x-for="t in testResults" :key="t.name || t.test || 'unknown'">
+              <template x-if="!t._placeholder">
+                <div class="item compact">
+                  <div class="item-top">
+                    <div class="item-url" x-text="t.name || t.test || 'unknown'"></div>
+                    <span :class="badgeClass(t.outcome || t.status || 'unknown')" x-text="t.outcome || t.status || 'unknown'"></span>
+                  </div>
+                  <div x-show="t.message" class="meta"><span x-text="t.message || ''"></span></div>
+                </div>
+              </template>
+            </template>
+            <template x-for="t in testResults" :key="'ph-' + (t.name || '')">
+              <template x-if="t._placeholder">
+                <div class="item" x-text="t.name"></div>
+              </template>
+            </template>
+          </div>
+          <details class="mt-md" x-show="lastTestStdout">
+            <summary class="text-muted text-sm cursor-pointer">stdout</summary>
+            <div class="debug-box text-mono text-sm" x-text="lastTestStdout"></div>
+          </details>
+          <details class="mt-sm" x-show="lastTestStderr">
+            <summary class="text-muted text-sm cursor-pointer">stderr</summary>
+            <div class="debug-box text-mono text-sm" x-text="lastTestStderr"></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- FE-24: Freshness map (BG-31 contract observability) -->
+      <div class="span-12" x-show="page === 'dev'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Freshness map</h2>
+            <div class="hint">Per-endpoint refresh class declared by the backend (<code>/api/_meta</code>) and current router state.</div>
+          </div>
+          <div x-show="freshnessStatus.length === 0" class="text-muted">
+            Router not booted (legacy backend without <code>/api/_meta</code>, or not yet loaded).
+          </div>
+          <table x-show="freshnessStatus.length > 0" class="text-sm">
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Class</th>
+                <th>TTL</th>
+                <th>Subscribers</th>
+                <th>Host</th>
+                <th>Last fetch</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="row in freshnessStatus" :key="row.endpoint">
+                <tr>
+                  <td class="text-mono" x-text="row.endpoint"></td>
+                  <td><span class="badge" x-text="row.freshness"></span></td>
+                  <td x-text="row.ttl_s != null ? row.ttl_s + 's' : '-'"></td>
+                  <td>
+                    <span x-text="row.visibleSubscribers"></span>
+                    <span class="text-muted" x-show="row.hiddenSubscribers > 0" x-text="' (+' + row.hiddenSubscribers + ' hidden)'"></span>
+                  </td>
+                  <td>
+                    <span class="badge" :class="row.hostVisible ? 'good' : 'warn'" x-text="row.hostVisible ? 'visible' : 'hidden'"></span>
+                  </td>
+                  <td x-text="row.lastFetchAt ? relativeTime(new Date(row.lastFetchAt).toISOString()) : 'never'"></td>
+                  <td>
+                    <span class="badge" :class="row.active ? 'good' : ''" x-text="row.active ? 'on' : 'off'"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ARCHIVE -->
+      <div class="span-12" x-show="page === 'archive'">
+        <div class="panel">
+          <div class="section-title"><h2>Archive</h2><div class="hint">Recently removed items</div></div>
+          <div class="list">
+            <template x-if="archiveItems.length === 0">
+              <div class="item">No archived items.</div>
+            </template>
+            <template x-for="item in archiveItems" :key="item.id || item.url">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" x-text="shortName(item.output || item.url || '(no url)')"></div>
+                  <span :class="badgeClass(item.status || 'removed')" x-text="item.status || 'removed'"></span>
+                </div>
+                <div class="meta">
+                  <span x-show="item.cancelled_at" x-text="'Removed ' + relativeTime(item.cancelled_at)"></span>
+                  <span x-show="item.url" :title="item.url" x-text="item.url"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="mt-md text-center">
+            <button :class="{ secondary: !backendReachable }" @click="loadMoreArchive()" :disabled="!backendReachable" class="text-sm">Load more</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      Local-only dashboard. Web UI is optional; the scheduler stays headless.
+    </div>
+  </div>
+</body>
+</html>

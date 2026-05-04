@@ -5,8 +5,10 @@
   "description": "TypeScript sources for the ariaflow-dashboard frontend (bundled into src/ariaflow_dashboard/static/dist/).",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/ariaflow_dashboard/static/ts/main.ts --bundle --format=esm --target=es2020 --sourcemap --outfile=src/ariaflow_dashboard/static/dist/app.js",
-    "dev": "npm run build -- --watch",
+    "build": "npm run build:js && npm run build:html",
+    "build:js": "esbuild src/ariaflow_dashboard/static/ts/main.ts --bundle --format=esm --target=es2020 --sourcemap --outfile=src/ariaflow_dashboard/static/dist/app.js",
+    "build:html": "node scripts/build-html.mjs",
+    "dev": "npm run build:js -- --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/ariaflow_dashboard/static/ts",
     "format": "prettier --write src/ariaflow_dashboard/static/ts",

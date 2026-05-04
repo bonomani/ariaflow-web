@@ -3,18 +3,16 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
-import re
-import threading
 from pathlib import Path
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from . import __version__
 from .action_log import load_action_log, record_action
 from .bonjour import discover_http_services, local_identity
 
 _STATIC_DIR = Path(__file__).parent / "static"
+_DIST_INDEX = _STATIC_DIR / "dist" / "index.html"
 
 _CONTENT_TYPES: dict[str, str] = {
     ".css": "text/css; charset=utf-8",
@@ -26,20 +24,8 @@ _CONTENT_TYPES: dict[str, str] = {
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
 
-_INCLUDE_RE = re.compile(r"<!--INCLUDE:([\w_./-]+)-->\n?")
-
-
-def _expand_includes(text: str) -> str:
-    def _sub(match: "re.Match[str]") -> str:
-        rel = match.group(1)
-        return (_STATIC_DIR / rel).read_text(encoding="utf-8")
-    return _INCLUDE_RE.sub(_sub, text)
-
-
 def _read_index_html(backend_url: str | None = None) -> str:
-    text = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
-    text = _expand_includes(text)
-    text = text.replace("__ARIAFLOW_DASHBOARD_VERSION__", f"v{__version__}")
+    text = _DIST_INDEX.read_text(encoding="utf-8")
     text = text.replace("__ARIAFLOW_DASHBOARD_PID__", str(os.getpid()))
     identity = local_identity()
     globals_js = (
@@ -57,7 +43,6 @@ def _read_index_html(backend_url: str | None = None) -> str:
 
 
 INDEX_HTML = _read_index_html()
-_index_lock = threading.Lock()
 
 
 class AriaFlowHandler(BaseHTTPRequestHandler):
@@ -127,8 +112,8 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
 def serve(host: str = "127.0.0.1", port: int = 8000, backend_url: str | None = None) -> ThreadingHTTPServer:
     global INDEX_HTML  # noqa: PLW0603
     if backend_url:
-        with _index_lock:
-            INDEX_HTML = _read_index_html(backend_url)
+        INDEX_HTML = _read_index_html(backend_url)
+    from . import __version__
     record_action(
         action="start", target="server", outcome="ok",
         detail={"host": host, "port": port, "backend_url": backend_url or DEFAULT_BACKEND_URL, "version": __version__},
