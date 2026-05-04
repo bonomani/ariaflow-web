@@ -1,6 +1,6 @@
 # Freshness snapshot
 
-Generated from `http://127.0.0.1:8000/api/_meta` and `http://127.0.0.1:8001/api/_meta` at 2026-05-04T20:44:58.674Z.
+Generated from `http://127.0.0.1:8000/api/_meta` and `http://127.0.0.1:8001/api/_meta` at 2026-05-04T20:46:56.603Z.
 Do not edit by hand — run `npm run freshness:snapshot` to refresh.
 
 | Host | Class | Method | Path | TTL (s) | Transport | Topics | Revalidate on |

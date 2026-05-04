@@ -8,10 +8,10 @@
 // Generated artifact — never hand-edit.
 //
 // Usage:
-//   BACKEND=http://localhost:9001 DASHBOARD=http://localhost:8001 \
+//   BACKEND=http://localhost:8000 DASHBOARD=http://localhost:8001 \
 //     npm run freshness:snapshot
 //
-// Defaults: BACKEND=http://127.0.0.1:9001, DASHBOARD=http://127.0.0.1:8001.
+// Defaults: BACKEND=http://127.0.0.1:8000, DASHBOARD=http://127.0.0.1:8001.
 // If the dashboard meta is unreachable the script still succeeds with
 // just the backend rows — useful when running against a mocked or
 // production backend without the local dashboard process up.
@@ -20,7 +20,7 @@ import { writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const backend = (process.env.BACKEND ?? 'http://127.0.0.1:9001').replace(/\/+$/, '');
+const backend = (process.env.BACKEND ?? 'http://127.0.0.1:8000').replace(/\/+$/, '');
 const dashboard = (process.env.DASHBOARD ?? 'http://127.0.0.1:8001').replace(/\/+$/, '');
 
 async function fetchEndpoints(origin, host, { required }) {
