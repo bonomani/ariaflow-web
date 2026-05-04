@@ -32,7 +32,15 @@ async function setupBackend(page: import('@playwright/test').Page, recorded: Rec
     // Minimal-but-valid responses keyed by path.
     const path = u.pathname;
     let body: unknown = { ok: true };
-    if (path === '/api/_meta') body = { ok: true, endpoints: [] };
+    if (path === '/api/_meta') body = {
+      ok: true,
+      endpoints: [
+        { method: 'GET', path: '/api/status', freshness: 'live', transport: 'sse' },
+        { method: 'GET', path: '/api/declaration', freshness: 'cold',
+          revalidate_on: ['POST /api/declaration', 'PUT /api/declaration', 'POST /api/declaration/preferences', 'PATCH /api/declaration/preferences'] },
+        { method: 'GET', path: '/api/aria2/global_option', freshness: 'cold' },
+      ],
+    };
     else if (path === '/api/status') body = { ok: true, items: [], summary: { total: 0 }, state: {}, _rev: 1 };
     else if (path === '/api/declaration') body = { ok: true, uic: { preferences: [] } };
     else if (path === '/api/lifecycle') body = { ok: true };
