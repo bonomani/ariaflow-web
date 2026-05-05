@@ -56,7 +56,7 @@
                     </div>
                     <div class="action-strip mt-sm">
                       <button :class="{ secondary: !backendReachable }" @click="toggleScheduler()" :disabled="schedulerBtnDisabled" x-text="schedulerBtnText">Start</button>
-                      <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="state?.scheduler_intent === 'running' || state?.running">Stop</button>
+                      <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="schedulerBadgeText !== 'stopped' && schedulerBadgeText">Stop</button>
                       <template x-if="schedulerWaitReasonAction">
                         <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
                       </template>
