@@ -393,7 +393,7 @@ document.addEventListener('alpine:init', () => {
     specVersion: null as string | null,
 
     // test suite
-    testRunning: false,
+    testLoading: false,
     uccLoading: false,
     preflightLoading: false,
     testSummaryVisible: false,
@@ -1445,9 +1445,9 @@ document.addEventListener('alpine:init', () => {
     },
 
     // --- bandwidth ---
-    probeRunning: false,
+    probeLoading: false,
     async runProbe() {
-      this.probeRunning = true;
+      this.probeLoading = true;
       this.resultText = 'Probe running...';
       try {
         const r = await postEmpty(this.backendPath('/api/bandwidth/probe'));
@@ -1459,7 +1459,7 @@ document.addEventListener('alpine:init', () => {
       } catch (e) {
         this.resultText = `Probe failed: ${e.message}`;
       } finally {
-        this.probeRunning = false;
+        this.probeLoading = false;
       }
     },
     _applyBandwidth(data) {
@@ -1835,7 +1835,7 @@ document.addEventListener('alpine:init', () => {
       this.testBadgeClass = 'badge';
       this.testCountsText = 'Running test suite...';
       this.testResults = [];
-      this.testRunning = true;
+      this.testLoading = true;
       try {
         const r = await this._fetch(`${this.backendBaseUrl()}/api/tests`);
         const data = await r.json();
@@ -1861,7 +1861,7 @@ document.addEventListener('alpine:init', () => {
         this.testCountsText = `Failed to reach backend: ${err.message}`;
         this.testResults = [];
       }
-      this.testRunning = false;
+      this.testLoading = false;
     },
   }));
 });

@@ -33,7 +33,7 @@
               <div class="list">
                 <div class="item">
                   <div class="row">
-                    <button :class="{ secondary: probeRunning }" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
+                    <button :class="{ secondary: probeLoading }" @click="runProbe()" :disabled="probeLoading" x-text="probeLoading ? 'Probing...' : 'Run probe'">Run probe</button>
                   </div>
                 </div>
                 <div class="item">

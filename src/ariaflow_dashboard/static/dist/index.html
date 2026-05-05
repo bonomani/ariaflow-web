@@ -280,7 +280,7 @@
               <div class="list">
                 <div class="item">
                   <div class="row">
-                    <button :class="{ secondary: probeRunning }" @click="runProbe()" :disabled="probeRunning" x-text="probeRunning ? 'Probing...' : 'Run probe'">Run probe</button>
+                    <button :class="{ secondary: probeLoading }" @click="runProbe()" :disabled="probeLoading" x-text="probeLoading ? 'Probing...' : 'Run probe'">Run probe</button>
                   </div>
                 </div>
                 <div class="item">
@@ -563,7 +563,7 @@
                   <button @click="stopTorrent(t.infohash)">Stop</button>
                 </div>
                 <div class="meta">
-                  <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-text="t.infohash ? t.infohash.slice(0, 8) : ''"></span>
                   <span x-show="t.seed_gid" class="text-muted" x-text="'gid:' + t.seed_gid"></span>
                   <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
                   <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
@@ -685,7 +685,7 @@
       <div class="span-6" x-show="page === 'log'">
         <div class="panel">
           <div class="section-title">
-            <h2>Action history</h2>
+            <h2>Action History</h2>
             <div class="hint">Normalized event log</div>
           </div>
           <!-- Filters: what to show. -->
@@ -847,7 +847,7 @@
             <div class="hint">Run the backend test suite from the dashboard</div>
           </div>
           <div class="row mb-md">
-            <button :class="{ secondary: testRunning }" @click="runTests()" :disabled="testRunning">Run backend tests</button>
+            <button :class="{ secondary: !backendReachable || testLoading }" @click="runTests()" :disabled="!backendReachable || testLoading">Run backend tests</button>
           </div>
           <div class="item" x-show="testSummaryVisible">
             <div class="item-top">
@@ -889,7 +889,7 @@
       <div class="span-12" x-show="page === 'dev'">
         <div class="panel">
           <div class="section-title">
-            <h2>Freshness map</h2>
+            <h2>Freshness Map</h2>
             <div class="hint">Per-endpoint refresh class declared by the backend (<code>/api/_meta</code>) and current router state.</div>
           </div>
           <div x-show="freshnessStatus.length === 0" class="text-muted">

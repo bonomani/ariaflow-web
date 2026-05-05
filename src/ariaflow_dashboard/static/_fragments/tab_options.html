@@ -167,7 +167,7 @@
                   <button @click="stopTorrent(t.infohash)">Stop</button>
                 </div>
                 <div class="meta">
-                  <span x-text="t.infohash?.slice(0, 12) + '…'"></span>
+                  <span x-text="t.infohash ? t.infohash.slice(0, 8) : ''"></span>
                   <span x-show="t.seed_gid" class="text-muted" x-text="'gid:' + t.seed_gid"></span>
                   <span x-show="t.ratio != null" x-text="'ratio ' + Number(t.ratio).toFixed(2)"></span>
                   <span x-show="t.upload_speed" x-text="'↑ ' + formatBytes(t.upload_speed) + '/s'"></span>
