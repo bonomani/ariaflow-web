@@ -141,3 +141,4 @@ coverage_map:
   loadPeers: "test_api_params (peer discovery)"
   stopTorrent: "test_api_params (torrent stop)"
   runWaitReasonAction: "delegates to preflightRun / lifecycleAction / runProbe (each covered separately)"
+  schedulerAction: "test_03_start_engine (start path) / toggleScheduler covers stop path indirectly"
