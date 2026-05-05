@@ -139,6 +139,5 @@ coverage_map:
   setAria2Option: "test_api_params.test_aria2_options"
   loadTorrents: "test_api_params (torrent listing)"
   loadPeers: "test_api_params (peer discovery)"
-  loadWebLog: "test_web_log (web server log)"
   refresh: "test_server_metrics_refresh (manual refresh)"
   stopTorrent: "test_api_params (torrent stop)"

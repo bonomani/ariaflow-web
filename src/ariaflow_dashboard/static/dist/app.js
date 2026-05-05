@@ -1306,6 +1306,7 @@ document.addEventListener("alpine:init", () => {
     actionFilter: "all",
     targetFilter: "all",
     sessionFilter: "current",
+    sourceFilter: "all",
     fileSelectionItemId: null,
     fileSelectionFiles: [],
     fileSelectionLoading: false,
@@ -1577,7 +1578,6 @@ document.addEventListener("alpine:init", () => {
     archiveLimit: 100,
     logLimit: 120,
     // session history
-    sessionHistory: [],
     // log state
     resultText: "Idle",
     resultJson: "Idle",
@@ -1663,7 +1663,6 @@ document.addEventListener("alpine:init", () => {
       ],
       log: [
         { method: "GET", path: "/api/web/log", getParams: () => ({ limit: 100 }), apply: (s, d) => s._applyWebLog(d) },
-        { method: "GET", path: "/api/sessions/history", apply: (s, d) => s._applySessionHistory(d) },
         { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
       ],
       archive: [
@@ -2795,14 +2794,28 @@ document.addEventListener("alpine:init", () => {
     get availableTargets() {
       return distinctTargets(this.actionLogEntries);
     },
+    // Activity panel: backend's /api/log + dashboard's /api/web/log
+    // merged into one chronological timeline. Each row carries _source
+    // ('server' | 'dashboard') so the UI can badge it. Filters apply
+    // to the merged list; the new sourceFilter narrows by origin.
+    get mergedActivity() {
+      const tagged = [
+        ...this.actionLogEntries.map((e) => ({ ...e, _source: "server" })),
+        ...this.webLogEntries.map((e) => ({ ...e, _source: "dashboard" }))
+      ];
+      tagged.sort((a, b) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+      return tagged;
+    },
     get filteredActionLog() {
       const currentSessionId = this.state?.session_id || this.lastLifecycle?.session_id || this.lastDeclaration?.session_id || null;
-      return filterActionLog(this.actionLogEntries, {
+      const filtered = filterActionLog(this.mergedActivity, {
         actionFilter: this.actionFilter,
         targetFilter: this.targetFilter,
         sessionFilter: this.sessionFilter,
         currentSessionId
       });
+      if (this.sourceFilter === "all") return filtered;
+      return filtered.filter((e) => e._source === this.sourceFilter);
     },
     sanitizeLogValue(value, depth = 0) {
       if (value == null) return value;
@@ -2874,9 +2887,6 @@ document.addEventListener("alpine:init", () => {
       }
     },
     // --- session history ---
-    _applySessionHistory(data) {
-      this.sessionHistory = data?.history || [];
-    },
     // --- aria2 options ---
     _applyAria2GlobalOption(data) {
       if (data && data.ok !== false) this.aria2Options = data;

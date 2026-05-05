@@ -714,11 +714,18 @@
 <div class="span-6" x-show="page === 'log'">
         <div class="panel">
           <div class="section-title">
-            <h2>Action History</h2>
-            <div class="hint">Normalized event log</div>
+            <h2>Activity</h2>
+            <div class="hint">Backend + dashboard events, merged chronologically</div>
           </div>
           <!-- Filters: what to show. -->
           <div class="row mb-sm">
+            <label class="text-muted text-sm">Source
+              <select x-model="sourceFilter">
+                <option value="all">All</option>
+                <option value="server">Server</option>
+                <option value="dashboard">Dashboard</option>
+              </select>
+            </label>
             <label class="text-muted text-sm">Action
               <select x-model="actionFilter" @change="refreshActionLog()">
                 <option value="all">All</option>
@@ -756,73 +763,17 @@
           </div>
           <div class="list">
             <template x-if="filteredActionLog.length === 0">
-              <div class="item">No action log entries.</div>
+              <div class="item">No activity entries.</div>
             </template>
-            <template x-for="entry in filteredActionLog" :key="entry.timestamp + (entry.action || '') + (entry.target || '')">
+            <template x-for="entry in filteredActionLog" :key="(entry._source || '') + entry.timestamp + (entry.action || '') + (entry.target || '')">
               <div class="item">
                 <div class="item-top">
                   <div class="item-url" x-text="entry.action || 'event'"></div>
+                  <span class="badge" :class="entry._source === 'dashboard' ? '' : 'good'" x-text="entry._source === 'dashboard' ? 'dashboard' : 'server'"></span>
                   <span :class="badgeClass(entry.outcome || entry.status || 'unknown')" x-text="entry.outcome || entry.status || 'unknown'"></span>
                   <span x-show="entry.observation && entry.observation !== 'ok'" class="badge warn" x-text="entry.observation"></span>
                 </div>
                 <div class="meta"><span x-text="(entry.action === 'poll' ? 'Historical event' : 'Historical record') + ' · ' + logEntryLines(entry)"></span></div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-<div class="span-6" x-show="page === 'log'">
-        <div class="panel">
-          <div class="section-title">
-            <h2>Session History</h2>
-            <div class="hint">Past sessions from this backend</div>
-          </div>
-          <div class="list">
-            <template x-if="!sessionHistory.length">
-              <div class="item">No session history.</div>
-            </template>
-            <template x-for="session in sessionHistory" :key="session.session_id">
-              <div class="item compact">
-                <div class="item-top">
-                  <div class="item-url" :title="session.session_id" x-text="session.session_id ? session.session_id.slice(0, 8) : '-'"></div>
-                  <span class="badge" :class="session.closed_at ? 'warn' : 'good'" x-text="session.closed_at ? 'closed' : 'active'"></span>
-                </div>
-                <div class="meta">
-                  <span x-show="session.started_at" x-text="'Started ' + relativeTime(session.started_at)"></span>
-                  <span x-show="session.closed_at" x-text="'Closed ' + relativeTime(session.closed_at)"></span>
-                  <span x-show="session.items_total != null" x-text="session.items_total + ' items'"></span>
-                  <span x-show="session.items_done" x-text="session.items_done + ' done'"></span>
-                  <span x-show="session.items_error" class="text-muted" x-text="session.items_error + ' errors'"></span>
-                  <span x-show="session.closed_reason" class="text-muted" x-text="session.closed_reason"></span>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      <div class="span-12" x-show="page === 'log'">
-        <div class="panel">
-          <div class="section-title">
-            <h2>Web Server Log</h2>
-            <button @click="loadWebLog()">Refresh</button>
-          </div>
-          <div class="list">
-            <template x-if="webLogEntries.length === 0">
-              <div class="item">No web server log entries.</div>
-            </template>
-            <template x-for="entry in webLogEntries" :key="entry.timestamp + (entry.action || '')">
-              <div class="item">
-                <div class="item-top">
-                  <div class="item-url" x-text="entry.action || 'event'"></div>
-                  <span :class="badgeClass(entry.outcome || 'unknown')" x-text="entry.outcome || 'unknown'"></span>
-                  <span class="text-muted text-sm" x-text="entry.target || ''"></span>
-                </div>
-                <div class="meta">
-                  <span x-show="entry.reason" x-text="entry.reason"></span>
-                  <span x-show="entry.detail" x-text="JSON.stringify(entry.detail)"></span>
-                  <span x-show="entry.timestamp" class="text-muted" x-text="relativeTime(entry.timestamp)"></span>
-                </div>
               </div>
             </template>
           </div>

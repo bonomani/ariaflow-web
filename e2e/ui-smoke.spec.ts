@@ -56,7 +56,6 @@ async function setupBackend(page: import('@playwright/test').Page, opts: Backend
           { method: 'GET', path: '/api/status', freshness: 'live', transport: 'sse' },
           { method: 'GET', path: '/api/lifecycle', freshness: 'warm', ttl_s: 30 },
           { method: 'GET', path: '/api/bandwidth', freshness: 'on-action', revalidate_on: ['POST /api/bandwidth/probe'] },
-          { method: 'GET', path: '/api/sessions/history', freshness: 'swr', ttl_s: 30 },
         ],
       };
     } else if (path === '/api/status') {
@@ -84,30 +83,6 @@ async function setupBackend(page: import('@playwright/test').Page, opts: Backend
     else if (path === '/api/aria2/option_tiers') body = { ok: true, safe: [], managed: [], unsafe_enabled: false };
     else if (path === '/api/torrents') body = { torrents: [] };
     else if (path === '/api/peers') body = { peers: [] };
-    else if (path === '/api/sessions/history') {
-      body = {
-        ok: true,
-        history: [
-          {
-            session_id: 'aaaaaaaa-1111-2222-3333-444444444444',
-            started_at: '2026-04-03T00:07:47+0200',
-            closed_at: '2026-04-03T00:07:48+0200',
-            closed_reason: 'stop_requested',
-            items_total: 0,
-            items_done: 0,
-            items_error: 0,
-          },
-          {
-            session_id: 'bbbbbbbb-5555-6666-7777-888888888888',
-            started_at: '2026-04-04T10:00:00+0200',
-            closed_at: null,
-            items_total: 5,
-            items_done: 3,
-            items_error: 1,
-          },
-        ],
-      };
-    }
     else if (path === '/api/downloads/archive') body = { items: [] };
     else if (path === '/api/sessions') body = { sessions: [] };
     else if (path === '/api/log') body = { items: [] };
@@ -240,27 +215,6 @@ test('FE-22: discoverBackends falls back to /api/peers when mDNS empty', async (
   });
   expect(discoveryText.found).toBe(true);
   expect(discoveryText.text).toContain('peers');
-});
-
-test('BG-39: Session History panel populates from /api/sessions/history', async ({ page }) => {
-  // Regression net for the dashboard's bug where it subscribed to
-  // /api/sessions (singular current session) and read data.sessions
-  // (a key that never existed). The panel was permanently empty.
-  await setupBackend(page);
-  await page.goto('/log');
-  await page.waitForTimeout(500);
-
-  const panel = page.locator('.panel', { hasText: 'Session History' });
-  await expect(panel).toBeVisible();
-  // Two rows from the mock — one closed, one active.
-  await expect(panel.locator('.item.compact')).toHaveCount(2);
-  await expect(panel.getByText('aaaaaaaa').first()).toBeVisible();
-  await expect(panel.getByText('bbbbbbbb').first()).toBeVisible();
-  // Closed row carries warn badge with text "closed"; active carries good "active".
-  await expect(panel.locator('.badge', { hasText: 'closed' }).first()).toBeVisible();
-  await expect(panel.locator('.badge', { hasText: 'active' }).first()).toBeVisible();
-  // No "No session history." empty-state when items are present.
-  await expect(panel.getByText('No session history.')).toHaveCount(0);
 });
 
 test('lifecycle tab paints rows from /api/lifecycle', async ({ page }) => {
