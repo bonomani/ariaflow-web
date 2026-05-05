@@ -1222,6 +1222,7 @@ function lifecycleActionsFor(name, record) {
   if (!result) return [];
   const target = backendTargetFor(name);
   if (!target) return [];
+  if (target === "ariaflow-server") return [];
   const { installed, current, running } = result;
   if (installed === null && current === null) {
     if (running === true) return [{ target, action: "uninstall", label: "Unload" }];

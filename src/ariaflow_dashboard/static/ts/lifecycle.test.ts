@@ -214,7 +214,7 @@ test('lifecycleDetailLines returns [] for missing record', () => {
 // ---------- lifecycleActionsFor ----------
 
 test('lifecycleActionsFor not-installed → only Install', () => {
-  const r = lifecycleActionsFor('ariaflow-server', {
+  const r = lifecycleActionsFor('aria2', {
     result: { installed: false, current: null, running: null },
   });
   assert.equal(r.length, 1);
@@ -222,7 +222,7 @@ test('lifecycleActionsFor not-installed → only Install', () => {
 });
 
 test('lifecycleActionsFor outdated → Update + Remove', () => {
-  const r = lifecycleActionsFor('ariaflow-server', {
+  const r = lifecycleActionsFor('aria2', {
     result: { installed: true, current: false, running: null },
   });
   assert.deepEqual(
@@ -232,13 +232,20 @@ test('lifecycleActionsFor outdated → Update + Remove', () => {
 });
 
 test('lifecycleActionsFor running·current → Remove only', () => {
-  const r = lifecycleActionsFor('ariaflow-server', {
+  const r = lifecycleActionsFor('aria2', {
     result: { installed: true, current: true, running: true },
   });
   assert.deepEqual(
     r.map((a) => a.label),
     ['Uninstall'],
   );
+});
+
+test('lifecycleActionsFor ariaflow-server → no actions (host process, OS-managed)', () => {
+  const r = lifecycleActionsFor('ariaflow-server', {
+    result: { installed: true, current: true, running: true },
+  });
+  assert.deepEqual(r, []);
 });
 
 test('lifecycleActionsFor pure registration (launchd) loaded → Unload only', () => {

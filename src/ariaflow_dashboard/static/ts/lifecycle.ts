@@ -153,6 +153,14 @@ export function lifecycleActionsFor(
   const target = backendTargetFor(name);
   if (!target) return [];
 
+  // ariaflow-server is the host process serving the dashboard.
+  // Install/uninstall belongs to the OS package manager (Homebrew /
+  // pipx / npm), not a button inside the running UI — clicking
+  // 'Uninstall' here would tear down the backend the operator is
+  // currently using to talk to the dashboard. Engine controls
+  // (Start/Stop/Pause) live on the Scheduler subsection instead.
+  if (target === 'ariaflow-server') return [];
+
   const { installed, current, running } = result;
 
   // Pure registrations (aria2-launchd): toggle Load/Unload.
@@ -171,10 +179,7 @@ export function lifecycleActionsFor(
       { target, action: 'uninstall', label: 'Uninstall' },
     ];
   }
-  // installed && current — usually offer Uninstall only. Don't expose a
-  // Start/Stop affordance here yet: the daemon-control surface for
-  // aria2 / ariaflow-server is policy, not a per-row toggle, so
-  // leave that to the broader scheduler controls.
+  // installed && current — offer Uninstall (aria2 only at this point).
   return [{ target, action: 'uninstall', label: 'Uninstall' }];
 }
 
