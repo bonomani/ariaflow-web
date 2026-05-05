@@ -460,6 +460,22 @@
                     <div class="chip" x-show="row.record.result.managed_by">Managed by <strong x-text="row.record.result.managed_by"></strong></div>
                   </div>
                 </template>
+                <template x-if="row.name === 'aria2' && row.record?.result?.auto_start">
+                  <div>
+                    <div class="section-title mt-md">
+                      <h4 class="text-sm text-muted">Auto-start</h4>
+                      <span :class="row.record.result.auto_start.installed ? 'badge good' : 'badge'" x-text="row.record.result.auto_start.installed ? 'loaded' : 'not loaded'"></span>
+                    </div>
+                    <div class="chips mt-sm" x-show="row.record.result.auto_start.target || row.record.result.auto_start.path">
+                      <div class="chip" x-show="row.record.result.auto_start.target">Mechanism <strong x-text="row.record.result.auto_start.target"></strong></div>
+                      <div class="chip text-mono text-sm" x-show="row.record.result.auto_start.path" :title="row.record.result.auto_start.path" x-text="row.record.result.auto_start.path"></div>
+                    </div>
+                    <div class="action-strip mt-sm" x-show="row.record.result.auto_start.target">
+                      <button x-show="!row.record.result.auto_start.installed" @click="lifecycleAction('aria2-launchd', 'install')" :disabled="!backendReachable">Load</button>
+                      <button x-show="row.record.result.auto_start.installed" class="secondary" @click="lifecycleAction('aria2-launchd', 'uninstall')" :disabled="!backendReachable">Unload</button>
+                    </div>
+                  </div>
+                </template>
                 <div class="meta" x-show="lifecycleItemLines(row.record)">
                   <span x-text="lifecycleItemLines(row.record)"></span>
                 </div>

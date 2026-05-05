@@ -1617,6 +1617,12 @@ document.addEventListener('alpine:init', () => {
         this.lifecycleRows = [];
         return;
       }
+      // BG-44 phase 2 (FE consolidation): the standalone aria2-launchd
+      // row collapses into a sub-block on the aria2 row, driven by
+      // aria2.result.auto_start = {installed, target, path}. The
+      // backend still emits the standalone row for one deprecation
+      // cycle; we ignore it here. Actions still target 'aria2-launchd'
+      // until backend phase 3 retires that route.
       this.lifecycleRows = [
         {
           name: 'ariaflow-server',
@@ -1625,11 +1631,6 @@ document.addEventListener('alpine:init', () => {
         },
         { name: 'aria2', record: data.aria2, actions: lifecycleActionsFor('aria2', data.aria2) },
         { name: 'networkquality', record: data.networkquality, actions: [] },
-        {
-          name: 'aria2 auto-start',
-          record: data['aria2-launchd'],
-          actions: lifecycleActionsFor('aria2 auto-start', data['aria2-launchd']),
-        },
       ];
       this._lifecycleSession = data?.session_id ? data : null;
     },

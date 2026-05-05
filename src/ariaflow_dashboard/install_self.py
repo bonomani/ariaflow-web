@@ -13,10 +13,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Literal, Mapping, Optional
 
-ManagedBy = Literal["launchd", "systemd", "docker", "external"] | None
-InstalledVia = Literal["homebrew", "pipx", "pip", "source"] | None
+# Use typing.Optional rather than `T | None` so the module imports under
+# Python 3.9 too (the Homebrew bottle picks up the system python on
+# macOS, which is 3.9 — pyproject says >=3.10 but the installed runner
+# isn't always honored).
+ManagedBy = Optional[Literal["launchd", "systemd", "docker", "external"]]
+InstalledVia = Optional[Literal["homebrew", "pipx", "pip", "source"]]
 
 # Brew formula name + the spec's generic plist label.
 _LAUNCHD_LABELS = ("homebrew.mxcl.ariaflow-dashboard", "com.ariaflow-dashboard")

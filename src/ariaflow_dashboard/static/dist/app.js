@@ -2836,12 +2836,7 @@ document.addEventListener("alpine:init", () => {
           actions: lifecycleActionsFor("ariaflow-server", data["ariaflow-server"])
         },
         { name: "aria2", record: data.aria2, actions: lifecycleActionsFor("aria2", data.aria2) },
-        { name: "networkquality", record: data.networkquality, actions: [] },
-        {
-          name: "aria2 auto-start",
-          record: data["aria2-launchd"],
-          actions: lifecycleActionsFor("aria2 auto-start", data["aria2-launchd"])
-        }
+        { name: "networkquality", record: data.networkquality, actions: [] }
       ];
       this._lifecycleSession = data?.session_id ? data : null;
     },
