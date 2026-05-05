@@ -7,7 +7,6 @@ import {
   urlItemFiles,
   urlLifecycleAction,
   urlScheduler,
-  urlSessionStats,
   urlTorrentStop,
 } from './actions.js';
 
@@ -37,8 +36,4 @@ test('urlScheduler accepts pause / resume / preflight / ucc', () => {
 
 test('urlAria2GetOption encodes gid', () => {
   assert.equal(urlAria2GetOption('g 1'), '/api/aria2/option?gid=g%201');
-});
-
-test('urlSessionStats encodes session_id', () => {
-  assert.equal(urlSessionStats('abc/def'), '/api/sessions/stats?session_id=abc%2Fdef');
 });

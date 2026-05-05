@@ -39,8 +39,3 @@ export function urlScheduler(action: SchedulerAction | 'preflight' | 'ucc'): str
 export function urlAria2GetOption(gid: string): string {
   return `/api/aria2/option?gid=${encodeURIComponent(gid)}`;
 }
-
-// /api/sessions/stats?session_id=:id
-export function urlSessionStats(sessionId: string): string {
-  return `/api/sessions/stats?session_id=${encodeURIComponent(sessionId)}`;
-}

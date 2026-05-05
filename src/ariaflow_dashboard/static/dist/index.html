@@ -777,28 +777,25 @@
             <h2>Session History</h2>
             <div class="hint">Past sessions from this backend</div>
           </div>
-          <div class="queue-list">
-            <template x-for="session in sessionHistory" :key="session.session_id">
-              <div class="queue-item cursor-pointer" @click="loadSessionStats(session.session_id)">
-                <div class="queue-item-header">
-                  <span class="badge" :class="session.session_closed_at ? 'warn' : 'good'" x-text="session.session_closed_at ? 'closed' : 'active'"></span>
-                  <strong x-text="session.session_id ? session.session_id.slice(0, 8) : '-'"></strong>
-                </div>
-                <div class="queue-item-detail" x-text="(session.session_started_at ? 'Started ' + relativeTime(session.session_started_at) : '') + (session.session_closed_at ? ' · Closed ' + relativeTime(session.session_closed_at) : '') + (session.items_total != null ? ' · ' + session.items_total + ' items' : '') + (session.items_done ? ', ' + session.items_done + ' done' : '') + (session.items_error ? ', ' + session.items_error + ' errors' : '')"></div>
-                <template x-if="selectedSessionId === session.session_id && selectedSessionStats">
-                  <div class="queue-item-detail mt-sm">
-                    <template x-if="selectedSessionStats.error">
-                      <span x-text="selectedSessionStats.error"></span>
-                    </template>
-                    <template x-if="!selectedSessionStats.error">
-                      <span x-text="(selectedSessionStats.items_total != null ? selectedSessionStats.items_total + ' total' : '') + (selectedSessionStats.items_done ? ', ' + selectedSessionStats.items_done + ' done' : '') + (selectedSessionStats.items_error ? ', ' + selectedSessionStats.items_error + ' errors' : '') + (selectedSessionStats.items_queued ? ', ' + selectedSessionStats.items_queued + ' queued' : '') + (selectedSessionStats.items_active ? ', ' + selectedSessionStats.items_active + ' active' : '') + (selectedSessionStats.bytes_completed ? ' · ' + formatBytes(selectedSessionStats.bytes_completed) : '')"></span>
-                    </template>
-                  </div>
-                </template>
-              </div>
-            </template>
+          <div class="list">
             <template x-if="!sessionHistory.length">
               <div class="item">No session history.</div>
+            </template>
+            <template x-for="session in sessionHistory" :key="session.session_id">
+              <div class="item compact">
+                <div class="item-top">
+                  <div class="item-url" :title="session.session_id" x-text="session.session_id ? session.session_id.slice(0, 8) : '-'"></div>
+                  <span class="badge" :class="session.closed_at ? 'warn' : 'good'" x-text="session.closed_at ? 'closed' : 'active'"></span>
+                </div>
+                <div class="meta">
+                  <span x-show="session.started_at" x-text="'Started ' + relativeTime(session.started_at)"></span>
+                  <span x-show="session.closed_at" x-text="'Closed ' + relativeTime(session.closed_at)"></span>
+                  <span x-show="session.items_total != null" x-text="session.items_total + ' items'"></span>
+                  <span x-show="session.items_done" x-text="session.items_done + ' done'"></span>
+                  <span x-show="session.items_error" class="text-muted" x-text="session.items_error + ' errors'"></span>
+                  <span x-show="session.closed_reason" class="text-muted" x-text="session.closed_reason"></span>
+                </div>
+              </div>
             </template>
           </div>
         </div>

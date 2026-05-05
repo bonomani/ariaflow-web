@@ -136,7 +136,6 @@ coverage_map:
   navigateTo: "test_nav_links"
   handleFileUpload: "test_api_params.test_valid_add (torrent_data/metalink_data path)"
   loadMoreArchive: "test_api_params.test_archive (archive pagination)"
-  loadSessionStats: "test_api_params.test_session_stats"
   setAria2Option: "test_api_params.test_aria2_options"
   loadTorrents: "test_api_params (torrent listing)"
   loadPeers: "test_api_params (peer discovery)"

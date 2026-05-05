@@ -605,9 +605,6 @@ function urlScheduler(action) {
 function urlAria2GetOption(gid) {
   return `/api/aria2/option?gid=${encodeURIComponent(gid)}`;
 }
-function urlSessionStats(sessionId) {
-  return `/api/sessions/stats?session_id=${encodeURIComponent(sessionId)}`;
-}
 
 // src/ariaflow_dashboard/static/ts/filters.ts
 function normalizeStatus(status) {
@@ -1581,8 +1578,6 @@ document.addEventListener("alpine:init", () => {
     logLimit: 120,
     // session history
     sessionHistory: [],
-    selectedSessionId: null,
-    selectedSessionStats: null,
     // log state
     resultText: "Idle",
     resultJson: "Idle",
@@ -1668,7 +1663,7 @@ document.addEventListener("alpine:init", () => {
       ],
       log: [
         { method: "GET", path: "/api/web/log", getParams: () => ({ limit: 100 }), apply: (s, d) => s._applyWebLog(d) },
-        { method: "GET", path: "/api/sessions", getParams: () => ({ limit: 50 }), apply: (s, d) => s._applySessionHistory(d) },
+        { method: "GET", path: "/api/sessions/history", apply: (s, d) => s._applySessionHistory(d) },
         { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
       ],
       archive: [
@@ -1687,7 +1682,11 @@ document.addEventListener("alpine:init", () => {
     // is the only remaining synthetic mirror — it's a backend endpoint
     // that BG-34 didn't include in the backend /api/_meta registry.
     LOCAL_METAS: [
-      { method: "GET", path: "/api/aria2/option_tiers", freshness: "cold" }
+      { method: "GET", path: "/api/aria2/option_tiers", freshness: "cold" },
+      // Backend's /api/sessions/history is a real endpoint but not yet
+      // in the backend's /api/_meta registry — register synthetically
+      // until backend declares it (see backend gap BG-39).
+      { method: "GET", path: "/api/sessions/history", freshness: "swr", ttl_s: 30 }
     ],
     // One-shot actions to run when a tab becomes the active page (either
     // on direct URL load via init() or via navigateTo()). For tab-driven
@@ -2881,17 +2880,7 @@ document.addEventListener("alpine:init", () => {
     },
     // --- session history ---
     _applySessionHistory(data) {
-      this.sessionHistory = data?.sessions || [];
-    },
-    async loadSessionStats(sessionId) {
-      this.selectedSessionId = sessionId;
-      this.selectedSessionStats = null;
-      try {
-        const r = await this._fetch(this.backendPath(urlSessionStats(sessionId)));
-        this.selectedSessionStats = await r.json();
-      } catch (e) {
-        this.selectedSessionStats = { error: "Failed to load stats" };
-      }
+      this.sessionHistory = data?.history || [];
     },
     // --- aria2 options ---
     _applyAria2GlobalOption(data) {
