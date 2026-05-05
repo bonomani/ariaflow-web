@@ -1,19 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
-
-### FE-37: Misleading "probe pending" wait_reason on empty queue
-
-**Blocked by:** BG-47
-
-When the queue is empty and the bandwidth probe hasn't run, the
-scheduler badge reads `idle · bandwidth probe pending` — but
-there's nothing to schedule, so the probe is irrelevant. Operator
-expectation: `idle · queue empty`.
-
-Pure backend reorder (`queue_empty` ahead of
-`bandwidth_probe_pending` in `deriveWaitReason()`). FE renders
-whatever `state.wait_reason` reports — no FE change needed.
+## Open (1)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -28,6 +15,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-37 | BG-47 shipped — `deriveWaitReason()` reordered so `queue_empty` is evaluated before `bandwidth_probe_pending`. Hard blockers (`aria2_unreachable` / `preflight_blocked` / `disk_full`) still win first. Probe is a one-shot pre-loop step, not gated on queue contents — that's fine because the wait_reason now correctly defaults to `queue_empty` when there's nothing to schedule. No FE change needed: the dashboard renders whatever `state.wait_reason` reports | 2026-05-05 |
 | FE-36 | BG-46 shipped — aria2 lifecycle row now renders the `Installed via` chip (backend detects via the resolved `aria2c` path with the same heuristic as ariaflow-server) and the Upgrade button (action declared in `lifecycle.aria2.actions`, dispatches `brew upgrade aria2`; pipx/npm correctly 409 since aria2 isn't on those channels). Headline status string also includes the dual-axis suffix `(launchd · homebrew)` so the disambiguation is visible at a glance. No FE changes needed beyond the conditional markup that landed alongside the BG-46 request | 2026-05-05 |
 | FE-35 | BG-45 fully shipped — three Self-management prefs (`auto_start_aria2`, `auto_update`, `auto_update_check_hours`) now drive backend behaviour: cmdServe reconciles aria2 launchd/systemd on boot to match `auto_start_aria2`; periodic auto-update controller polls every `auto_update_check_hours` and dispatches `brew upgrade ariaflow-server` detached. FE side already in place (Options → Self-management section, persists via `setPref` → PATCH /api/declaration/preferences) — no FE change required. Optional follow-up (reconciliation badge) deferred: backend logs `auto_start_reconciled` but doesn't expose it as a wire field, so there's nothing to surface yet | 2026-05-05 |
 | FE-33 | Live-contract release gate flipped from advisory to blocking. Prerequisites closed: `beautifulsoup4`/`jsonschema`/`ruff`/`mypy` in `pyproject [dev]`; `scripts/check_bgs_drift.py` soft-fails (WARN + exit 0) when `../BGSPrivate` isn't checked out; `verify-ci` Make target removed; `release.yml` `build-release` now runs `make verify` directly with `[dev]` extras; `test_download_lifecycle.py` lazy-imports playwright so `test_api_response_shapes` can import `FakeBackend` from it under a `[dev]`-only install. Two consecutive green runs (25381355891 and the gating canary) confirmed reliability before flipping `continue-on-error: true` off and restoring `needs: live-contract` on `build-release` | 2026-05-05 |
