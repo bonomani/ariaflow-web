@@ -1530,7 +1530,9 @@ document.addEventListener("alpine:init", () => {
     },
     get sessionStartedText() {
       if (!this.backendReachable) return "-";
-      return this.timestampLabel(this.state.session_started_at);
+      const at = this.state.session_started_at;
+      if (this.sessionTimestampStale(at)) return "-";
+      return this.timestampLabel(at);
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return "Start";
@@ -1689,7 +1691,11 @@ document.addEventListener("alpine:init", () => {
     get bwUtilizationPct() {
       const cap = this.bw?.cap_mbps;
       if (!cap || cap <= 0) return 0;
-      return Math.min(100, Math.round(this.bwLiveDownMbps / cap * 100));
+      return Math.round(this.bwLiveDownMbps / cap * 100);
+    },
+    get bwOverCap() {
+      const cap = this.bw?.cap_mbps;
+      return !!cap && cap > 0 && this.bwLiveDownMbps > cap;
     },
     get bwUtilizationText() {
       const cap = this.bw?.cap_mbps;
