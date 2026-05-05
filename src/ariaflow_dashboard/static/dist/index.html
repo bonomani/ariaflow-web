@@ -376,13 +376,29 @@
                   <span :class="lifecycleBadgeClass(row.record)" x-text="lifecycleStateLabel(row.name, row.record)"></span>
                 </div>
                 <template x-if="row.name === 'ariaflow-server'">
-                  <div class="chips mt-sm">
-                    <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
-                    <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
-                    <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
-                    <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
-                    <div class="chip">↓ <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
-                    <div class="chip">↑ <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
+                  <div>
+                    <h4 class="text-sm text-muted mt-md mb-sm">Process</h4>
+                    <div class="chips">
+                      <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
+                      <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
+                      <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
+                      <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
+                      <div class="chip">↓ <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
+                      <div class="chip">↑ <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
+                    </div>
+                    <div class="section-title mt-md">
+                      <h4 class="text-sm text-muted">Scheduler</h4>
+                      <span :class="state?.running ? (state?.dispatch_paused ? 'badge warn' : 'badge good') : 'badge'" x-text="state?.running ? (state?.dispatch_paused ? 'paused' : 'running') : 'stopped'">stopped</span>
+                    </div>
+                    <div class="chips" x-show="_lifecycleSession">
+                      <div class="chip" x-show="_lifecycleSession?.session_id">Run <strong :title="_lifecycleSession?.session_id" x-text="_lifecycleSession?.session_id ? _lifecycleSession.session_id.slice(0, 8) : '-'">-</strong></div>
+                      <div class="chip" x-show="_lifecycleSession?.session_started_at">Started <strong x-text="_lifecycleSession?.session_started_at ? relativeTime(_lifecycleSession.session_started_at) : '-'">-</strong></div>
+                      <div class="chip" x-show="_lifecycleSession?.session_last_seen_at">Last seen <strong x-text="_lifecycleSession?.session_last_seen_at ? relativeTime(_lifecycleSession.session_last_seen_at) : '-'">-</strong></div>
+                      <div class="chip" x-show="_lifecycleSession?.session_closed_at" :class="{ 'badge warn': _lifecycleSession?.session_closed_at }">Closed <strong x-text="_lifecycleSession?.session_closed_at ? relativeTime(_lifecycleSession.session_closed_at) + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '') : '-'">-</strong></div>
+                    </div>
+                    <div class="action-strip mt-sm">
+                      <button :class="{ secondary: !backendReachable }" @click="toggleScheduler()" :disabled="schedulerBtnDisabled" x-text="schedulerBtnText">Start</button>
+                    </div>
                   </div>
                 </template>
                 <div class="meta" x-show="lifecycleItemLines(row.record)">
