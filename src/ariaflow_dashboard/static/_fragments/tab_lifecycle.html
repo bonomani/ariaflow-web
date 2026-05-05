@@ -43,13 +43,7 @@
                     </div>
                     <div class="section-title mt-md">
                       <h4 class="text-sm text-muted">Scheduler</h4>
-                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText">stopped</span>
-                    </div>
-                    <div class="meta" x-show="schedulerWaitReasonText">
-                      <span x-text="schedulerWaitReasonText"></span>
-                      <template x-if="schedulerWaitReasonAction">
-                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
-                      </template>
+                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">stopped</span>
                     </div>
                     <div class="meta" x-show="schedulerActiveText">
                       <span x-text="schedulerActiveText"></span>
@@ -63,6 +57,9 @@
                     <div class="action-strip mt-sm">
                       <button :class="{ secondary: !backendReachable }" @click="toggleScheduler()" :disabled="schedulerBtnDisabled" x-text="schedulerBtnText">Start</button>
                       <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="state?.running">Stop</button>
+                      <template x-if="schedulerWaitReasonAction">
+                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
+                      </template>
                     </div>
                   </div>
                 </template>

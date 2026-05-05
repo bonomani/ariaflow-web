@@ -419,13 +419,7 @@
                     </div>
                     <div class="section-title mt-md">
                       <h4 class="text-sm text-muted">Scheduler</h4>
-                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText">stopped</span>
-                    </div>
-                    <div class="meta" x-show="schedulerWaitReasonText">
-                      <span x-text="schedulerWaitReasonText"></span>
-                      <template x-if="schedulerWaitReasonAction">
-                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
-                      </template>
+                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">stopped</span>
                     </div>
                     <div class="meta" x-show="schedulerActiveText">
                       <span x-text="schedulerActiveText"></span>
@@ -439,6 +433,9 @@
                     <div class="action-strip mt-sm">
                       <button :class="{ secondary: !backendReachable }" @click="toggleScheduler()" :disabled="schedulerBtnDisabled" x-text="schedulerBtnText">Start</button>
                       <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="state?.running">Stop</button>
+                      <template x-if="schedulerWaitReasonAction">
+                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
+                      </template>
                     </div>
                   </div>
                 </template>
@@ -951,7 +948,10 @@
       <!-- ARCHIVE -->
       <div class="span-12" x-show="page === 'archive'">
         <div class="panel">
-          <div class="section-title"><h2>Archive</h2><div class="hint">Recently removed items</div></div>
+          <div class="section-title">
+            <h2>Archive</h2>
+            <div class="hint">Recently removed items</div>
+          </div>
           <div class="list">
             <template x-if="archiveItems.length === 0">
               <div class="item">No archived items.</div>
