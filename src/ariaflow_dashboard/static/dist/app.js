@@ -3001,9 +3001,9 @@ document.addEventListener("alpine:init", () => {
     async uccRun() {
       this.uccLoading = true;
       try {
-        let r = await postEmpty(this.backendPath(urlScheduler("contract")));
+        let r = await postEmpty(this.backendPath("/api/scheduler/ucc"));
         if (r.status === 404) {
-          r = await postEmpty(this.backendPath("/api/scheduler/ucc"));
+          r = await postEmpty(this.backendPath(urlScheduler("contract")));
         }
         const data = await r.json();
         const outcome = data.result?.outcome || "unknown";

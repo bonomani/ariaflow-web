@@ -1757,9 +1757,14 @@ get bonjourBadgeTitle() {
     async uccRun() {
       this.uccLoading = true;
       try {
-        let r = await postEmpty(this.backendPath(urlScheduler('contract')));
+        // Prefer /ucc during the BG-48 deprecation window: it works on
+        // every backend version, while /contract only exists on bottles
+        // that shipped BG-48. Falling back the other way logged spurious
+        // 404s in the backend action log. Flip back to /contract-first
+        // once /ucc is removed upstream.
+        let r = await postEmpty(this.backendPath('/api/scheduler/ucc'));
         if (r.status === 404) {
-          r = await postEmpty(this.backendPath('/api/scheduler/ucc'));
+          r = await postEmpty(this.backendPath(urlScheduler('contract')));
         }
         const data = await r.json();
         const outcome = data.result?.outcome || 'unknown';
