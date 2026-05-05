@@ -59,7 +59,7 @@
         <div class="panel">
           <div class="gap-sm mb-md">
             <button :class="{ secondary: schedulerBtnDisabled, loading: schedulerLoading }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled || schedulerLoading">Start</button>
-            <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="state?.running">Stop</button>
+            <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="state?.scheduler_intent === 'running' || state?.running">Stop</button>
             <button :class="{ secondary: archiveBtnDisabled, loading: archiveLoading }" @click="cleanup()" :disabled="archiveBtnDisabled || archiveLoading">Archive</button>
             <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">idle</span>
             <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
