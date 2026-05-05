@@ -940,12 +940,11 @@
                 <div class="item-top log-row-top">
                   <span class="log-time text-muted text-mono text-sm" :title="entry.timestamp || ''" x-text="entry.timestamp ? relativeTime(entry.timestamp) : '-'"></span>
                   <span class="log-phrase">
-                    <strong x-text="entry.action || 'event'"></strong>
+                    <strong x-text="(entry._source || 'server') + '.' + (entry.action || 'event')"></strong>
                     <span class="text-muted" x-show="entry.target" x-text="entry.target"></span>
                     <span class="text-muted" x-show="logEntryDetail(entry)" x-text="'— ' + logEntryDetail(entry)"></span>
                   </span>
                   <span class="log-badges">
-                    <span class="badge" :class="entry._source === 'dashboard' ? '' : 'good'" x-text="entry._source"></span>
                     <span :class="badgeClass(entry.outcome || entry.status || 'unknown')" x-text="entry.outcome || entry.status || 'unknown'"></span>
                     <span x-show="entry.observation && entry.observation !== 'ok'" class="badge warn" x-text="entry.observation"></span>
                   </span>
