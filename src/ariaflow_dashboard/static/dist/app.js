@@ -1421,6 +1421,12 @@ document.addEventListener("alpine:init", () => {
           return "badge";
       }
     },
+    get schedulerActiveText() {
+      if (this.schedulerBadgeText !== "running" || !this.currentTransfer) return "";
+      const name = shortName(this.currentTransfer) || this.currentTransfer.url || "";
+      const dl = this.currentSpeed ? this.formatRate(this.currentSpeed) : "";
+      return dl ? `${name} \xB7 ${dl}` : name;
+    },
     runWaitReasonAction() {
       const a = this.schedulerWaitReasonAction;
       if (a) a.fn();

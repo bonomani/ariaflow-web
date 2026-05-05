@@ -394,6 +394,9 @@
                         <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
                       </template>
                     </div>
+                    <div class="meta" x-show="schedulerActiveText">
+                      <span x-text="schedulerActiveText"></span>
+                    </div>
                     <div class="chips" x-show="_lifecycleSession">
                       <div class="chip" x-show="_lifecycleSession?.session_id">Run <strong :title="_lifecycleSession?.session_id" x-text="_lifecycleSession?.session_id ? _lifecycleSession.session_id.slice(0, 8) : '-'">-</strong></div>
                       <div class="chip" x-show="_lifecycleSession?.session_started_at">Started <strong x-text="_lifecycleSession?.session_started_at ? relativeTime(_lifecycleSession.session_started_at) : '-'">-</strong></div>
