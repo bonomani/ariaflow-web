@@ -50,7 +50,7 @@ class TestScreenshots:
         [
             ("/", "dashboard", "ariaflow"),
             ("/bandwidth", "bandwidth", "Bandwidth"),
-            ("/lifecycle", "lifecycle", "Service Status"),
+            ("/lifecycle", "lifecycle", "System Health"),
             ("/options", "options", "Options"),
             ("/log", "log", "Log"),
             ("/dev", "dev", "Developer"),

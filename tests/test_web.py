@@ -40,7 +40,7 @@ class WebSmokeTests(unittest.TestCase):
                     .read()
                     .decode("utf-8")
                 )
-                self.assertIn("Service Status", lifecycle_page)
+                self.assertIn("System Health", lifecycle_page)
                 options_page = (
                     urllib.request.urlopen("http://127.0.0.1:8765/options", timeout=5)
                     .read()

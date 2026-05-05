@@ -1,9 +1,9 @@
-      <!-- LIFECYCLE -->
+      <!-- LIFECYCLE / SYSTEM HEALTH -->
       <div class="span-6" x-show="page === 'lifecycle'">
         <div class="panel">
           <div class="section-title">
-            <h2>Service Status</h2>
-            <div class="hint">Component lifecycle: ariaflow-server, aria2, networkquality, aria2 auto-start</div>
+            <h2>Components</h2>
+            <div class="hint">ariaflow-server, aria2, networkquality, aria2 auto-start</div>
           </div>
           <div class="list">
             <template x-if="_lifecycleSession">
@@ -39,6 +39,28 @@
           </div>
           <div class="text-muted text-sm mt-md">
             Update policy: Homebrew tap. Upgrades require Homebrew to install the new version and restart the service.
+          </div>
+        </div>
+      </div>
+
+      <!-- Server Metrics — moved from Dev tab; lifecycle + traffic together
+           tell the operational-health story on one page. -->
+      <div class="span-6" x-show="page === 'lifecycle'">
+        <div class="panel">
+          <div class="section-title">
+            <h2>Server Metrics</h2>
+            <div class="hint">Cumulative since the backend's current uptime.</div>
+            <button @click="refresh()">Refresh</button>
+          </div>
+          <div class="chips">
+            <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
+            <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
+            <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
+            <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
+          </div>
+          <div class="chips mt-sm">
+            <div class="chip">Received <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
+            <div class="chip">Sent <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
           </div>
         </div>
       </div>

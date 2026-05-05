@@ -7,8 +7,8 @@
         <span x-show="sumError" aria-hidden="true" class="tab-badge warn" x-text="sumError"></span>
       </a>
       <a href="/bandwidth" :class="{ active: page === 'bandwidth' }" @click.prevent="navigateTo('bandwidth')">Bandwidth</a>
-      <a href="/lifecycle" aria-label="Service Status" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">
-        <span>Service Status</span>
+      <a href="/lifecycle" aria-label="System Health" :class="{ active: page === 'lifecycle' }" @click.prevent="navigateTo('lifecycle')">
+        <span>System Health</span>
         <span x-show="lifecycleErrorCount" aria-hidden="true" class="tab-badge warn" x-text="lifecycleErrorCount"></span>
       </a>
       <a href="/options" :class="{ active: page === 'options' }" @click.prevent="navigateTo('options')">Options</a>
