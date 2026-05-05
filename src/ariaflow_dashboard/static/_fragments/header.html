@@ -81,18 +81,34 @@
         </div>
         <div class="kpi kpi-items">
           <div class="kpi-label">Queue</div>
-          <div class="kpi-value">
-            <span x-text="filterCounts.active || 0"></span>
-            <span class="kpi-unit">active</span>
-          </div>
-          <div class="kpi-sub" x-text="(sumQueued || 0) + ' queued · ' + (sumDone || 0) + ' done'"></div>
+          <template x-if="(filterCounts.active || 0) + (sumQueued || 0) + (sumDone || 0) === 0">
+            <div>
+              <div class="kpi-value text-muted">empty</div>
+              <div class="kpi-sub">no items</div>
+            </div>
+          </template>
+          <template x-if="(filterCounts.active || 0) + (sumQueued || 0) + (sumDone || 0) > 0">
+            <div>
+              <div class="kpi-value">
+                <span x-text="filterCounts.active || 0"></span>
+                <span class="kpi-unit">active</span>
+              </div>
+              <div class="kpi-sub">
+                <span x-show="sumQueued"><span x-text="sumQueued"></span> queued</span>
+                <span x-show="sumQueued && sumDone"> · </span>
+                <span x-show="sumDone"><span x-text="sumDone"></span> done</span>
+              </div>
+            </div>
+          </template>
         </div>
         <div class="kpi kpi-cap" x-show="bw.cap_mbps">
           <div class="kpi-label">Cap</div>
           <div class="kpi-value">
-            <span :class="{ 'kpi-over': bwOverCap }" x-text="bwUtilizationPct + '%'"></span>
+            <span x-show="bwLiveDownMbps > 0" :class="{ 'kpi-over': bwOverCap }" x-text="bwUtilizationPct + '%'"></span>
+            <span x-show="bwLiveDownMbps <= 0" class="text-muted" x-text="bw.cap_mbps.toFixed(1) + ' Mbps'"></span>
           </div>
-          <div class="kpi-sub" x-text="bwLiveDownMbps.toFixed(1) + ' / ' + bw.cap_mbps.toFixed(1) + ' Mbps' + (bwOverCap ? ' · over' : '')"></div>
+          <div class="kpi-sub" x-show="bwLiveDownMbps > 0" x-text="bwLiveDownMbps.toFixed(1) + ' / ' + bw.cap_mbps.toFixed(1) + ' Mbps' + (bwOverCap ? ' · over' : '')"></div>
+          <div class="kpi-sub" x-show="bwLiveDownMbps <= 0">headroom available</div>
         </div>
         <div class="kpi kpi-cap" x-show="!bw.cap_mbps">
           <div class="kpi-label">Cap</div>
