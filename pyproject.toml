@@ -11,8 +11,8 @@ dependencies = []
 
 [project.optional-dependencies]
 local = ["ariaflow"]
-dev = ["pytest", "pyyaml", "beautifulsoup4", "jsonschema", "ruff"]
-test-browser = ["pytest", "pyyaml", "beautifulsoup4", "jsonschema", "ruff", "playwright"]
+dev = ["pytest", "pyyaml", "beautifulsoup4", "jsonschema", "ruff", "mypy"]
+test-browser = ["pytest", "pyyaml", "beautifulsoup4", "jsonschema", "ruff", "mypy", "playwright"]
 
 [project.scripts]
 ariaflow-dashboard = "ariaflow_dashboard.cli:main"
