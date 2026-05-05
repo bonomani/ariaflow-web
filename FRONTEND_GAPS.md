@@ -1,6 +1,25 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
+## Open (3)
+
+### FE-34: Scheduler badge can't explain "idle" state
+
+**Blocked by:** BG-40
+
+The System Health → ariaflow-server → Scheduler badge today reads
+`stopped | paused | idle | running`, derived in
+`tab_lifecycle.html` from `state.running`, `state.dispatch_paused`,
+and `currentTransfer` (= `state.active_gid`). The `idle` case
+("engine on, no active transfer") is a frontend inference — the
+backend has no declared enum value for it and no `wait_reason`,
+so the operator can't tell *why* nothing is dispatching (queue
+empty? aria2 down? preflight blocked? disk full?).
+
+When BG-40 lands, replace the inferred logic with the backend's
+declared `state.status` and surface `state.wait_reason` as a sub-
+label on the badge (e.g. "idle · queue empty"). Until then the
+inferred mapping stays — it's correct for the four-way split, just
+not informative about the reason.
 
 ### FE-33: Finish live-contract release gate setup
 
