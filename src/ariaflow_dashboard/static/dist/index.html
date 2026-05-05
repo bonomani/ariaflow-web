@@ -409,6 +409,13 @@
                     </div>
                   </div>
                 </template>
+                <template x-if="row.name !== 'ariaflow-server' && row.record?.result && (row.record.result.version || row.record.result.managed_by)">
+                  <div class="chips mt-sm">
+                    <div class="chip" x-show="row.record.result.version">Version <strong x-text="row.record.result.version"></strong></div>
+                    <div class="chip badge warn" x-show="row.record.result.expected_version && row.record.result.version && row.record.result.version !== row.record.result.expected_version">Expected <strong x-text="row.record.result.expected_version"></strong></div>
+                    <div class="chip" x-show="row.record.result.managed_by">Managed by <strong x-text="row.record.result.managed_by"></strong></div>
+                  </div>
+                </template>
                 <div class="meta" x-show="lifecycleItemLines(row.record)">
                   <span x-text="lifecycleItemLines(row.record)"></span>
                 </div>
