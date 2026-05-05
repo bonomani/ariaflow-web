@@ -167,6 +167,18 @@ def main() -> int:
     if not _DECISION.exists():
         print(f"ERROR: {_DECISION} not found", file=sys.stderr)
         return 1
+    # FE-33: soft-fail when the BGSPrivate sibling repo isn't checked
+    # out (e.g. in CI). Local dev keeps hard-fail behavior — a present
+    # but stale repo still drifts loudly. Drift policy is already
+    # warning-only at the make-target level (FE-19), so a missing
+    # repo shouldn't block `make verify` either.
+    if not _BGS_REPO.exists():
+        print(
+            f"WARN: BGS repo not found at {_BGS_REPO} — "
+            "skipping drift check (run locally with BGSPrivate cloned to verify)",
+            file=sys.stderr,
+        )
+        return 0
     text = _DECISION.read_text(encoding="utf-8")
     decision = _parse_yaml(text)
 

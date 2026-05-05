@@ -33,13 +33,19 @@ made the gate unreliable as a blocker:
 
 **To finish the gate properly:**
 
-- Add `bs4` (and audit the rest of `tests/` for undeclared deps) to
-  `pyproject.toml [dev]`.
-- Patch `scripts/check_bgs_drift.py` to soft-fail on missing
+- ~~Add `bs4` (and audit the rest of `tests/` for undeclared deps) to
+  `pyproject.toml [dev]`.~~ **Done.** `beautifulsoup4` and
+  `jsonschema` added to `[dev]` and `[test-browser]`.
+- ~~Patch `scripts/check_bgs_drift.py` to soft-fail on missing
   `BGSPrivate/` (warn instead of exit non-zero) so `make verify`
-  works in CI without forking to `verify-ci`.
-- Once those land, restore `needs: live-contract` on `build-release`
-  and drop `continue-on-error: true`.
+  works in CI without forking to `verify-ci`.~~ **Done.** Script
+  prints a WARN and exits 0 when `../BGSPrivate` is absent. Local
+  dev still hard-fails on real drift. `verify-ci` Make target
+  removed; release.yml `build-release` now runs `make verify`
+  directly.
+- Restore `needs: live-contract` on `build-release` and drop
+  `continue-on-error: true` on the live-contract job. Pending one
+  green run of the new setup to confirm the gate is reliable.
 
 **Why this hurts:** today the gate's purpose (catch backend contract
 regressions like BG-38 before they ship) is intact in advisory form

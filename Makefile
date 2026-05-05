@@ -1,4 +1,4 @@
-.PHONY: test lint format check check-drift verify verify-ci ci install clean help build-frontend typecheck-frontend lint-frontend format-check-frontend test-frontend
+.PHONY: test lint format check check-drift verify ci install clean help build-frontend typecheck-frontend lint-frontend format-check-frontend test-frontend
 
 help: ## Show this help
 	@grep -E '^[a-z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -37,9 +37,6 @@ format-check-frontend: ## Check frontend formatting (prettier)
 
 verify: check-drift build-frontend test-frontend test ## Full verification: check-drift + frontend build + frontend tests + python tests
 	@echo "All verification checks passed."
-
-verify-ci: build-frontend test-frontend test ## verify minus check-drift (drift checker needs the private BGSPrivate repo, not available in CI)
-	@echo "All CI verification checks passed."
 
 ci: verify typecheck-frontend lint-frontend format-check-frontend lint ## Pre-push gate: verify + tsc + eslint + prettier + ruff lint + format check
 	ruff format --check src/ tests/

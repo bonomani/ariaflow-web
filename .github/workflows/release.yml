@@ -196,14 +196,13 @@ jobs:
           python-version: "3.12"
 
       - name: Run tests
-        # Narrow gate (intentional, FE-33): make verify-ci would be
-        # better but requires test deps not in pyproject [dev]
-        # (bs4 for test_static_serving, ...) and a Node version
-        # alignment for `node --test` globs. Tracked in FE-33.
+        # FE-33: bs4/jsonschema now in pyproject [dev], BGSPrivate
+        # drift check soft-fails when the repo isn't present, so
+        # `make verify` is safe to run in CI.
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m unittest tests.test_web tests.test_cli -v
+          python -m pip install -e ".[dev]"
+          make verify
 
       - name: Build source distribution
         run: |
