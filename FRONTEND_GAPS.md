@@ -1,6 +1,16 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-38: Drop `actionDisplay()` alias once backend renames `ucc` → `contract`
+
+**Blocked by:** BG-48
+
+The Log tab and activity rows now display "contract" everywhere
+the wire says `ucc` via a small alias in `actionDisplay()`. Once
+BG-48 ships the renamed `POST /api/scheduler/contract` endpoint
+and `entry.action: "contract"` log records, drop the alias and
+the call sites — the wire and UI converge on one name.
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
