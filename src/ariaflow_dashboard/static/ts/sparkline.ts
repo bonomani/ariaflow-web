@@ -66,17 +66,23 @@ export function renderGlobalTimeline(
   // Build closed polygons for fill (start and end at baseline).
   const baseline = yOf(0);
   const dlPoly = `0,${baseline} ${dlPath.join(' ')} ${((samples - 1) * step).toFixed(1)},${baseline}`;
+  // Closed polygon: lower edge (dl line) forward, upper edge (dl+ul) backward.
   const ulPoly = ulStacked.length
-    ? `${dl.map((v, i) => `${(i * step).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ')} ${ulStacked.map((y, i) => `${((samples - 1 - i) * step).toFixed(1)},${y.toFixed(1)}`).reverse().join(' ')}`
+    ? `${dl.map((v, i) => `${(i * step).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ')} ${ulStacked.map((y, i) => `${(i * step).toFixed(1)},${y.toFixed(1)}`).reverse().join(' ')}`
     : '';
   const capY = capBps > 0 ? yOf(capBps) : null;
   // X-axis time labels: 5 ticks, oldest → now. Total window ≈
   // (samples - 1) * refreshInterval.
   const totalSecs = ((samples - 1) * refreshIntervalMs) / 1000;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((frac) => {
+  // Fewer ticks for short windows so integer-second labels stay
+  // evenly spaced (4 subdivisions of 6s = uneven 1.5s gaps).
+  const tickFracs = totalSecs < 12 ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1];
+  const ticks = tickFracs.map((frac) => {
     const x = frac * (w - padRight);
-    const secsAgo = Math.round((1 - frac) * totalSecs);
-    const label = frac === 1 ? 'now' : `-${secsAgo}s`;
+    const secsAgo = (1 - frac) * totalSecs;
+    const label = frac === 1
+      ? 'now'
+      : `-${totalSecs < 10 ? secsAgo.toFixed(1) : Math.round(secsAgo)}s`;
     return `<text x="${x.toFixed(1)}" y="${(h - 4).toFixed(1)}" fill="var(--ws-muted)" font-size="10" text-anchor="${frac === 0 ? 'start' : frac === 1 ? 'end' : 'middle'}">${label}</text>`;
   }).join('');
   const capLabel = capBps > 0 && capY != null

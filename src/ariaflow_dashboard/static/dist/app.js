@@ -118,13 +118,14 @@ function renderGlobalTimeline(dl, ul, capMbps = 0, refreshIntervalMs = 1e4) {
   const ulStacked = ul.length ? ul.map((v, i) => yOf((dl[i] ?? 0) + v)) : [];
   const baseline = yOf(0);
   const dlPoly = `0,${baseline} ${dlPath.join(" ")} ${((samples - 1) * step).toFixed(1)},${baseline}`;
-  const ulPoly = ulStacked.length ? `${dl.map((v, i) => `${(i * step).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ")} ${ulStacked.map((y, i) => `${((samples - 1 - i) * step).toFixed(1)},${y.toFixed(1)}`).reverse().join(" ")}` : "";
+  const ulPoly = ulStacked.length ? `${dl.map((v, i) => `${(i * step).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ")} ${ulStacked.map((y, i) => `${(i * step).toFixed(1)},${y.toFixed(1)}`).reverse().join(" ")}` : "";
   const capY = capBps > 0 ? yOf(capBps) : null;
   const totalSecs = (samples - 1) * refreshIntervalMs / 1e3;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((frac) => {
+  const tickFracs = totalSecs < 12 ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1];
+  const ticks = tickFracs.map((frac) => {
     const x = frac * (w - padRight);
-    const secsAgo = Math.round((1 - frac) * totalSecs);
-    const label = frac === 1 ? "now" : `-${secsAgo}s`;
+    const secsAgo = (1 - frac) * totalSecs;
+    const label = frac === 1 ? "now" : `-${totalSecs < 10 ? secsAgo.toFixed(1) : Math.round(secsAgo)}s`;
     return `<text x="${x.toFixed(1)}" y="${(h - 4).toFixed(1)}" fill="var(--ws-muted)" font-size="10" text-anchor="${frac === 0 ? "start" : frac === 1 ? "end" : "middle"}">${label}</text>`;
   }).join("");
   const capLabel = capBps > 0 && capY != null ? `<text x="4" y="${(capY - 2).toFixed(1)}" fill="var(--ws-muted)" font-size="10">cap ${capMbps} Mbps</text>` : "";
