@@ -1640,7 +1640,7 @@ document.addEventListener("alpine:init", () => {
       return this.lastStatus?.summary?.queued ?? 0;
     },
     get sumDone() {
-      return this.filterCounts.done ?? 0;
+      return this.filterCounts.complete ?? 0;
     },
     get sumError() {
       return this.filterCounts.error ?? 0;
@@ -2849,14 +2849,17 @@ document.addEventListener("alpine:init", () => {
     },
     async saveFileSelection() {
       const selected = selectedFileIndexes(this.fileSelectionFiles);
-      const r = await this._fetch(this.backendPath(urlItemFiles(this.fileSelectionItemId)), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ select: selected })
-      });
-      await r.json();
-      this.fileSelectionItemId = null;
-      this.fileSelectionFiles = [];
+      try {
+        const r = await this._fetch(this.backendPath(urlItemFiles(this.fileSelectionItemId)), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ select: selected })
+        });
+        await r.json().catch(() => null);
+      } finally {
+        this.fileSelectionItemId = null;
+        this.fileSelectionFiles = [];
+      }
     },
     closeFileSelection() {
       this.fileSelectionItemId = null;
