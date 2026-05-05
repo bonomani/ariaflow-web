@@ -45,12 +45,6 @@
             <div class="chip">↓ <strong x-text="bwDownCapPairText">-</strong></div>
             <div class="chip">↑ <strong x-text="bwUpCapPairText">-</strong></div>
           </div>
-          <!-- Live cap-utilization meter — answers "am I being throttled?" at a glance -->
-          <div class="mt-sm mb-md" x-show="bw.cap_mbps">
-            <div class="meta"><span>Cap utilization <strong x-text="bwUtilizationPct + '%'"></strong> · <span x-text="bwUtilizationText"></span></span></div>
-            <div class="meter"><div :style="'width:' + bwUtilizationPct + '%'"></div></div>
-          </div>
-
           <h3 class="text-sm text-muted mt-md mb-sm">Reserve</h3>
           <div class="list">
             <div class="item">

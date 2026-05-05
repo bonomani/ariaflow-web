@@ -75,6 +75,11 @@
           <div class="chip">Cap <strong x-text="downloadCapText">-</strong></div>
           <div class="chip" :class="{ 'badge warn': !diskOk }" x-show="diskUsageText !== '-'">Disk <strong x-text="diskUsageText">-</strong></div>
         </div>
+        <!-- Cap utilization meter — visible from any tab -->
+        <div class="mt-sm" x-show="bw.cap_mbps">
+          <div class="meta"><span>Cap utilization <strong x-text="bwUtilizationPct + '%'"></strong> · <span x-text="bwUtilizationText"></span></span></div>
+          <div class="meter"><div :style="'width:' + bwUtilizationPct + '%'"></div></div>
+        </div>
         <!-- L3: dashboard identity + interfaces (collapsible) -->
         <details class="mt-sm">
           <summary class="text-muted text-sm cursor-pointer">System info</summary>
