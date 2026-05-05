@@ -462,6 +462,11 @@ details.debug summary::-webkit-details-marker { display: none; }
   color: transparent !important;
   pointer-events: none;
 }
+/* When a button is loading we already have a spinner overlay as the
+   in-progress signal — don't also fade the control via [disabled]'s
+   0.45 opacity (the spinner gets dimmed too on dark theme, the whole
+   thing reads as muddy). */
+.loading[disabled], .loading.disabled { opacity: 1; }
 .loading::after {
   content: "";
   position: absolute;
