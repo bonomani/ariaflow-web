@@ -2438,7 +2438,7 @@ document.addEventListener("alpine:init", () => {
       return pref ? pref.value : void 0;
     },
     _applyDeclaration(data) {
-      this.lastDeclaration = data;
+      this.lastDeclaration = data?.declaration || data;
       if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) return;
       this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
     },

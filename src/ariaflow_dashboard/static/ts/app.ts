@@ -1222,7 +1222,15 @@ document.addEventListener('alpine:init', () => {
       return pref ? pref.value : undefined;
     },
     _applyDeclaration(data) {
-      this.lastDeclaration = data;
+      // /api/declaration response shape is { ok, declaration, meta }.
+      // lastDeclaration must be the *inner* declaration object — the
+      // getters read lastDeclaration.uic.preferences directly.
+      // saveDeclaration (line below) and _flushPrefQueue (further down)
+      // already unwrap with `data.declaration || data`; this used to
+      // assign `data` as-is, which silently nulled all prefs after a
+      // PATCH triggered the freshness revalidate (~1s after the user
+      // change reverted to default values).
+      this.lastDeclaration = data?.declaration || data;
       if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) return;
       this.declarationText = JSON.stringify(this.lastDeclaration, null, 2);
     },
