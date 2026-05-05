@@ -260,7 +260,7 @@
                select. Flex-wrap handles narrow viewports. align-items
                keeps the native select / button vertically aligned with
                the chip pill heights. -->
-          <div class="chips" style="align-items:center">
+          <div class="chips">
             <div class="chip" x-show="bw.last_probe_at">Probed <strong x-text="bw.last_probe_at ? relativeTime(new Date(bw.last_probe_at * 1000).toISOString()) : '-'">-</strong></div>
             <div class="chip badge warn" x-show="bwProbeStale" :title="'Auto-probe interval: ' + bwProbeInterval + 's. Last probe is overdue.'">overdue</div>
             <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
@@ -866,7 +866,7 @@
           <div x-show="freshnessStatus.length === 0" class="text-muted">
             Router not booted (legacy backend without <code>/api/_meta</code>, or not yet loaded).
           </div>
-          <div style="overflow-x:auto" x-show="freshnessStatus.length > 0">
+          <div class="scroll-x" x-show="freshnessStatus.length > 0">
           <table class="text-sm">
             <thead>
               <tr>

@@ -244,7 +244,8 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
 .badge.bad { border-color: var(--ws-danger-border); color: var(--ws-danger); }
 
 /* --- chips --- */
-.chips { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; margin-top: var(--ws-gap-md); }
+.chips { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; align-items: center; margin-top: var(--ws-gap-md); }
+.scroll-x { overflow-x: auto; }
 .chip {
   padding: var(--ws-pad-xs);
   border-radius: var(--ws-radius-xl);
