@@ -1757,6 +1757,7 @@ document.addEventListener("alpine:init", () => {
       this._initFreshness();
       this.refreshInterval = readRefreshInterval(1e4);
       this._refreshAll();
+      this.loadLifecycle();
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }

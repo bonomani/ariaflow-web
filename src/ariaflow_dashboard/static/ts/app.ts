@@ -556,6 +556,11 @@ document.addEventListener('alpine:init', () => {
       // First load: refresh header + active tab once, then arm fast timer.
       this.refreshInterval = readRefreshInterval(10000);
       this._refreshAll();
+      // Bootstrap /api/lifecycle once at startup so the System Health
+      // nav badge (lifecycleErrorCount) reflects component health from
+      // page load. Without this, the badge stays at 0 until the
+      // operator visits the System Health tab.
+      this.loadLifecycle();
       if (this.refreshInterval > 0) {
         this.refreshTimer = setInterval(() => this.refresh(), this.refreshInterval);
       }
