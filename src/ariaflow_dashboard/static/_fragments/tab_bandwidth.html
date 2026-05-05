@@ -5,14 +5,21 @@
             <h2>Bandwidth</h2>
             <div class="hint">Probe, reservation policy, and download concurrency</div>
           </div>
-          <div class="chips mb-md">
-            <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
+          <!-- Live measured rates -->
+          <div class="chips">
             <div class="chip">Download <strong x-text="bwDownBadgeText">-</strong></div>
             <div class="chip">Upload <strong x-text="bwUpBadgeText">-</strong></div>
+            <div class="chip" x-show="bwResponsivenessText !== '-'">RPM <strong x-text="bwResponsivenessText">-</strong></div>
+          </div>
+          <!-- Caps + applied limit (policy outputs) -->
+          <div class="chips mt-sm">
             <div class="chip">Down cap <strong x-text="bwDownCapText">-</strong></div>
             <div class="chip">Up cap <strong x-text="bwUpCapText">-</strong></div>
             <div class="chip">Limit <strong x-text="bwCurrentLimitText">-</strong></div>
-            <div class="chip" x-show="bwResponsivenessText !== '-'">RPM <strong x-text="bwResponsivenessText">-</strong></div>
+          </div>
+          <!-- Provenance: which interface, where the numbers came from, when -->
+          <div class="chips mt-sm mb-md">
+            <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
             <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
             <div class="chip" x-show="bw.last_probe_at">Probed <strong x-text="bw.last_probe_at ? relativeTime(new Date(bw.last_probe_at * 1000).toISOString()) : '-'">-</strong></div>
           </div>

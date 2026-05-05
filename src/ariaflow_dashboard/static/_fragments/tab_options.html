@@ -160,7 +160,7 @@
               <div class="item compact">
                 <div class="item-top">
                   <div class="item-url" x-text="t.name || t.infohash"></div>
-                  <a href="#" :href="apiPath('/api/torrents/' + t.infohash + '.torrent')" download class="btn-link secondary">.torrent</a>
+                  <a :href="apiPath('/api/torrents/' + t.infohash + '.torrent')" download class="btn-link secondary">.torrent</a>
                   <button @click="stopTorrent(t.infohash)">Stop</button>
                 </div>
                 <div class="meta">

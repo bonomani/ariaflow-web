@@ -99,7 +99,10 @@ class TestHTMLValidation:
             "html.parser",
         )
         for link in soup.find_all("a"):
-            assert link.get("href"), f"Link without href: {link}"
+            # Static href OR Alpine-bound :href is acceptable. Alpine
+            # binds at runtime; the static html.parser sees `:href` as
+            # a normal attribute on the element.
+            assert link.get("href") or link.get(":href"), f"Link without href: {link}"
 
     def test_css_balanced_braces(self, web_server: str) -> None:
         css = (

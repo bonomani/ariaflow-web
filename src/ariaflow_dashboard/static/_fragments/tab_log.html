@@ -78,7 +78,8 @@
             <h2>Action history</h2>
             <div class="hint">Normalized event log</div>
           </div>
-          <div class="row mb-md">
+          <!-- Filters: what to show. -->
+          <div class="row mb-sm">
             <select x-model="actionFilter" @change="refreshActionLog()">
               <option value="all">All actions</option>
               <template x-for="a in availableActions" :key="a">
@@ -93,14 +94,20 @@
             </select>
             <select x-model="sessionFilter" @change="refreshActionLog()">
               <option value="all">All sessions</option>
-              <option value="current" selected>Current run</option>
+              <option value="current">Current run</option>
             </select>
-            <select x-model="logLimit" @change="refreshActionLog()">
-              <option value="50">50 entries</option>
-              <option value="120" selected>120 entries</option>
-              <option value="250">250 entries</option>
-              <option value="500">500 entries</option>
-            </select>
+          </div>
+          <!-- Display preference: how many to show. -->
+          <div class="row mb-md">
+            <label class="text-muted text-sm">Show
+              <select x-model="logLimit" @change="refreshActionLog()">
+                <option value="50">50</option>
+                <option value="120">120</option>
+                <option value="250">250</option>
+                <option value="500">500</option>
+              </select>
+              entries
+            </label>
           </div>
           <div class="list">
             <template x-if="filteredActionLog.length === 0">

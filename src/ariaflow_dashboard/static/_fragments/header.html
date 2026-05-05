@@ -21,7 +21,7 @@
       <div class="spacer"></div>
       <label class="refresh-control" for="refresh-interval">
         Refresh
-        <select id="refresh-interval" x-model="refreshInterval" @change="setRefreshInterval($el.value)">
+        <select id="refresh-interval" :value="refreshInterval" @change="setRefreshInterval($el.value)">
           <option value="1500">1.5s</option>
           <option value="3000">3s</option>
           <option value="5000">5s</option>
