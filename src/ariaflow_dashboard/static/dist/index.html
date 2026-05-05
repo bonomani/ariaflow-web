@@ -43,17 +43,29 @@
       </label>
       <button class="secondary" @click="toggleTheme()" x-text="themeLabel">Theme</button>
     </div>
-    <!-- Hero: Option A — single column flow.
-         Top: brand left, status chips right.
-         Middle: speed + item name on one line, sparkline directly below.
-         Cap utilization bar adjacent to speed (same visual question).
-         Footer: session/disk + collapsible Local interfaces + add-backend. -->
-    <div class="hero hero-flow">
-      <div class="hero-top">
-        <h1>ariaflow-dashboard</h1>
-        <div class="chips hero-status">
-          <label class="chip" :title="selectedBackend">
-            Backend
+    <!-- Hero v2 — ambitious redesign.
+         Layout:
+           Row 1: brand (logo + name + version) on left, status pills on right.
+           Row 2: KPI strip — Speed, Items, Cap headroom — three tiles.
+           Row 3: full-width chart timeline.
+           Row 4: collapsed Details (session, disk, interfaces, backend admin). -->
+    <div class="hero hero-v2">
+      <div class="hero-bg" aria-hidden="true">
+        <div x-html="globalTimelineSvg" class="hero-bg-chart"></div>
+      </div>
+
+      <div class="hero-row hero-brand-row">
+        <div class="hero-brand">
+          <svg class="hero-brand-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 4 V20 M9 14 L16 21 L23 14"/>
+            <path d="M4 26 Q9 22 14 26 T24 26 T34 26" stroke-width="1.6" opacity="0.65"/>
+          </svg>
+          <h1>ariaflow</h1>
+          <span class="hero-brand-version text-muted" x-text="webVersionText"></span>
+        </div>
+        <div class="hero-pills">
+          <label class="pill pill-select" :title="selectedBackend">
+            <span class="status-dot" :class="backendReachable ? 'good' : 'bad'"></span>
             <select :value="selectedBackend" @change="selectBackend($el.value)">
               <option :value="DEFAULT_BACKEND_URL" x-text="backendDisplayName(DEFAULT_BACKEND_URL)"></option>
               <template x-for="backend in backends" :key="backend">
@@ -61,59 +73,67 @@
               </template>
             </select>
           </label>
-          <a class="chip-details" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" :title="healthIssues.length ? 'Open System Health' : ''">
-            <span :class="healthBadgeClass" x-text="healthBadgeText">Healthy</span>
+          <a class="pill" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" :title="healthIssues.length ? 'Open System Health' : 'All systems nominal'">
+            <span class="status-dot" :class="healthIssues.length ? (healthIssues.some(i => i.level === 'bad') ? 'bad' : 'warn') : 'good'"></span>
+            <span x-text="healthBadgeText">Healthy</span>
           </a>
-          <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
+          <span class="pill" :title="bonjourBadgeTitle">
+            <span class="status-dot" :class="bonjourState === 'broken' ? 'warn' : (bonjourState === 'ok' ? 'good' : 'muted')"></span>
+            <span x-text="bonjourBadgeText">mDNS</span>
+          </span>
         </div>
       </div>
 
-      <div class="hero-transfer">
-        <div class="hero-headline">
-          <div class="stat-value" x-text="transferSpeedText">idle</div>
-          <div class="stat-sub" x-show="currentTransfer" x-text="currentTransferName"></div>
+      <div class="hero-row hero-kpis">
+        <div class="kpi kpi-speed">
+          <div class="kpi-label">Throughput</div>
+          <div class="kpi-value" x-text="transferSpeedText">idle</div>
+          <div class="kpi-sub" x-show="currentTransfer" x-text="currentTransferName"></div>
         </div>
-        <!-- A7 timeline: stacked-area downlink/uplink with cap reference
-             line. Replaces the small sparkline + standalone cap meter —
-             cap is now an inline reference inside the chart. -->
-        <div x-html="globalTimelineSvg" class="hero-timeline mt-sm"></div>
-        <!-- Compact cap caption directly under the chart, only when a
-             cap is configured — preserves the at-a-glance utilization
-             read without re-drawing the same value as a meter. -->
-        <div class="meta hero-cap-caption" x-show="bw.cap_mbps">
-          <span x-text="bwLiveDownMbps.toFixed(1) + ' Mbps'"></span>
-          <span class="text-muted">of</span>
-          <span x-text="bw.cap_mbps.toFixed(1) + ' Mbps cap'"></span>
-          <span class="text-muted">·</span>
-          <strong :class="{ 'badge warn': bwOverCap }" x-text="bwUtilizationPct + '%'"></strong>
-          <span x-show="bwOverCap" class="text-sm text-muted">over</span>
+        <div class="kpi kpi-items">
+          <div class="kpi-label">Queue</div>
+          <div class="kpi-value">
+            <span x-text="filterCounts.active || 0"></span>
+            <span class="kpi-unit">active</span>
+          </div>
+          <div class="kpi-sub" x-text="(sumQueued || 0) + ' queued · ' + (sumDone || 0) + ' done'"></div>
+        </div>
+        <div class="kpi kpi-cap" x-show="bw.cap_mbps">
+          <div class="kpi-label">Cap</div>
+          <div class="kpi-value">
+            <span :class="{ 'kpi-over': bwOverCap }" x-text="bwUtilizationPct + '%'"></span>
+          </div>
+          <div class="kpi-sub" x-text="bwLiveDownMbps.toFixed(1) + ' / ' + bw.cap_mbps.toFixed(1) + ' Mbps' + (bwOverCap ? ' · over' : '')"></div>
+        </div>
+        <div class="kpi kpi-cap" x-show="!bw.cap_mbps">
+          <div class="kpi-label">Cap</div>
+          <div class="kpi-value text-muted">unset</div>
+          <div class="kpi-sub">no bandwidth limit configured</div>
         </div>
       </div>
 
-      <div class="hero-footer mt-md">
-        <div class="chips">
-          <a class="chip-details" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" :title="'Session ' + sessionIdShort(state) + ' · open System Health'">
-            <span class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></span>
-          </a>
-          <div class="chip" :class="{ 'badge warn': !diskOk }" x-show="diskUsageText !== '-'">Disk <strong x-text="diskUsageText">-</strong></div>
-          <details class="chip-details">
-            <summary class="text-muted text-sm cursor-pointer">Local interfaces</summary>
-            <div class="chips mt-sm">
-              <template x-for="ip in localIps" :key="ip">
-                <div class="chip" :class="{ 'badge good': ip === localMainIp }">
-                  <span x-text="ip"></span>
-                  <strong x-show="ip === localMainIp" x-text="'main'"></strong>
-                </div>
-              </template>
-            </div>
-          </details>
+      <details class="hero-details">
+        <summary class="text-muted text-sm cursor-pointer">Details</summary>
+        <div class="hero-details-body">
+          <div class="chips">
+            <a class="chip-details" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" :title="'Session ' + sessionIdShort(state)">
+              <span class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></span>
+            </a>
+            <div class="chip" :class="{ 'badge warn': !diskOk }" x-show="diskUsageText !== '-'">Disk <strong x-text="diskUsageText">-</strong></div>
+            <template x-for="ip in localIps" :key="ip">
+              <div class="chip" :class="{ 'badge good': ip === localMainIp }">
+                <span x-text="ip"></span>
+                <strong x-show="ip === localMainIp" x-text="'main'"></strong>
+              </div>
+            </template>
+          </div>
+          <div class="gap-sm mt-sm">
+            <input type="url" x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
+            <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
+            <button x-show="selectedBackend !== DEFAULT_BACKEND_URL" class="secondary" @click="removeBackend(selectedBackend)" title="Remove current backend">Remove current</button>
+          </div>
         </div>
-        <div class="gap-sm mt-sm">
-          <input type="url" x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
-          <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
-          <button x-show="selectedBackend !== DEFAULT_BACKEND_URL" class="secondary" @click="removeBackend(selectedBackend)" title="Remove current backend">Remove current</button>
-        </div>
-      </div>
+      </details>
     </div>
     <div class="grid">
       <!-- DASHBOARD -->
