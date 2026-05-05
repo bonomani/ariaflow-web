@@ -117,7 +117,11 @@ export function lifecycleDetailLines(record: LifecycleRecord | null | undefined)
   if (!result) return [];
   const lines: string[] = [];
   if (result.message) lines.push(result.message);
-  if (result.observation && result.observation !== 'ok') {
+  if (
+    result.observation &&
+    result.observation !== 'ok' &&
+    result.observation !== 'unknown'
+  ) {
     lines.push(`Observation: ${result.observation}`);
   }
   if (result.reason && isDiagnosticReason(result.reason)) {

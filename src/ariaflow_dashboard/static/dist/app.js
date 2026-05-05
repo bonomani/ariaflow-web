@@ -100,13 +100,16 @@ function renderItemSparkline(data) {
 }
 function renderGlobalSparkline(dl, ul) {
   if (dl.length < 2) return "";
+  const peakDlValue = Math.max(...dl);
+  const peakUlValue = Math.max(...ul);
+  if (peakDlValue <= 0 && peakUlValue <= 0) return "";
   const max = Math.max(...dl, ...ul, 1);
   const w = 200;
   const h = 40;
   const dlPoints = sparklinePoints(dl, max, w, h);
   const ulPoints = ul.length >= 2 ? sparklinePoints(ul, max, w, h) : "";
-  const peakDl = formatRate(Math.max(...dl));
-  const peakUl = Math.max(...ul) > 0 ? ` \u2191 ${formatRate(Math.max(...ul))}` : "";
+  const peakDl = formatRate(peakDlValue);
+  const peakUl = peakUlValue > 0 ? ` \u2191 ${formatRate(peakUlValue)}` : "";
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;">
     <polyline points="${dlPoints}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
     ${ulPoints ? `<polyline points="${ulPoints}" fill="none" stroke="var(--accent-2)" stroke-width="1" stroke-linejoin="round" stroke-dasharray="3,2"/>` : ""}
@@ -1202,7 +1205,7 @@ function lifecycleDetailLines(record) {
   if (!result) return [];
   const lines = [];
   if (result.message) lines.push(result.message);
-  if (result.observation && result.observation !== "ok") {
+  if (result.observation && result.observation !== "ok" && result.observation !== "unknown") {
     lines.push(`Observation: ${result.observation}`);
   }
   if (result.reason && isDiagnosticReason(result.reason)) {
