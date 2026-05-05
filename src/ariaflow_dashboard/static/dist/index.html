@@ -256,18 +256,17 @@
                the result of the most recent probe. Reads top-to-bottom
                as cause → effect. -->
           <h3 class="text-sm text-muted mt-md mb-sm">Probe</h3>
-          <!-- Read-only meta chips: when, where from, freshness state -->
-          <div class="chips">
+          <!-- Single row: read-only meta chips + button + auto-interval
+               select. Flex-wrap handles narrow viewports. align-items
+               keeps the native select / button vertically aligned with
+               the chip pill heights. -->
+          <div class="chips" style="align-items:center">
             <div class="chip" x-show="bw.last_probe_at">Probed <strong x-text="bw.last_probe_at ? relativeTime(new Date(bw.last_probe_at * 1000).toISOString()) : '-'">-</strong></div>
             <div class="chip badge warn" x-show="bwProbeStale" :title="'Auto-probe interval: ' + bwProbeInterval + 's. Last probe is overdue.'">overdue</div>
             <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
             <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
-          </div>
-          <!-- Controls: button + interval select, outside the chip strip
-               so the native select renders without chip-styling artefacts -->
-          <div class="row gap-sm mt-sm">
             <button :class="{ secondary: probeLoading }" @click="runProbe()" :disabled="probeLoading" x-text="probeLoading ? 'Probing...' : 'Run probe'">Run probe</button>
-            <label class="text-muted text-sm">Auto-probe every
+            <label class="text-muted text-sm">auto every
               <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
                 <option value="60">60s</option>
                 <option value="120">120s</option>
