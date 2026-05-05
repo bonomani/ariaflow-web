@@ -50,7 +50,7 @@
             <path d="M4 26 Q9 22 14 26 T24 26 T34 26" stroke-width="1.6" opacity="0.65"/>
           </svg>
           <h1>ariaflow</h1>
-          <span class="hero-brand-version text-muted" x-text="webVersionText"></span>
+          <span class="hero-brand-version text-muted" :title="'dashboard ' + webVersionText + ' · server ' + backendVersionText" x-text="webVersionText"></span>
         </div>
         <div class="hero-pills">
           <label class="pill pill-select" :title="selectedBackend">
