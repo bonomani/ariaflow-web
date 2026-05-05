@@ -27,7 +27,7 @@
       <a href="/dev" :class="{ active: page === 'dev' }" @click.prevent="navigateTo('dev')">Developer</a>
       <a href="/archive" aria-label="Archive" :class="{ active: page === 'archive' }" @click.prevent="navigateTo('archive')">
         <span>Archive</span>
-        <span x-show="archiveItems.length" aria-hidden="true" class="tab-badge" x-text="archiveItems.length"></span>
+        <span x-show="archivableCount" aria-hidden="true" class="tab-badge" :title="archivableCount + ' item(s) ready to archive'" x-text="archivableCount"></span>
       </a>
       <div class="spacer"></div>
       <label class="refresh-control" for="refresh-interval">

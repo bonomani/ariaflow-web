@@ -300,12 +300,23 @@ document.addEventListener('alpine:init', () => {
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return 'Start';
-      if (this.state?.dispatch_paused) return 'Resume';
-      if (this.state?.running) return 'Pause';
-      return 'Start';
+      // BG-40: source of truth is the scheduler status enum, not raw
+      // state.running. 'starting' (intent=running, running=false yet)
+      // means a Start was already accepted — show Pause, not Start,
+      // so the next click moves forward instead of re-firing Start.
+      switch (this.schedulerBadgeText) {
+        case 'paused': return 'Resume';
+        case 'starting':
+        case 'idle':
+        case 'running': return 'Pause';
+        case 'stopped':
+        default: return 'Start';
+      }
     },
     get schedulerBtnDisabled() {
-      return !this.backendReachable;
+      // Disable while bootstrapping — a click would either be a no-op
+      // ('already_running') or race with the Start that's in flight.
+      return !this.backendReachable || this.schedulerBadgeText === 'starting';
     },
     get backendVersionText() {
       if (!this.backendReachable) return '-';
@@ -370,7 +381,8 @@ document.addEventListener('alpine:init', () => {
     get sumQueued() { return this.lastStatus?.summary?.queued ?? 0; },
     get sumDone() { return this.filterCounts.done ?? 0; },
     get sumError() { return this.filterCounts.error ?? 0; },
-    get canArchive() { return (this.lastStatus?.summary?.archivable_count ?? (this.sumDone + this.sumError)) > 0; },
+    get archivableCount() { return this.lastStatus?.summary?.archivable_count ?? (this.sumDone + this.sumError); },
+    get canArchive() { return this.archivableCount > 0; },
     get archiveBtnDisabled() { return !this.backendReachable || !this.canArchive; },
 
     // bandwidth panel getters

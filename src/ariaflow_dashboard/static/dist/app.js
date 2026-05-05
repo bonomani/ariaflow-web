@@ -1482,12 +1482,20 @@ document.addEventListener("alpine:init", () => {
     },
     get schedulerBtnText() {
       if (!this.backendReachable) return "Start";
-      if (this.state?.dispatch_paused) return "Resume";
-      if (this.state?.running) return "Pause";
-      return "Start";
+      switch (this.schedulerBadgeText) {
+        case "paused":
+          return "Resume";
+        case "starting":
+        case "idle":
+        case "running":
+          return "Pause";
+        case "stopped":
+        default:
+          return "Start";
+      }
     },
     get schedulerBtnDisabled() {
-      return !this.backendReachable;
+      return !this.backendReachable || this.schedulerBadgeText === "starting";
     },
     get backendVersionText() {
       if (!this.backendReachable) return "-";
@@ -1562,8 +1570,11 @@ document.addEventListener("alpine:init", () => {
     get sumError() {
       return this.filterCounts.error ?? 0;
     },
+    get archivableCount() {
+      return this.lastStatus?.summary?.archivable_count ?? this.sumDone + this.sumError;
+    },
     get canArchive() {
-      return (this.lastStatus?.summary?.archivable_count ?? this.sumDone + this.sumError) > 0;
+      return this.archivableCount > 0;
     },
     get archiveBtnDisabled() {
       return !this.backendReachable || !this.canArchive;
