@@ -29,6 +29,9 @@ expected_preferences:
   - distribute_seed_ratio
   - distribute_max_seed_hours
   - distribute_max_active_seeds
+  - auto_start_aria2
+  - auto_update
+  - auto_update_check_hours
 
 # KNOWN_UNUSED — backend response fields the frontend intentionally ignores.
 # Verified by test_all_backend_fields_consumed + test_known_unused_count_is_stable.
@@ -116,6 +119,9 @@ coverage_map:
   saveDeclaration: "test_save_declaration_button"
   selectBackend: "test_select_default_backend_button"
   setAutoPreflightPreference: "test_auto_preflight_toggle"
+  setAutoStartAria2: "test_every_preference_has_ui_control (auto_start_aria2 toggle)"
+  setAutoUpdate: "test_every_preference_has_ui_control (auto_update toggle)"
+  setAutoUpdateCheckHours: "test_every_preference_has_ui_control (auto_update_check_hours input)"
   setAria2UnsafeOptions: "test_aria2_options (unsafe toggle)"
   setRetryPref: "test_every_preference_has_ui_control (retry prefs)"
   setDistributePref: "test_every_preference_has_ui_control (distribution prefs)"

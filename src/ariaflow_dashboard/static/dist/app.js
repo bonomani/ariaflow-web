@@ -1729,6 +1729,19 @@ document.addEventListener("alpine:init", () => {
     get postActionRuleValue() {
       return this.getDeclarationPreference("post_action_rule") || "pending";
     },
+    // BG-45: self-management prefs. Reads default to false until backend
+    // ships the reconciliation loop; setting them via setPref still
+    // persists into the declaration regardless.
+    get autoStartAria2Enabled() {
+      return !!this.getDeclarationPreference("auto_start_aria2");
+    },
+    get autoUpdateEnabled() {
+      return !!this.getDeclarationPreference("auto_update");
+    },
+    get autoUpdateCheckHours() {
+      const v = Number(this.getDeclarationPreference("auto_update_check_hours"));
+      return Number.isFinite(v) && v > 0 ? v : 24;
+    },
     // lifecycle
     lifecycleRows: [],
     _lifecycleSession: null,
@@ -2616,6 +2629,20 @@ document.addEventListener("alpine:init", () => {
     },
     setPostActionRule(value) {
       this._queuePrefChange("post_action_rule", value, ["pending"], "default placeholder");
+    },
+    // BG-45: self-management toggles persist into declaration.
+    // Backend reconciliation hasn't shipped yet — these still write
+    // through, the loop will pick them up when it lands.
+    setAutoStartAria2(enabled) {
+      this._queuePrefChange("auto_start_aria2", !!enabled, [true, false], "default off until reconciliation ships");
+    },
+    setAutoUpdate(enabled) {
+      this._queuePrefChange("auto_update", !!enabled, [true, false], "default off \u2014 operator opts in");
+    },
+    setAutoUpdateCheckHours(hours) {
+      const n = Number(hours);
+      if (!Number.isFinite(n) || n <= 0) return;
+      this._queuePrefChange("auto_update_check_hours", n, [24], "default 24h check interval", 400);
     },
     // --- actions ---
     async add() {

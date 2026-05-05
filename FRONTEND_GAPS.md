@@ -1,6 +1,32 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-35: Self-management toggles wait on backend reconciliation
+
+**Blocked by:** BG-45
+
+The Options tab now has a **Self-management** section with three
+controls:
+
+- `auto_start_aria2` — checkbox
+- `auto_update` — checkbox
+- `auto_update_check_hours` — number input (visible when
+  auto-update is enabled)
+
+All three persist into the declaration via `setPref`, just like
+every other preference. Reading them back works today.
+
+What's missing: the backend reconciliation loop (BG-45). Until it
+ships, the toggles record intent but nothing acts on it — aria2's
+launchd plist still has to be installed manually via the System
+Health Load button, and updates still only fire on manual click.
+
+When BG-45 lands, the toggles will become functional with no FE
+change. If the backend exposes a "reconciliation_state" field on
+`/api/lifecycle.aria2.result.auto_start`, surface it as a
+confirmation badge ("reconciled") next to the Load/Unload
+buttons; that's the only follow-up FE work.
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 

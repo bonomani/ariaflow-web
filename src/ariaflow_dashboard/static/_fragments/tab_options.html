@@ -91,6 +91,31 @@
             </div>
           </div>
 
+          <h3 class="text-sm text-muted mt-md mb-sm">Self-management</h3>
+          <div class="list">
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">aria2 auto-start</div>
+                <label><input type="checkbox" :checked="autoStartAria2Enabled" @change="setAutoStartAria2($el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Backend reconciles the launchd / systemd plist on every boot to match this preference.</span></div>
+            </div>
+            <div class="item">
+              <div class="item-top">
+                <div class="item-url">Auto-update</div>
+                <label><input type="checkbox" :checked="autoUpdateEnabled" @change="setAutoUpdate($el.checked)"> Enable</label>
+              </div>
+              <div class="meta"><span>Periodic upgrade check via the detected package manager (Homebrew, pipx, npm). Runs the same dispatcher as the manual Update button.</span></div>
+            </div>
+            <div class="item" x-show="autoUpdateEnabled">
+              <div class="item-top">
+                <div class="item-url">Update check interval</div>
+                <label><input type="number" min="1" max="720" :value="autoUpdateCheckHours" @input="setAutoUpdateCheckHours($el.value)" class="input-sm"> <span>h</span></label>
+              </div>
+              <div class="meta"><span>How often the backend polls for available upgrades. Default 24 hours.</span></div>
+            </div>
+          </div>
+
           <h3 class="text-sm text-muted mt-md mb-sm">aria2</h3>
           <div class="list">
             <div class="item">
