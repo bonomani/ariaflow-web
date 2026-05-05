@@ -1336,32 +1336,25 @@ document.addEventListener('alpine:init', () => {
         this.resultText = `Scheduler ${action} failed: ${e.message}`;
       }
     },
-    async pauseDownloads() {
+    async pauseDownloads()  { return this._pauseResume('pause');  },
+    async resumeDownloads() { return this._pauseResume('resume'); },
+    async _pauseResume(action) {
+      const isPause = action === 'pause';
+      const okKey = isPause ? 'paused' : 'resumed';
+      const verb = isPause ? 'Pause' : 'Resume';
       this.resultText = '';
       try {
-        const r = await postEmpty(this.backendPath(urlScheduler('pause')));
+        const r = await postEmpty(this.backendPath(urlScheduler(action)));
         const data = await r.json();
-        this.resultText = data.paused
-          ? 'Downloads paused'
-          : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to pause' : 'Pause failed'));
+        this.resultText = data[okKey]
+          ? (isPause ? 'Downloads paused' : 'Downloads resumed')
+          : (data.message || (data.reason === 'no_active_transfer' ? `No active transfer to ${action}` : `${verb} failed`));
         this.resultJson = JSON.stringify(data, null, 2);
-        if (this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: true } };
+        if (this.lastStatus?.state) {
+          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: isPause } };
+        }
       } catch (e) {
-        this.resultText = `Pause failed: ${e.message}`;
-      }
-    },
-    async resumeDownloads() {
-      this.resultText = '';
-      try {
-        const r = await postEmpty(this.backendPath(urlScheduler('resume')));
-        const data = await r.json();
-        this.resultText = data.resumed
-          ? 'Downloads resumed'
-          : (data.message || (data.reason === 'no_active_transfer' ? 'No active transfer to resume' : 'Resume failed'));
-        this.resultJson = JSON.stringify(data, null, 2);
-        if (this.lastStatus?.state) this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: false } };
-      } catch (e) {
-        this.resultText = `Resume failed: ${e.message}`;
+        this.resultText = `${verb} failed: ${e.message}`;
       }
     },
     async itemAction(itemId, action) {
