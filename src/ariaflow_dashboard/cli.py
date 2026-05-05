@@ -24,7 +24,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    server = serve(host=args.host, port=args.port, backend_url=args.backend)
+    try:
+        server = serve(host=args.host, port=args.port, backend_url=args.backend)
+    except FileNotFoundError as exc:
+        print(f"ariaflow-dashboard: {exc}")
+        return 1
     print(f"Serving on http://{args.host}:{args.port}")
     try:
         server.serve_forever()

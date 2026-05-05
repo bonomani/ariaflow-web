@@ -119,3 +119,37 @@ class TestHTMLValidation:
             .decode()
         )
         assert js.count("(") == js.count(")")
+
+
+class TestBootstrap:
+    def test_serve_raises_clear_error_when_bundle_missing(self, monkeypatch) -> None:
+        """Fresh-clone bootstrap: serve() must raise a clear FileNotFoundError
+        with a build hint, not crash on module import."""
+        from pathlib import Path
+
+        from ariaflow_dashboard import webapp
+
+        # Point _DIST_INDEX at a path that doesn't exist.
+        monkeypatch.setattr(webapp, "_DIST_INDEX", Path("/tmp/_nonexistent_dist_index.html"))
+        with pytest.raises(FileNotFoundError) as exc_info:
+            webapp.serve(host="127.0.0.1", port=0)  # port=0 = OS-assigned, never bound
+        assert "npm run build" in str(exc_info.value)
+
+    def test_log_limit_clamps_negative(self, web_server: str) -> None:
+        """webapp.py /api/web/log clamps negative limit to 1, not Python's
+        negative-slice fallback that would return all-but-first-N entries."""
+        import json
+
+        body = urllib.request.urlopen(f"{web_server}/api/web/log?limit=-5", timeout=5).read().decode()
+        data = json.loads(body)
+        assert data.get("ok") is True
+        assert isinstance(data.get("items"), list)
+        assert len(data["items"]) <= 1
+
+    def test_log_limit_invalid_string_falls_back_to_default(self, web_server: str) -> None:
+        """A non-integer limit shouldn't raise — falls back to the default."""
+        import json
+
+        body = urllib.request.urlopen(f"{web_server}/api/web/log?limit=abc", timeout=5).read().decode()
+        data = json.loads(body)
+        assert data.get("ok") is True

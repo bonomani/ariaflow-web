@@ -42,9 +42,18 @@ def _meta_for(path: str) -> dict:
     return {"freshness": "bootstrap"}
 
 
+_BUILD_HINT = (
+    "static/dist/index.html not found — the frontend bundle hasn't been built. "
+    "Run `npm install && npm run build` from the repository root before starting "
+    "the dashboard."
+)
+
+
 def _read_index_html(backend_url: str | None = None) -> str:
     from . import __version__
 
+    if not _DIST_INDEX.exists():
+        raise FileNotFoundError(_BUILD_HINT)
     text = _DIST_INDEX.read_text(encoding="utf-8")
     identity = local_identity()
     globals_js = (
@@ -63,7 +72,10 @@ def _read_index_html(backend_url: str | None = None) -> str:
     return text
 
 
-INDEX_HTML = _read_index_html()
+# INDEX_HTML is read lazily by serve(); reading at module-import time
+# would break a fresh clone where the frontend bundle hasn't been built
+# (cli.py would fail to import before it could print the build hint).
+INDEX_HTML: str = ""
 
 
 class AriaFlowHandler(BaseHTTPRequestHandler):
@@ -144,7 +156,11 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/web/log":
             qs = parse_qs(parsed.query)
-            limit = min(int(qs.get("limit", ["200"])[0]), 500)
+            try:
+                raw = int(qs.get("limit", ["200"])[0])
+            except ValueError:
+                raw = 200
+            limit = max(1, min(raw, 500))
             self._send_json(
                 {
                     "ok": True,
@@ -164,8 +180,7 @@ def serve(
     host: str = "127.0.0.1", port: int = 8000, backend_url: str | None = None
 ) -> ThreadingHTTPServer:
     global INDEX_HTML  # noqa: PLW0603
-    if backend_url:
-        INDEX_HTML = _read_index_html(backend_url)
+    INDEX_HTML = _read_index_html(backend_url)
     from . import __version__
 
     record_action(

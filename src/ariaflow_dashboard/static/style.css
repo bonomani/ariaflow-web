@@ -181,20 +181,10 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
   box-shadow: inset 0 0 0 1px var(--ws-glow-soft);
   background: var(--ws-panel-2);
 }
-.item.compact.add-card {
-  background: var(--ws-surface);
-}
 .item-top { display: flex; justify-content: space-between; gap: var(--ws-gap-md); align-items: center; margin-bottom: var(--ws-gap-sm); }
 .item-url { font-weight: 700; overflow: hidden; text-overflow: ellipsis; word-break: break-all; }
 .meta { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; color: var(--ws-muted); font-size: var(--ws-font-md); }
 .action-strip { display: inline-flex; gap: var(--ws-gap-sm); flex-wrap: wrap; justify-content: flex-end; }
-.add-card-body {
-  display: grid;
-  gap: var(--ws-gap-sm);
-}
-.add-card details {
-  width: 100%;
-}
 
 /* --- system card --- */
 .system-card {
