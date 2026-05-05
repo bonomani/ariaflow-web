@@ -1496,6 +1496,7 @@ document.addEventListener('alpine:init', () => {
     // --- bandwidth ---
     probeLoading: false,
     async runProbe() {
+      if (this.probeLoading) return; // gate re-entry instead of disabling the button
       this.probeLoading = true;
       this.resultText = 'Probe running...';
       try {

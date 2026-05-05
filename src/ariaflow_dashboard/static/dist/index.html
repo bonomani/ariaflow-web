@@ -265,7 +265,7 @@
             <div class="chip badge warn" x-show="bwProbeStale" :title="'Auto-probe interval: ' + bwProbeInterval + 's. Last probe is overdue.'">overdue</div>
             <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
             <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
-            <button @click="runProbe()" :disabled="probeLoading" x-text="probeLoading ? 'Probing…' : 'Run probe'">Run probe</button>
+            <button @click="runProbe()" x-text="probeLoading ? 'Probing…' : 'Run probe'">Run probe</button>
             <label class="text-muted text-sm">auto every
               <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
                 <option value="60">60s</option>
