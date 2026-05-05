@@ -2997,7 +2997,7 @@ document.addEventListener("alpine:init", () => {
       this.peerList = data?.peers || [];
     },
     _applyTorrents(data) {
-      this.torrentList = data?.torrents || data?.items || [];
+      this.torrentList = data?.torrents || [];
     },
     async loadTorrents() {
       this.torrentLoading = true;

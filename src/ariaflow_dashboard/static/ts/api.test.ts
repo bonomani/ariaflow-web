@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { apiFetch, joinUrl, getJson, postJson, postEmpty, ApiError } from './api.js';
+import { apiFetch, joinUrl, postEmpty } from './api.js';
 
 test('apiFetch resolves with the fetch response', async () => {
   const fakeResponse = { ok: true, status: 200 } as Response;
@@ -45,57 +45,6 @@ test('joinUrl strips trailing slashes from base', () => {
   assert.equal(joinUrl('http://h:8000', '/api/x'), 'http://h:8000/api/x');
   assert.equal(joinUrl('http://h:8000/', '/api/x'), 'http://h:8000/api/x');
   assert.equal(joinUrl('http://h:8000///', '/api/x'), 'http://h:8000/api/x');
-});
-
-test('getJson resolves with parsed body on 2xx', async () => {
-  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true, n: 42 }), { status: 200 });
-  const body = await getJson<{ ok: boolean; n: number }>('/api/x');
-  assert.equal(body.ok, true);
-  assert.equal(body.n, 42);
-});
-
-test('getJson throws ApiError with status on non-2xx', async () => {
-  globalThis.fetch = async () => new Response('boom', { status: 503 });
-  await assert.rejects(getJson('/api/x'), (err: unknown) => {
-    assert.ok(err instanceof ApiError);
-    assert.equal((err as ApiError).status, 503);
-    assert.equal((err as ApiError).url, '/api/x');
-    return true;
-  });
-});
-
-test('postJson sends JSON body with default Content-Type', async () => {
-  let captured: RequestInit | undefined;
-  globalThis.fetch = async (_url: string | URL | Request, init?: RequestInit) => {
-    captured = init;
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
-  };
-  const r = await postJson<{ ok: boolean }>('/api/x', { a: 1 });
-  assert.equal(r.ok, true);
-  assert.equal(captured?.method, 'POST');
-  assert.equal(captured?.body, '{"a":1}');
-  const headers = new Headers(captured?.headers);
-  assert.equal(headers.get('Content-Type'), 'application/json');
-});
-
-test('postJson preserves a caller-supplied Content-Type', async () => {
-  let captured: RequestInit | undefined;
-  globalThis.fetch = async (_url: string | URL | Request, init?: RequestInit) => {
-    captured = init;
-    return new Response('{}', { status: 200 });
-  };
-  await postJson('/api/x', { a: 1 }, { headers: { 'Content-Type': 'application/x-foo' } });
-  const headers = new Headers(captured?.headers);
-  assert.equal(headers.get('Content-Type'), 'application/x-foo');
-});
-
-test('postJson throws ApiError on non-2xx', async () => {
-  globalThis.fetch = async () => new Response('boom', { status: 422 });
-  await assert.rejects(postJson('/api/x', {}), (err: unknown) => {
-    assert.ok(err instanceof ApiError);
-    assert.equal((err as ApiError).status, 422);
-    return true;
-  });
 });
 
 test('postEmpty issues POST with no body and returns raw Response', async () => {

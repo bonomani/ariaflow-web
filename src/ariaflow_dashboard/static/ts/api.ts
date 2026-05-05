@@ -30,52 +30,13 @@ export function joinUrl(base: string, path: string): string {
   return `${base.replace(/\/+$/, '')}${path}`;
 }
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly url: string,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-// Fetch a URL and parse the body as JSON, typed by the caller.
-// Throws ApiError on non-2xx responses; the underlying network error
-// is propagated unchanged (e.g. AbortError on timeout).
-export async function getJson<T>(url: string, opts: ApiFetchOptions = {}): Promise<T> {
-  const r = await apiFetch(url, opts);
-  if (!r.ok) {
-    throw new ApiError(`HTTP ${r.status} for ${url}`, r.status, url);
-  }
-  return (await r.json()) as T;
-}
-
-// POST a JSON body and parse the JSON response. Same error semantics
-// as getJson; sets Content-Type unless the caller already did.
-export async function postJson<TResp>(
-  url: string,
-  body: unknown,
-  opts: ApiFetchOptions = {},
-): Promise<TResp> {
-  const headers = new Headers(opts.headers);
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const r = await apiFetch(url, {
-    ...opts,
-    method: opts.method ?? 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) {
-    throw new ApiError(`HTTP ${r.status} for ${url}`, r.status, url);
-  }
-  return (await r.json()) as TResp;
-}
-
-// POST with no body. Caller can decide whether to throw on non-2xx
-// (see thrownOnError) or read the raw Response (default returns it
-// without throwing so the caller can inspect data.ok / data.message).
+// POST with no body. Returns the raw Response without throwing on
+// non-2xx; callers inspect data.ok / data.message after parsing.
+// (Matches the rest of the codebase: every backend response carries
+// {ok: bool, message?, ...} and call sites need the body even on
+// 4xx/5xx for actionable error text. Earlier postJson/getJson
+// helpers that threw ApiError on non-2xx were inconsistent with
+// this discipline and never adopted.)
 export async function postEmpty(url: string, opts: ApiFetchOptions = {}): Promise<Response> {
   return apiFetch(url, { ...opts, method: opts.method ?? 'POST' });
 }
