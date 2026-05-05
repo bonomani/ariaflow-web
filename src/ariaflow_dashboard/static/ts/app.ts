@@ -319,21 +319,25 @@ document.addEventListener('alpine:init', () => {
       if (!this.backendReachable) return 'offline';
       return this.bw.source || '-';
     },
+    _mbpsDual(mbps) {
+      if (!mbps) return '-';
+      return `${this.formatBytes(mbps * 125_000)}/s (${this.formatMbps(mbps)})`;
+    },
     get bwDownBadgeText() {
       if (!this.backendReachable) return '-';
-      return this.bw.downlink_mbps ? this.formatMbps(this.bw.downlink_mbps) : '-';
+      return this._mbpsDual(this.bw.downlink_mbps);
     },
     get bwUpBadgeText() {
       if (!this.backendReachable) return '-';
-      return this.bw.uplink_mbps ? this.formatMbps(this.bw.uplink_mbps) : '-';
+      return this._mbpsDual(this.bw.uplink_mbps);
     },
     get bwDownCapText() {
       if (!this.backendReachable) return '-';
-      return this.bw.down_cap_mbps ? this.formatMbps(this.bw.down_cap_mbps) : (this.bw.cap_mbps ? this.formatMbps(this.bw.cap_mbps) : '-');
+      return this._mbpsDual(this.bw.down_cap_mbps || this.bw.cap_mbps);
     },
     get bwUpCapText() {
       if (!this.backendReachable) return '-';
-      return this.bw.up_cap_mbps ? this.formatMbps(this.bw.up_cap_mbps) : '-';
+      return this._mbpsDual(this.bw.up_cap_mbps);
     },
     get bwCurrentLimitText() {
       if (!this.backendReachable) return '-';
