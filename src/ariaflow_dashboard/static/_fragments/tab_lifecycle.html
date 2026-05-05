@@ -21,9 +21,9 @@
                 </div>
                 <div class="meta"><span x-text="_lifecycleSession.session_id"></span></div>
                 <div class="meta">
-                  <span x-text="_lifecycleSession.session_started_at ? 'Started ' + _lifecycleSession.session_started_at : 'Start time unknown'"></span>
-                  <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + _lifecycleSession.session_last_seen_at : 'Last seen unknown'"></span>
-                  <span x-show="_lifecycleSession.session_closed_at" x-text="'Closed ' + (_lifecycleSession.session_closed_at || '') + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '')"></span>
+                  <span x-text="_lifecycleSession.session_started_at ? 'Started ' + relativeTime(_lifecycleSession.session_started_at) : 'Start time unknown'"></span>
+                  <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + relativeTime(_lifecycleSession.session_last_seen_at) : 'Last seen unknown'"></span>
+                  <span x-show="_lifecycleSession.session_closed_at" x-text="'Closed ' + (_lifecycleSession.session_closed_at ? relativeTime(_lifecycleSession.session_closed_at) : '') + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '')"></span>
                 </div>
               </div>
             </template>

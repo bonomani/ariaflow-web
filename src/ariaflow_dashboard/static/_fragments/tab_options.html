@@ -38,18 +38,21 @@
                 <div class="item-url">Retry backoff</div>
                 <label><input type="number" min="1" max="300" :value="retryBackoff" @input="setRetryPref('retry_backoff_seconds', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
+              <div class="meta"><span>Wait between dashboard-side retries.</span></div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">aria2 max tries</div>
                 <label><input type="number" min="0" max="20" :value="aria2MaxTries" @input="setRetryPref('aria2_max_tries', $el.value)" class="input-sm"></label>
               </div>
+              <div class="meta"><span>Per-URL retry budget passed to aria2 itself. 0 = aria2 default.</span></div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">aria2 retry wait</div>
                 <label><input type="number" min="0" max="60" :value="aria2RetryWait" @input="setRetryPref('aria2_retry_wait', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
+              <div class="meta"><span>Wait between aria2's own retry attempts.</span></div>
             </div>
           </div>
 

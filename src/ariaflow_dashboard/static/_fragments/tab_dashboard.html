@@ -2,7 +2,7 @@
       <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel">
           <div class="gap-sm mb-sm">
-            <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()" class="input-md">
+            <input type="url" x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()" class="input-md">
             <button x-show="urlInput.trim()" @click="add()">Add</button>
           </div>
           <details>

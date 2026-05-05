@@ -119,7 +119,7 @@
       <div class="span-12" x-show="page === 'dashboard'">
         <div class="panel">
           <div class="gap-sm mb-sm">
-            <input x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()" class="input-md">
+            <input type="url" x-model="urlInput" placeholder="Paste URL to download" @keydown.enter="add()" class="input-md">
             <button x-show="urlInput.trim()" @click="add()">Add</button>
           </div>
           <details>
@@ -373,9 +373,9 @@
                 </div>
                 <div class="meta"><span x-text="_lifecycleSession.session_id"></span></div>
                 <div class="meta">
-                  <span x-text="_lifecycleSession.session_started_at ? 'Started ' + _lifecycleSession.session_started_at : 'Start time unknown'"></span>
-                  <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + _lifecycleSession.session_last_seen_at : 'Last seen unknown'"></span>
-                  <span x-show="_lifecycleSession.session_closed_at" x-text="'Closed ' + (_lifecycleSession.session_closed_at || '') + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '')"></span>
+                  <span x-text="_lifecycleSession.session_started_at ? 'Started ' + relativeTime(_lifecycleSession.session_started_at) : 'Start time unknown'"></span>
+                  <span x-text="_lifecycleSession.session_last_seen_at ? 'Last seen ' + relativeTime(_lifecycleSession.session_last_seen_at) : 'Last seen unknown'"></span>
+                  <span x-show="_lifecycleSession.session_closed_at" x-text="'Closed ' + (_lifecycleSession.session_closed_at ? relativeTime(_lifecycleSession.session_closed_at) : '') + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '')"></span>
                 </div>
               </div>
             </template>
@@ -438,18 +438,21 @@
                 <div class="item-url">Retry backoff</div>
                 <label><input type="number" min="1" max="300" :value="retryBackoff" @input="setRetryPref('retry_backoff_seconds', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
+              <div class="meta"><span>Wait between dashboard-side retries.</span></div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">aria2 max tries</div>
                 <label><input type="number" min="0" max="20" :value="aria2MaxTries" @input="setRetryPref('aria2_max_tries', $el.value)" class="input-sm"></label>
               </div>
+              <div class="meta"><span>Per-URL retry budget passed to aria2 itself. 0 = aria2 default.</span></div>
             </div>
             <div class="item">
               <div class="item-top">
                 <div class="item-url">aria2 retry wait</div>
                 <label><input type="number" min="0" max="60" :value="aria2RetryWait" @input="setRetryPref('aria2_retry_wait', $el.value)" class="input-sm"> <span>sec</span></label>
               </div>
+              <div class="meta"><span>Wait between aria2's own retry attempts.</span></div>
             </div>
           </div>
 
@@ -598,16 +601,15 @@
           </div>
         </div>
       </div>
-      <!-- LOG -->
+      <!-- UCC contract trace -->
       <div class="span-6" x-show="page === 'log'">
         <div class="panel">
           <div class="section-title">
-            <h2>Log</h2>
-            <div class="hint">UCC contract execution and preflight checks</div>
+            <h2>UCC</h2>
+            <div class="hint">Contract execution trace</div>
           </div>
           <div class="row mb-md">
-            <button :class="{ secondary: !backendReachable }" @click="uccRun()" :disabled="!backendReachable">Run UCC</button>
-            <button :class="{ secondary: !backendReachable }" @click="preflightRun()" :disabled="!backendReachable">Preflight</button>
+            <button :class="{ secondary: !backendReachable, loading: uccLoading }" @click="uccRun()" :disabled="!backendReachable || uccLoading" x-text="uccLoading ? 'Running…' : 'Run UCC'">Run UCC</button>
           </div>
           <div class="list">
             <template x-if="contractTraceItems">
@@ -627,9 +629,22 @@
               <div class="text-muted text-sm">Run UCC to see results</div>
             </template>
           </div>
-          <div class="section-title mt-md">
+          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
+            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
+            <div class="debug-box" x-text="resultJson"></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Preflight: gates / warnings / failures -->
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
             <h2>Preflight</h2>
             <div class="hint">Pass, warnings, and failures</div>
+          </div>
+          <div class="row mb-md">
+            <button :class="{ secondary: !backendReachable, loading: preflightLoading }" @click="preflightRun()" :disabled="!backendReachable || preflightLoading" x-text="preflightLoading ? 'Running…' : 'Run preflight'">Run preflight</button>
           </div>
           <div class="list">
             <template x-if="preflightData">
@@ -663,13 +678,9 @@
               </div>
             </template>
             <template x-if="!preflightData">
-              <div class="text-muted text-sm">Run Preflight to see results</div>
+              <div class="text-muted text-sm">Run preflight to see results</div>
             </template>
           </div>
-          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
-            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
-            <div class="debug-box" x-text="resultJson"></div>
-          </details>
         </div>
       </div>
       <div class="span-6" x-show="page === 'log'">
@@ -928,7 +939,7 @@
                   <span :class="badgeClass(item.status || 'removed')" x-text="item.status || 'removed'"></span>
                 </div>
                 <div class="meta">
-                  <span x-show="item.cancelled_at" x-text="'Removed ' + relativeTime(item.cancelled_at)"></span>
+                  <span x-show="item.removed_at || item.cancelled_at" x-text="'Removed ' + relativeTime(item.removed_at || item.cancelled_at)"></span>
                   <span x-show="item.url" :title="item.url" x-text="item.url"></span>
                 </div>
               </div>

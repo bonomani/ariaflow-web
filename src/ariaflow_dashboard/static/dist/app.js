@@ -1591,6 +1591,8 @@ document.addEventListener("alpine:init", () => {
     specVersion: null,
     // test suite
     testRunning: false,
+    uccLoading: false,
+    preflightLoading: false,
     testSummaryVisible: false,
     lastTestStdout: "",
     lastTestStderr: "",
@@ -2729,6 +2731,7 @@ document.addEventListener("alpine:init", () => {
     },
     // --- log ---
     async preflightRun() {
+      this.preflightLoading = true;
       try {
         const r = await postEmpty(this.backendPath(urlScheduler("preflight")));
         const data = await r.json();
@@ -2737,9 +2740,12 @@ document.addEventListener("alpine:init", () => {
         this.preflightData = data;
       } catch (e) {
         this.resultText = `Preflight failed: ${e.message}`;
+      } finally {
+        this.preflightLoading = false;
       }
     },
     async uccRun() {
+      this.uccLoading = true;
       try {
         const r = await postEmpty(this.backendPath(urlScheduler("ucc")));
         const data = await r.json();
@@ -2750,6 +2756,8 @@ document.addEventListener("alpine:init", () => {
         this.refreshActionLog();
       } catch (e) {
         this.resultText = `UCC failed: ${e.message}`;
+      } finally {
+        this.uccLoading = false;
       }
     },
     contractTraceOutcome() {

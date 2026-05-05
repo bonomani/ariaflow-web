@@ -1,13 +1,12 @@
-      <!-- LOG -->
+      <!-- UCC contract trace -->
       <div class="span-6" x-show="page === 'log'">
         <div class="panel">
           <div class="section-title">
-            <h2>Log</h2>
-            <div class="hint">UCC contract execution and preflight checks</div>
+            <h2>UCC</h2>
+            <div class="hint">Contract execution trace</div>
           </div>
           <div class="row mb-md">
-            <button :class="{ secondary: !backendReachable }" @click="uccRun()" :disabled="!backendReachable">Run UCC</button>
-            <button :class="{ secondary: !backendReachable }" @click="preflightRun()" :disabled="!backendReachable">Preflight</button>
+            <button :class="{ secondary: !backendReachable, loading: uccLoading }" @click="uccRun()" :disabled="!backendReachable || uccLoading" x-text="uccLoading ? 'Running…' : 'Run UCC'">Run UCC</button>
           </div>
           <div class="list">
             <template x-if="contractTraceItems">
@@ -27,9 +26,22 @@
               <div class="text-muted text-sm">Run UCC to see results</div>
             </template>
           </div>
-          <div class="section-title mt-md">
+          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
+            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
+            <div class="debug-box" x-text="resultJson"></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Preflight: gates / warnings / failures -->
+      <div class="span-6" x-show="page === 'log'">
+        <div class="panel">
+          <div class="section-title">
             <h2>Preflight</h2>
             <div class="hint">Pass, warnings, and failures</div>
+          </div>
+          <div class="row mb-md">
+            <button :class="{ secondary: !backendReachable, loading: preflightLoading }" @click="preflightRun()" :disabled="!backendReachable || preflightLoading" x-text="preflightLoading ? 'Running…' : 'Run preflight'">Run preflight</button>
           </div>
           <div class="list">
             <template x-if="preflightData">
@@ -63,13 +75,9 @@
               </div>
             </template>
             <template x-if="!preflightData">
-              <div class="text-muted text-sm">Run Preflight to see results</div>
+              <div class="text-muted text-sm">Run preflight to see results</div>
             </template>
           </div>
-          <details class="debug mt-md" x-show="resultJson && resultJson !== 'Idle'">
-            <summary class="text-muted text-sm cursor-pointer">Raw JSON</summary>
-            <div class="debug-box" x-text="resultJson"></div>
-          </details>
         </div>
       </div>
       <div class="span-6" x-show="page === 'log'">
