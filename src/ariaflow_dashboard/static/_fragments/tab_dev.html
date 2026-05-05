@@ -26,7 +26,7 @@
             <div class="hint">Run the backend test suite from the dashboard</div>
           </div>
           <div class="row mb-md">
-            <button :class="{ secondary: !backendReachable, loading: testLoading }" @click="runTests()" :disabled="!backendReachable || testLoading">Run backend tests</button>
+            <button :class="{ secondary: !backendReachable }" @click="runTests()" :disabled="!backendReachable || testLoading" x-text="testLoading ? 'Running tests…' : 'Run backend tests'">Run backend tests</button>
           </div>
           <div class="item" x-show="testSummaryVisible">
             <div class="item-top">
