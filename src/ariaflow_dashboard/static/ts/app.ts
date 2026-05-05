@@ -213,9 +213,6 @@ document.addEventListener('alpine:init', () => {
       });
       return counts;
     },
-    get schedulerStateLabelText() {
-      return this.schedulerOverviewLabel(this.state, this.itemsWithStatus, this.currentTransfer);
-    },
     // BG-40: backend ships state.scheduler_status (5-state enum) and
     // state.wait_reason. Fall back to inferred values for backends
     // older than v0.1.252 that don't ship the new fields.
@@ -716,13 +713,6 @@ document.addEventListener('alpine:init', () => {
       if (!reachable) return 'offline';
       if (state?.stop_requested) return 'stopping';
       return state?.running ? 'running' : 'idle';
-    },
-    schedulerOverviewLabel(state, items, active) {
-      if (!state?.running) return 'scheduler idle';
-      if (state?.dispatch_paused) return 'paused';
-      if (active && active.status && active.status !== 'idle') return active.status;
-      if ((items || []).length) return 'ready';
-      return 'idle';
     },
     syncSchedulerResultText() {
       const staleSchedulerMessages = new Set([
