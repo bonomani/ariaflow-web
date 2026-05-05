@@ -253,6 +253,10 @@ document.addEventListener('alpine:init', () => {
       if (a) a.fn();
     },
     get schedulerWaitReasonAction() {
+      // Only surface scheduler-domain blockers as in-line buttons.
+      // Probe is a bandwidth concern — user navigates to Bandwidth
+      // tab to manage it; cluttering the Scheduler row with a
+      // "Run probe" CTA mixed two domains.
       switch (this.state?.wait_reason) {
         case 'preflight_blocked':
           return {
@@ -264,14 +268,6 @@ document.addEventListener('alpine:init', () => {
           };
         case 'aria2_unreachable':
           return { label: 'Start aria2', fn: () => this.lifecycleAction('aria2', 'start') };
-        case 'bandwidth_probe_pending':
-          return {
-            label: 'Run probe',
-            fn: () => {
-              this.navigateTo('bandwidth');
-              this.runProbe();
-            },
-          };
         default:
           return null;
       }

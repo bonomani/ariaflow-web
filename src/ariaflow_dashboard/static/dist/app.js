@@ -1519,14 +1519,6 @@ document.addEventListener("alpine:init", () => {
           };
         case "aria2_unreachable":
           return { label: "Start aria2", fn: () => this.lifecycleAction("aria2", "start") };
-        case "bandwidth_probe_pending":
-          return {
-            label: "Run probe",
-            fn: () => {
-              this.navigateTo("bandwidth");
-              this.runProbe();
-            }
-          };
         default:
           return null;
       }
