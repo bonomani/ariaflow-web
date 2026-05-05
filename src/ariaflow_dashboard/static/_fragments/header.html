@@ -61,7 +61,9 @@
         </div>
         <!-- L2: Session + cap + disk -->
         <div class="chips mt-sm">
-          <div class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></div>
+          <a class="chip-details" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" title="Open System Health">
+            <span class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></span>
+          </a>
           <div class="chip" :class="{ 'badge warn': !diskOk }" x-show="diskUsageText !== '-'">Disk <strong x-text="diskUsageText">-</strong></div>
         </div>
         <!-- Cap utilization meter — visible from any tab -->
