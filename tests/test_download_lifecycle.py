@@ -11,7 +11,6 @@ import threading
 import time
 
 import pytest
-from playwright.sync_api import Page
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -19,11 +18,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ariaflow_dashboard.webapp import serve  # noqa: E402
 from conftest import _allocate_port, MockBackendHandler  # noqa: E402
 
+# Lazy import: playwright is only required for the slow browser tests
+# in this file. test_api_response_shapes imports FakeBackend from this
+# module under a [dev]-only install (no playwright), so a top-level
+# `from playwright...` would break that import.
+if False:  # type-checking only
+    from playwright.sync_api import Page  # noqa: F401
+
 pytestmark = pytest.mark.slow
 _ALPINE_EVAL = "document.querySelector('[x-data]')._x_dataStack[0]"
 
 
-def _goto(page: Page, url: str) -> None:
+def _goto(page, url: str) -> None:
     page.goto(url)
     page.wait_for_timeout(200)
 
@@ -298,7 +304,7 @@ def browser_context(shared_browser):
     ctx.close()
 
 
-def refresh_and_wait(page: Page) -> None:
+def refresh_and_wait(page) -> None:
     """Trigger a JS refresh and wait for the queue to update."""
     page.evaluate(
         f"{_ALPINE_EVAL}._consecutiveFailures = 0; {_ALPINE_EVAL}.lastRev = null"
@@ -307,15 +313,15 @@ def refresh_and_wait(page: Page) -> None:
     page.wait_for_timeout(500)
 
 
-def queue_items(page: Page) -> list:
+def queue_items(page) -> list:
     return page.query_selector_all(".item.compact:not(.add-card)")
 
 
-def queue_text(page: Page) -> str:
+def queue_text(page) -> str:
     return page.inner_text("body")
 
 
-def item_has_badge(page: Page, text: str) -> bool:
+def item_has_badge(page, text: str) -> bool:
     """Check if any badge in the queue contains the given text."""
     badges = page.query_selector_all(".badge")
     return any(text.lower() in b.inner_text().lower() for b in badges)
