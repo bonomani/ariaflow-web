@@ -40,7 +40,9 @@
             <h2>Activity</h2>
             <div class="hint">Backend + dashboard events, merged chronologically</div>
           </div>
-          <!-- Filters: what to show. -->
+          <!-- Filters. Filtering is purely client-side via the
+               filteredActionLog getter, so @change handlers aren't
+               needed — Alpine re-runs the getter when x-model fires. -->
           <div class="row mb-sm">
             <label class="text-muted text-sm">Source
               <select x-model="sourceFilter">
@@ -50,7 +52,7 @@
               </select>
             </label>
             <label class="text-muted text-sm">Action
-              <select x-model="actionFilter" @change="refreshActionLog()">
+              <select x-model="actionFilter">
                 <option value="all">All</option>
                 <template x-for="a in availableActions" :key="a">
                   <option :value="a" x-text="a"></option>
@@ -58,7 +60,7 @@
               </select>
             </label>
             <label class="text-muted text-sm">Target
-              <select x-model="targetFilter" @change="refreshActionLog()">
+              <select x-model="targetFilter">
                 <option value="all">All</option>
                 <template x-for="t in availableTargets" :key="t">
                   <option :value="t" x-text="t"></option>
@@ -66,13 +68,13 @@
               </select>
             </label>
             <label class="text-muted text-sm">Session
-              <select x-model="sessionFilter" @change="refreshActionLog()">
+              <select x-model="sessionFilter">
                 <option value="all">All</option>
                 <option value="current">Current run</option>
               </select>
             </label>
           </div>
-          <!-- Display preference: how many to show. -->
+          <!-- logLimit controls /api/log?limit=N — needs a refetch. -->
           <div class="row mb-md">
             <label class="text-muted text-sm">Show
               <select x-model="logLimit" @change="refreshActionLog()">
@@ -89,14 +91,18 @@
               <div class="item">No activity entries.</div>
             </template>
             <template x-for="entry in filteredActionLog" :key="(entry._source || '') + entry.timestamp + (entry.action || '') + (entry.target || '')">
-              <div class="item">
+              <div class="item compact">
                 <div class="item-top">
-                  <div class="item-url" x-text="entry.action || 'event'"></div>
+                  <span class="text-muted text-mono text-sm" :title="entry.timestamp || ''" x-text="entry.timestamp ? relativeTime(entry.timestamp) : '-'"></span>
+                  <strong x-text="entry.action || 'event'"></strong>
+                  <span class="text-muted text-sm" x-show="entry.target" x-text="entry.target"></span>
                   <span class="badge" :class="entry._source === 'dashboard' ? '' : 'good'" x-text="entry._source === 'dashboard' ? 'dashboard' : 'server'"></span>
                   <span :class="badgeClass(entry.outcome || entry.status || 'unknown')" x-text="entry.outcome || entry.status || 'unknown'"></span>
                   <span x-show="entry.observation && entry.observation !== 'ok'" class="badge warn" x-text="entry.observation"></span>
                 </div>
-                <div class="meta"><span x-text="logEntryLines(entry)"></span></div>
+                <div class="meta" x-show="entry.message || entry.reason || entry._pollCount">
+                  <span x-text="logEntryDetail(entry)"></span>
+                </div>
               </div>
             </template>
           </div>

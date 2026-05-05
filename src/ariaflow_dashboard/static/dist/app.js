@@ -3094,16 +3094,15 @@ document.addEventListener("alpine:init", () => {
       if (speed) parts.push(speed);
       return parts.join(" \xB7 ");
     },
-    logEntryLines(entry) {
+    // Compact detail: timestamp + target are already rendered inline on
+    // the row, so the meta line carries only the human-readable
+    // message/reason (or the polled-count summary).
+    logEntryDetail(entry) {
       if (entry.action === "poll") {
         const summary = this.summarizePollEntry(entry);
         return entry._pollCount > 1 ? `${summary} (${entry._pollCount} polls)` : summary;
       }
-      return [
-        entry.message || entry.reason || null,
-        entry.target ? entry.target : null,
-        entry.timestamp ? this.relativeTime(entry.timestamp) : null
-      ].filter(Boolean).join(" \xB7 ");
+      return entry.message || entry.reason || "";
     },
     // --- per-item aria2 options ---
     async loadItemOptions(gid) {
