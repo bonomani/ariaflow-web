@@ -236,6 +236,10 @@ document.addEventListener('alpine:init', () => {
         default: return 'badge';
       }
     },
+    runWaitReasonAction() {
+      const a = this.schedulerWaitReasonAction;
+      if (a) a.fn();
+    },
     get schedulerWaitReasonAction() {
       switch (this.state?.wait_reason) {
         case 'preflight_blocked':

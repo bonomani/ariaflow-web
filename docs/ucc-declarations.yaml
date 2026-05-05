@@ -140,4 +140,4 @@ coverage_map:
   loadTorrents: "test_api_params (torrent listing)"
   loadPeers: "test_api_params (peer discovery)"
   stopTorrent: "test_api_params (torrent stop)"
-  schedulerWaitReasonAction.fn: "delegates to preflightRun / lifecycleAction / runProbe (each covered separately)"
+  runWaitReasonAction: "delegates to preflightRun / lifecycleAction / runProbe (each covered separately)"

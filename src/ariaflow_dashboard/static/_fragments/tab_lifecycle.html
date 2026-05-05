@@ -48,7 +48,7 @@
                     <div class="meta" x-show="schedulerWaitReasonText">
                       <span x-text="schedulerWaitReasonText"></span>
                       <template x-if="schedulerWaitReasonAction">
-                        <button class="secondary" @click="schedulerWaitReasonAction.fn()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
+                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
                       </template>
                     </div>
                     <div class="chips" x-show="_lifecycleSession">
