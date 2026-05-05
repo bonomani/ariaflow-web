@@ -108,6 +108,14 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             record_action(action="serve", target="page", outcome="ok", reason=path)
             return
+        if path == "/favicon.ico":
+            # Silence the browser's automatic /favicon.ico fetch so it
+            # doesn't 404 (and inflate the backend's errors_total
+            # counter on every fresh page load). 204 No Content is the
+            # smallest acceptable response.
+            self.send_response(HTTPStatus.NO_CONTENT)
+            self.end_headers()
+            return
         if path.startswith("/static/"):
             rel = path[len("/static/") :]
             file_path = _STATIC_DIR / rel
