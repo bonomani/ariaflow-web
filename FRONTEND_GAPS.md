@@ -1,57 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
-
-### FE-33: Finish live-contract release gate setup
-
-The live-contract job in `.github/workflows/release.yml` (added in
-d368f28) is currently **advisory only** — `continue-on-error: true`
-and `build-release` no longer declares `needs: live-contract`.
-Failures are visible in the run summary but don't block releases.
-
-**Why advisory:** seven layered setup failures across one session
-made the gate unreliable as a blocker:
-
-1. `npm install -g @ariaflow/cli@latest` → 404 (package not on npm).
-   Fixed: clone backend repo + pnpm build (40f4332).
-2. `tests/conftest.py` imports `playwright` at module scope, fails
-   under `[dev]`-only install. Fixed: lazy-import + skip fixture
-   (54c5b80).
-3. `/api/aria2/global_option` unreachable: aria2 installed but
-   daemon not started. Fixed: `aria2c --enable-rpc --daemon` step
-   (fb9a8b9).
-4. `make verify` failed on `check-drift` (BGSPrivate repo not in
-   CI). Fixed: new `make verify-ci` target without drift check
-   (126ff2c). Drift is warning-only per FE-19, but the script
-   hard-fails on missing repo.
-5. `node --test` glob expansion failed on Node 20 (became native
-   in Node 21+). Fixed: bumped CI to Node 22 (edfb3c6).
-6. Five other test files import `playwright` at module scope. Fixed:
-   `collect_ignore_glob` in conftest (7998c25).
-7. `tests/test_static_serving.py` imports `bs4` (BeautifulSoup4),
-   not in `pyproject [dev]`. **Not fixed.** This is where I gave up.
-
-**To finish the gate properly:**
-
-- ~~Add `bs4` (and audit the rest of `tests/` for undeclared deps) to
-  `pyproject.toml [dev]`.~~ **Done.** `beautifulsoup4` and
-  `jsonschema` added to `[dev]` and `[test-browser]`.
-- ~~Patch `scripts/check_bgs_drift.py` to soft-fail on missing
-  `BGSPrivate/` (warn instead of exit non-zero) so `make verify`
-  works in CI without forking to `verify-ci`.~~ **Done.** Script
-  prints a WARN and exits 0 when `../BGSPrivate` is absent. Local
-  dev still hard-fails on real drift. `verify-ci` Make target
-  removed; release.yml `build-release` now runs `make verify`
-  directly.
-- Restore `needs: live-contract` on `build-release` and drop
-  `continue-on-error: true` on the live-contract job. Pending one
-  green run of the new setup to confirm the gate is reliable.
-
-**Why this hurts:** today the gate's purpose (catch backend contract
-regressions like BG-38 before they ship) is intact in advisory form
-— the assertions still run, failures are visible — but a backend
-break can't actually stop a dashboard release. That's the gap to
-close.
+## Open (1)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -66,6 +15,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-33 | Live-contract release gate flipped from advisory to blocking. Prerequisites closed: `beautifulsoup4`/`jsonschema`/`ruff`/`mypy` in `pyproject [dev]`; `scripts/check_bgs_drift.py` soft-fails (WARN + exit 0) when `../BGSPrivate` isn't checked out; `verify-ci` Make target removed; `release.yml` `build-release` now runs `make verify` directly with `[dev]` extras; `test_download_lifecycle.py` lazy-imports playwright so `test_api_response_shapes` can import `FakeBackend` from it under a `[dev]`-only install. Two consecutive green runs (25381355891 and the gating canary) confirmed reliability before flipping `continue-on-error: true` off and restoring `needs: live-contract` on `build-release` | 2026-05-05 |
 | FE-34 | Scheduler badge in System Health → ariaflow-server now renders `state.scheduler_status` (5-state enum from BG-40) with a wait-reason sub-label (e.g. "idle · queue empty"). New getters `schedulerBadgeText` / `schedulerBadgeClass` / `schedulerWaitReasonText` in `app.ts` map the backend enum + `state.wait_reason` to label/class; fall back to inferred values for backends older than v0.1.252 | 2026-05-05 |
 | FE-22 | `discoverBackends()` (`app.ts:764`) now falls back to `GET /api/peers` on the current backend when the local mDNS browse returns zero items (WSL NAT / containers / VMs without mDNS). Peer rows map to discovery-item shape (`url` ← `base_url || http://host:port`, `name` ← `instance \|\| host`, `role: 'backend'`, `source: 'peers'`) and merge through the existing `mergeDiscoveredBackends()` path. `discoveryText` reflects the source ("…via /api/peers fallback" when only the fallback fired). New e2e regression test asserts the fallback fires + populates state when discovery is empty | 2026-05-04 |
 | FE-27 | Negative-snapshot tests added in `static/ts/status_legacy_keys.test.ts`. Four assertions scan `static/ts/*.ts` source for forbidden patterns: top-level `data.dispatch_paused` reads (canonical: `state.dispatch_paused`), `state.paused` (BG-33), `summary.stopped` (BG-33), and `.filtered` reads on a status payload (BG-35). Verified live 2026-05-04 against running backend: `/api/status` has `dispatch_paused` only on `state` and no `filtered` key anywhere — BG-35's effect shipped, even though the backend agent's Resolved table doesn't list it explicitly | 2026-05-04 |

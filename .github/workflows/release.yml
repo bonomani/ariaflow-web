@@ -15,20 +15,14 @@ on:
 
 jobs:
   live-contract:
-    # Live-backend contract check (advisory).
+    # Live-backend contract check (FE-33: now blocking).
     #
     # Builds ariaflow-server from its main branch, starts it, runs
-    # tests/test_backend_live_contract.py against it. Designed to catch
-    # the "shipped but deploy was stale" hazard the backend agent
+    # tests/test_backend_live_contract.py against it. Catches the
+    # "shipped but deploy was stale" hazard the backend agent
     # flagged in BG-26.
-    #
-    # Currently soft-failed (continue-on-error + no `needs:` from
-    # build-release) — the gate setup needs more work to be a reliable
-    # blocker (FE-33). Failures here are visible in run summary but
-    # don't gate the release.
     if: github.event_name != 'push' || github.ref != 'refs/heads/main' || !startsWith(github.event.head_commit.message, 'Release ')
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 15
     steps:
       - name: Checkout dashboard
@@ -120,6 +114,7 @@ jobs:
           path: server.log
 
   build-release:
+    needs: live-contract
     if: github.event_name != 'push' || github.ref != 'refs/heads/main' || !startsWith(github.event.head_commit.message, 'Release ')
     runs-on: ubuntu-latest
     permissions:
