@@ -309,6 +309,15 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
   background: var(--ws-panel-2);
 }
 .item-top { display: flex; justify-content: space-between; gap: var(--ws-gap-md); align-items: center; margin-bottom: var(--ws-gap-sm); }
+
+/* Log row: timestamp left, "action target — detail" middle (flex 1),
+   badges right. Compact, single-line where possible. */
+.log-row.compact { padding: 6px 12px; }
+.log-row-top { gap: var(--ws-gap-sm); margin-bottom: 0; flex-wrap: wrap; }
+.log-time { flex: 0 0 auto; min-width: 70px; }
+.log-phrase { flex: 1 1 auto; display: inline-flex; gap: 0.4rem; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.log-phrase > .text-muted { word-break: break-word; }
+.log-badges { display: inline-flex; gap: 0.3rem; flex: 0 0 auto; }
 .item-url { font-weight: 700; overflow: hidden; text-overflow: ellipsis; word-break: break-all; }
 .meta { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; color: var(--ws-muted); font-size: var(--ws-font-md); }
 .action-strip { display: inline-flex; gap: var(--ws-gap-sm); flex-wrap: wrap; justify-content: flex-end; }

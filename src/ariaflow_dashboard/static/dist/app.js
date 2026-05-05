@@ -3106,15 +3106,20 @@ document.addEventListener("alpine:init", () => {
       if (speed) parts.push(speed);
       return parts.join(" \xB7 ");
     },
-    // Compact detail: timestamp + target are already rendered inline on
-    // the row, so the meta line carries only the human-readable
-    // message/reason (or the polled-count summary).
+    // Trailing detail phrase appended to the row's "action target" line.
+    // Suppress redundant detail: when the message/reason just repeats
+    // the outcome ("converged · queue · converged"), we don't need to
+    // print it twice. Same when it repeats action or target.
     logEntryDetail(entry) {
       if (entry.action === "poll") {
         const summary = this.summarizePollEntry(entry);
         return entry._pollCount > 1 ? `${summary} (${entry._pollCount} polls)` : summary;
       }
-      return entry.message || entry.reason || "";
+      const detail = (entry.message || entry.reason || "").trim();
+      if (!detail) return "";
+      const dups = [entry.outcome, entry.status, entry.action, entry.target].filter(Boolean).map((v) => String(v).toLowerCase());
+      if (dups.includes(detail.toLowerCase())) return "";
+      return detail;
     },
     // --- per-item aria2 options ---
     async loadItemOptions(gid) {
