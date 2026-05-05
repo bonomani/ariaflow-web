@@ -243,11 +243,23 @@ document.addEventListener('alpine:init', () => {
     get schedulerWaitReasonAction() {
       switch (this.state?.wait_reason) {
         case 'preflight_blocked':
-          return { label: 'Run preflight', fn: () => this.preflightRun() };
+          return {
+            label: 'Run preflight',
+            fn: () => {
+              this.preflightRun();
+              setTimeout(() => document.getElementById('preflight-panel')?.scrollIntoView({ behavior: 'smooth' }), 50);
+            },
+          };
         case 'aria2_unreachable':
           return { label: 'Start aria2', fn: () => this.lifecycleAction('aria2', 'start') };
         case 'bandwidth_probe_pending':
-          return { label: 'Run probe', fn: () => this.runProbe() };
+          return {
+            label: 'Run probe',
+            fn: () => {
+              this.navigateTo('bandwidth');
+              this.runProbe();
+            },
+          };
         default:
           return null;
       }
