@@ -301,12 +301,12 @@ document.addEventListener('alpine:init', () => {
     get schedulerBtnText() {
       if (!this.backendReachable) return 'Start';
       // BG-40: source of truth is the scheduler status enum, not raw
-      // state.running. 'starting' (intent=running, running=false yet)
-      // means a Start was already accepted — show Pause, not Start,
-      // so the next click moves forward instead of re-firing Start.
+      // state.running. While 'starting', show that explicitly rather
+      // than a disabled 'Pause' so the operator sees the engine is
+      // bootstrapping (intent accepted, loop not yet dispatching).
       switch (this.schedulerBadgeText) {
         case 'paused': return 'Resume';
-        case 'starting':
+        case 'starting': return 'Starting…';
         case 'idle':
         case 'running': return 'Pause';
         case 'stopped':

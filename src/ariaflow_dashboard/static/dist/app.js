@@ -1489,6 +1489,7 @@ document.addEventListener("alpine:init", () => {
         case "paused":
           return "Resume";
         case "starting":
+          return "Starting\u2026";
         case "idle":
         case "running":
           return "Pause";
