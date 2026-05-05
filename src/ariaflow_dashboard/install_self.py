@@ -39,7 +39,9 @@ def detect_managed_by(env: Mapping[str, str] | None = None) -> ManagedBy:
     ppid = os.getppid()
     if sys.platform == "darwin":
         agents = Path.home() / "Library/LaunchAgents"
-        plist_found = any((agents / f"{label}.plist").exists() for label in _LAUNCHD_LABELS)
+        plist_found = any(
+            (agents / f"{label}.plist").exists() for label in _LAUNCHD_LABELS
+        )
         if plist_found and ppid == 1:
             return "launchd"
     if sys.platform.startswith("linux") and env.get("INVOCATION_ID") and ppid == 1:
@@ -120,7 +122,9 @@ def dispatch_restart() -> dict:
             "status": 202,
             "action": "restart",
             "managed_by": "launchd",
-            "after": lambda: _detached("launchctl", ["kickstart", "-k", f"gui/{os.getuid()}/{label}"]),
+            "after": lambda: _detached(
+                "launchctl", ["kickstart", "-k", f"gui/{os.getuid()}/{label}"]
+            ),
         }
     if managed_by == "systemd":
         return {
@@ -128,7 +132,9 @@ def dispatch_restart() -> dict:
             "status": 202,
             "action": "restart",
             "managed_by": "systemd",
-            "after": lambda: _detached("systemctl", ["--user", "restart", "ariaflow-dashboard"]),
+            "after": lambda: _detached(
+                "systemctl", ["--user", "restart", "ariaflow-dashboard"]
+            ),
         }
     if managed_by == "docker":
         # In docker the orchestrator owns relaunch — exit and let it
@@ -177,7 +183,9 @@ def dispatch_update() -> dict:
             "status": 202,
             "action": "update",
             "installed_via": "pip",
-            "after": lambda: _detached(sys.executable, ["-m", "pip", "install", "-U", "ariaflow-dashboard"]),
+            "after": lambda: _detached(
+                sys.executable, ["-m", "pip", "install", "-U", "ariaflow-dashboard"]
+            ),
         }
     if installed_via == "source":
         return {

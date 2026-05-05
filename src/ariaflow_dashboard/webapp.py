@@ -217,7 +217,9 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             elif action == "update":
                 plan = dispatch_update()
             else:
-                self._send_json({"ok": False, "error": "unsupported_action"}, status=400)
+                self._send_json(
+                    {"ok": False, "error": "unsupported_action"}, status=400
+                )
                 return
             after = plan.pop("after", None)
             status = plan.pop("status", 200)

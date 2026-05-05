@@ -1,6 +1,6 @@
 // Sparkline / timeline SVG rendering — no Alpine dependency.
 
-import { formatBytes, formatRate } from './formatters';
+import { formatRate } from './formatters';
 
 function sparklinePoints(data: number[], max: number, w: number, h: number): string {
   const step = w / (data.length - 1);
@@ -90,9 +90,10 @@ export function renderGlobalTimeline(
   const ulLine = ulPts.length && peakUl > 0 ? smoothPath(ulPts) : '';
 
   const capY = capBps > 0 ? yOf(capBps) : null;
-  const capLabel = capBps > 0 && capY != null
-    ? `<text x="${(w - padRight).toFixed(1)}" y="${(capY - 3).toFixed(1)}" fill="var(--ws-muted)" font-size="10" text-anchor="end">cap ${capMbps} Mbps</text>`
-    : '';
+  const capLabel =
+    capBps > 0 && capY != null
+      ? `<text x="${(w - padRight).toFixed(1)}" y="${(capY - 3).toFixed(1)}" fill="var(--ws-muted)" font-size="10" text-anchor="end">cap ${capMbps} Mbps</text>`
+      : '';
 
   // Endpoint dot at the latest dl sample for the "now" anchor.
   const lastX = xOf(samples - 1);
