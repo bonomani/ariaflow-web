@@ -236,6 +236,10 @@ document.addEventListener('alpine:init', () => {
         default: return 'badge';
       }
     },
+    get currentTransferName() {
+      if (!this.currentTransfer) return '';
+      return shortName(this.currentTransfer) || this.currentTransfer.url || '';
+    },
     get schedulerActiveText() {
       if (this.schedulerBadgeText !== 'running' || !this.currentTransfer) return '';
       const name = shortName(this.currentTransfer) || this.currentTransfer.url || '';
