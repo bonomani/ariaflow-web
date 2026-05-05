@@ -13,7 +13,11 @@ export interface LifecycleAxes {
   // (e.g. aria2) be "healthy idle" — running matches expectation.
   // managed_by tells us who owns the process lifecycle.
   expected_running?: boolean | null;
-  managed_by?: 'launchd' | 'external' | 'ariaflow' | null;
+  managed_by?: 'launchd' | 'systemd' | 'docker' | 'external' | 'ariaflow' | null;
+  // Package source (used for upgrades). Surfaced alongside managed_by
+  // because operators conflate the two — "managed by launchd" is the
+  // process supervisor, "installed via brew" is the upgrade channel.
+  installed_via?: 'homebrew' | 'pipx' | 'npm' | 'source' | null;
 }
 
 export interface LifecycleResult extends LifecycleAxes {
@@ -99,7 +103,11 @@ export function describeLifecycleStatus(
     return 'update available';
   }
   // installed && current at this point.
-  const suffix = result.managed_by ? ` (${result.managed_by})` : '';
+  // Compose suffix as "(supervisor · package)" when both axes are
+  // known so the headline carries the same disambiguation as the
+  // chips below it.
+  const parts = [result.managed_by, result.installed_via].filter(Boolean);
+  const suffix = parts.length ? ` (${parts.join(' · ')})` : '';
   // BG-29: on-demand idle is healthy.
   if (result.expected_running === false && running === false) {
     return `idle · on-demand${suffix}`;

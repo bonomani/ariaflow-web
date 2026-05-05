@@ -1258,7 +1258,8 @@ function describeLifecycleStatus(name, record) {
     if (v && ev) return `update available (${v} \u2192 ${ev})`;
     return "update available";
   }
-  const suffix = result.managed_by ? ` (${result.managed_by})` : "";
+  const parts = [result.managed_by, result.installed_via].filter(Boolean);
+  const suffix = parts.length ? ` (${parts.join(" \xB7 ")})` : "";
   if (result.expected_running === false && running === false) {
     return `idle \xB7 on-demand${suffix}`;
   }
