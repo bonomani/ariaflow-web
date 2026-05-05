@@ -6,7 +6,7 @@
 // the Alpine component can dispatch actions without hand-encoding URL
 // segments at every call site.
 
-export type ItemAction = 'pause' | 'resume' | 'retry' | 'remove' | 'cancel';
+export type ItemAction = 'pause' | 'resume' | 'retry' | 'remove';
 export type LifecycleAction = 'enable' | 'disable' | 'reset' | 'retry';
 export type SchedulerAction = 'pause' | 'resume';
 

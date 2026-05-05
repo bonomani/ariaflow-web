@@ -2439,7 +2439,7 @@ document.addEventListener("alpine:init", () => {
         this._sse.close();
         this._sse = null;
       }
-      const url = this.backendPath("/api/events");
+      const url = this.backendPath("/api/events?topics=items,scheduler,log");
       let es;
       try {
         es = new EventSource(url);

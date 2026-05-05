@@ -1153,7 +1153,12 @@ document.addEventListener('alpine:init', () => {
     // --- SSE ---
     _initSSE() {
       if (this._sse) { this._sse.close(); this._sse = null; }
-      const url = this.backendPath('/api/events');
+      // BG-32 topic filter: only subscribe to topics we actually consume
+      // (state_changed → items+scheduler; action_logged → log; session_*
+      // → scheduler). Skips lifecycle_changed and bandwidth_probed —
+      // re-add to topics if a future handler needs them. Back-compat:
+      // older backends ignore ?topics and stream everything.
+      const url = this.backendPath('/api/events?topics=items,scheduler,log');
       let es;
       try { es = new EventSource(url); } catch (e) { return; }
       this._sse = es;
