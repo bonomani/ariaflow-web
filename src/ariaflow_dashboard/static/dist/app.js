@@ -57,10 +57,22 @@ function relativeTime(value) {
   if (isNaN(then)) return String(value);
   const diff = Math.floor((now - then) / 1e3);
   if (diff < 0) return String(value);
-  if (diff < 60) return "just now";
-  if (diff < 3600) return Math.floor(diff / 60) + " min ago";
-  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
-  return Math.floor(diff / 86400) + "d ago";
+  if (diff < 5) return "just now";
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 600) {
+    const m = Math.floor(diff / 60);
+    const s = diff % 60;
+    return s ? `${m}m ${s}s ago` : `${m}m ago`;
+  }
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) {
+    const h2 = Math.floor(diff / 3600);
+    const m = Math.floor(diff % 3600 / 60);
+    return m ? `${h2}h ${m}m ago` : `${h2}h ago`;
+  }
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor(diff % 86400 / 3600);
+  return h ? `${d}d ${h}h ago` : `${d}d ago`;
 }
 function timestampLabel(value) {
   return value ? relativeTime(value) : "-";

@@ -55,11 +55,19 @@ test('shortName extracts last URL path segment', () => {
   assert.equal(shortName(null), '(no name)');
 });
 
-test('relativeTime returns "just now" / Xm ago / Xh ago / Xd ago', () => {
+test('relativeTime: precise resolution per range', () => {
   const now = Date.now();
-  assert.equal(relativeTime(new Date(now - 30_000).toISOString()), 'just now');
-  assert.equal(relativeTime(new Date(now - 5 * 60_000).toISOString()), '5 min ago');
-  assert.equal(relativeTime(new Date(now - 3 * 3_600_000).toISOString()), '3h ago');
+  assert.equal(relativeTime(new Date(now - 2_000).toISOString()), 'just now'); // <5s
+  assert.equal(relativeTime(new Date(now - 30_000).toISOString()), '30s ago'); // 5–60s
+  assert.equal(relativeTime(new Date(now - 5 * 60_000).toISOString()), '5m ago'); // 1–10m, no seconds
+  assert.equal(relativeTime(new Date(now - 5 * 60_000 - 12_000).toISOString()), '5m 12s ago');
+  assert.equal(relativeTime(new Date(now - 30 * 60_000).toISOString()), '30m ago'); // 10–60m
+  assert.equal(relativeTime(new Date(now - 3 * 3_600_000).toISOString()), '3h ago'); // exact hour
+  assert.equal(
+    relativeTime(new Date(now - 3 * 3_600_000 - 25 * 60_000).toISOString()),
+    '3h 25m ago',
+  );
+  assert.equal(relativeTime(new Date(now - 86_400_000 - 4 * 3_600_000).toISOString()), '1d 4h ago');
   assert.equal(relativeTime(null), '-');
 });
 

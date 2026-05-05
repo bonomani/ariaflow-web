@@ -70,10 +70,25 @@ export function relativeTime(value: string | number | Date | null | undefined): 
   if (isNaN(then)) return String(value);
   const diff = Math.floor((now - then) / 1000);
   if (diff < 0) return String(value);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  return Math.floor(diff / 86400) + 'd ago';
+  if (diff < 5) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 600) {
+    // Sub-10-minute window: include seconds for precision.
+    const m = Math.floor(diff / 60);
+    const s = diff % 60;
+    return s ? `${m}m ${s}s ago` : `${m}m ago`;
+  }
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) {
+    // Sub-day window: include minutes so "1h ago" stops absorbing
+    // anything from 60–119 minutes.
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    return m ? `${h}h ${m}m ago` : `${h}h ago`;
+  }
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  return h ? `${d}d ${h}h ago` : `${d}d ago`;
 }
 
 export function timestampLabel(value: string | number | Date | null | undefined): string {
