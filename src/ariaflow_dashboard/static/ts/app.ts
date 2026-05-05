@@ -327,8 +327,16 @@ document.addEventListener('alpine:init', () => {
     },
     get bwDownMeasuredText() { return this._bwOne(this.bw.downlink_mbps); },
     get bwUpMeasuredText() { return this._bwOne(this.bw.uplink_mbps); },
-    get bwDownCapPairText() { return this._bwOne(this.bw.down_cap_mbps || this.bw.cap_mbps); },
-    get bwUpCapPairText() { return this._bwOne(this.bw.up_cap_mbps); },
+    get bwDownCapPairText() {
+      const cap = this.bw.down_cap_mbps || this.bw.cap_mbps
+        || this._reserveResultMbps(this.bw.downlink_mbps, this.bwDownFreePercent, this.bwDownFreeAbsolute);
+      return this._bwOne(cap);
+    },
+    get bwUpCapPairText() {
+      const cap = this.bw.up_cap_mbps
+        || this._reserveResultMbps(this.bw.uplink_mbps, this.bwUpFreePercent, this.bwUpFreeAbsolute);
+      return this._bwOne(cap);
+    },
     get bwDownBadgeText() { return this._fmtMbps(this.bw.downlink_mbps) + ' Mbps'; },
     get bwUpBadgeText() { return this._fmtMbps(this.bw.uplink_mbps) + ' Mbps'; },
     get bwDownCapText() { return this._fmtMbps(this.bw.down_cap_mbps || this.bw.cap_mbps) + ' Mbps'; },
