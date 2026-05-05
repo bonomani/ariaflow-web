@@ -1395,6 +1395,44 @@ document.addEventListener("alpine:init", () => {
     get schedulerStateLabelText() {
       return this.schedulerOverviewLabel(this.state, this.itemsWithStatus, this.currentTransfer);
     },
+    // BG-40: backend ships state.scheduler_status (5-state enum) and
+    // state.wait_reason. Fall back to inferred values for backends
+    // older than v0.1.252 that don't ship the new fields.
+    get schedulerBadgeText() {
+      const s = this.state?.scheduler_status;
+      if (s) return s;
+      if (!this.state?.running) return "stopped";
+      if (this.state?.dispatch_paused) return "paused";
+      return this.currentTransfer ? "running" : "idle";
+    },
+    get schedulerBadgeClass() {
+      switch (this.schedulerBadgeText) {
+        case "running":
+          return "badge good";
+        case "paused":
+          return "badge warn";
+        case "idle":
+          return "badge";
+        case "starting":
+          return "badge";
+        case "stopped":
+          return "badge";
+        default:
+          return "badge";
+      }
+    },
+    get schedulerWaitReasonText() {
+      const r = this.state?.wait_reason;
+      if (!r) return "";
+      const labels = {
+        queue_empty: "queue empty",
+        aria2_unreachable: "aria2 unreachable",
+        preflight_blocked: "preflight blocked",
+        disk_full: "disk full",
+        bandwidth_probe_pending: "bandwidth probe pending"
+      };
+      return labels[r] || String(r).replace(/_/g, " ");
+    },
     get transferSpeedText() {
       if (!this.backendReachable) return "idle";
       const dl = this.currentSpeed ? this.formatRate(this.currentSpeed) : null;

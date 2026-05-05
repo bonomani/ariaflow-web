@@ -386,7 +386,7 @@
                     </div>
                     <div class="section-title mt-md">
                       <h4 class="text-sm text-muted">Scheduler</h4>
-                      <span :class="!state?.running ? 'badge' : state?.dispatch_paused ? 'badge warn' : currentTransfer ? 'badge good' : 'badge'" x-text="!state?.running ? 'stopped' : state?.dispatch_paused ? 'paused' : currentTransfer ? 'running' : 'idle'">stopped</span>
+                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">stopped</span>
                     </div>
                     <div class="chips" x-show="_lifecycleSession">
                       <div class="chip" x-show="_lifecycleSession?.session_id">Run <strong :title="_lifecycleSession?.session_id" x-text="_lifecycleSession?.session_id ? _lifecycleSession.session_id.slice(0, 8) : '-'">-</strong></div>

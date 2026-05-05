@@ -1,25 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (3)
-
-### FE-34: Scheduler badge can't explain "idle" state
-
-**Blocked by:** BG-40
-
-The System Health → ariaflow-server → Scheduler badge today reads
-`stopped | paused | idle | running`, derived in
-`tab_lifecycle.html` from `state.running`, `state.dispatch_paused`,
-and `currentTransfer` (= `state.active_gid`). The `idle` case
-("engine on, no active transfer") is a frontend inference — the
-backend has no declared enum value for it and no `wait_reason`,
-so the operator can't tell *why* nothing is dispatching (queue
-empty? aria2 down? preflight blocked? disk full?).
-
-When BG-40 lands, replace the inferred logic with the backend's
-declared `state.status` and surface `state.wait_reason` as a sub-
-label on the badge (e.g. "idle · queue empty"). Until then the
-inferred mapping stays — it's correct for the four-way split, just
-not informative about the reason.
+## Open (2)
 
 ### FE-33: Finish live-contract release gate setup
 
@@ -79,6 +60,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-34 | Scheduler badge in System Health → ariaflow-server now renders `state.scheduler_status` (5-state enum from BG-40) with a wait-reason sub-label (e.g. "idle · queue empty"). New getters `schedulerBadgeText` / `schedulerBadgeClass` / `schedulerWaitReasonText` in `app.ts` map the backend enum + `state.wait_reason` to label/class; fall back to inferred values for backends older than v0.1.252 | 2026-05-05 |
 | FE-22 | `discoverBackends()` (`app.ts:764`) now falls back to `GET /api/peers` on the current backend when the local mDNS browse returns zero items (WSL NAT / containers / VMs without mDNS). Peer rows map to discovery-item shape (`url` ← `base_url || http://host:port`, `name` ← `instance \|\| host`, `role: 'backend'`, `source: 'peers'`) and merge through the existing `mergeDiscoveredBackends()` path. `discoveryText` reflects the source ("…via /api/peers fallback" when only the fallback fired). New e2e regression test asserts the fallback fires + populates state when discovery is empty | 2026-05-04 |
 | FE-27 | Negative-snapshot tests added in `static/ts/status_legacy_keys.test.ts`. Four assertions scan `static/ts/*.ts` source for forbidden patterns: top-level `data.dispatch_paused` reads (canonical: `state.dispatch_paused`), `state.paused` (BG-33), `summary.stopped` (BG-33), and `.filtered` reads on a status payload (BG-35). Verified live 2026-05-04 against running backend: `/api/status` has `dispatch_paused` only on `state` and no `filtered` key anywhere — BG-35's effect shipped, even though the backend agent's Resolved table doesn't list it explicitly | 2026-05-04 |
 | FE-24 | Per-endpoint freshness routing + Dev-tab map shipped end-to-end. `FreshnessRouter` (`static/ts/freshness.ts`) consumes BG-31's `/api/_meta`, dispatches per class (live/warm/swr/cold/on-action/bootstrap/derived), ref-counts subscribers, and exposes `status()` for the Dev tab Freshness map (HTML rendered in `_fragments/tab_dev.html`, columns: Endpoint / Class / TTL / Subscribers / Host visibility / Last fetch / Active). Visibility wiring (`wireHostVisibility` in `freshness-bootstrap.ts`) hooks `document.visibilitychange` + host postMessage. `npm run freshness:snapshot` (`scripts/freshness-snapshot.mjs`) writes a build-time markdown audit. Followups (FE-26 TAB_SUBS migration, FE-31 host-aware fetcher) closed the original LOCAL_METAS sync hazards | 2026-05-04 |
