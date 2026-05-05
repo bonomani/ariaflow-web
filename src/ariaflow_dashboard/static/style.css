@@ -70,7 +70,8 @@ input:focus, textarea:focus { border-color: var(--ws-glow); box-shadow: 0 0 0 3p
 button, select {
   border: var(--border-none);
   border-radius: var(--ws-radius-xl);
-  padding: var(--ws-pad-md);
+  padding: var(--ws-pad-xs) var(--ws-pad-md);
+  font-size: var(--ws-font-sm);
   background: linear-gradient(180deg, var(--ws-accent-2), var(--ws-accent));
   color: var(--ws-accent-on);
   font-weight: 700;
@@ -89,11 +90,7 @@ button.secondary, select.secondary {
   font-weight: 400;
 }
 button.icon-btn { padding: var(--ws-pad-sm); min-width: 38px; line-height: 1; }
-/* Compact button for inline-with-chip-row actions (e.g. Run probe).
-   Matches chip pill height + font size so the button doesn't tower
-   over neighbouring chips. */
-button.btn-sm, .btn-sm { padding: var(--ws-pad-xs) var(--ws-pad-sm); font-size: var(--ws-font-sm); }
-a.btn-link { display: inline-block; text-decoration: none; padding: var(--ws-pad-md); border-radius: var(--ws-radius-xl); font-weight: 700; background: linear-gradient(180deg, var(--ws-accent-2), var(--ws-accent)); color: var(--ws-accent-on); border: var(--border-none); cursor: pointer; }
+a.btn-link { display: inline-block; text-decoration: none; padding: var(--ws-pad-xs) var(--ws-pad-md); font-size: var(--ws-font-sm); border-radius: var(--ws-radius-xl); font-weight: 700; background: linear-gradient(180deg, var(--ws-accent-2), var(--ws-accent)); color: var(--ws-accent-on); border: var(--border-none); cursor: pointer; }
 a.btn-link:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
 a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-text); }
 
