@@ -23,12 +23,12 @@ test('renderGlobalSparkline returns empty for <2 dl points', () => {
 
 test('renderGlobalSparkline emits dl polyline + peak label', () => {
   const svg = renderGlobalSparkline([100, 200, 300], []);
-  assert.match(svg, /<polyline points="[^"]+" fill="none" stroke="var\(--accent\)"/);
+  assert.match(svg, /<polyline points="[^"]+" fill="none" stroke="var\(--ws-accent\)"/);
   assert.match(svg, /peak ↓/);
 });
 
 test('renderGlobalSparkline adds upload polyline when ul has data', () => {
   const svg = renderGlobalSparkline([100, 200], [50, 80]);
-  assert.match(svg, /stroke="var\(--accent-2\)"/);
+  assert.match(svg, /stroke="var\(--ws-accent-2\)"/);
   assert.match(svg, /↑/);
 });
