@@ -33,12 +33,17 @@
             <div class="debug-box text-mono text-sm" x-text="JSON.stringify(bw.last_probe, null, 2)"></div>
           </details>
 
-          <h3 class="text-sm text-muted mt-md mb-sm">Result</h3>
-          <!-- Measured rates → caps → applied limit, single compact row -->
+          <h3 class="text-sm text-muted mt-md mb-sm">Measured</h3>
           <div class="chips">
-            <div class="chip">↓ <strong x-text="bwDownPairText">-</strong></div>
-            <div class="chip">↑ <strong x-text="bwUpPairText">-</strong></div>
+            <div class="chip">↓ <strong x-text="bwDownMeasuredText">-</strong></div>
+            <div class="chip">↑ <strong x-text="bwUpMeasuredText">-</strong></div>
             <div class="chip">RPM <strong x-text="bwResponsivenessText">-</strong></div>
+          </div>
+
+          <h3 class="text-sm text-muted mt-md mb-sm">Capacity <span class="text-muted">(from reserve)</span></h3>
+          <div class="chips">
+            <div class="chip">↓ <strong x-text="bwDownCapPairText">-</strong></div>
+            <div class="chip">↑ <strong x-text="bwUpCapPairText">-</strong></div>
           </div>
           <!-- Live cap-utilization meter — answers "am I being throttled?" at a glance -->
           <div class="mt-sm mb-md" x-show="bw.cap_mbps">

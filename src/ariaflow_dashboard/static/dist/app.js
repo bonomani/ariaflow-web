@@ -1514,22 +1514,26 @@ document.addEventListener("alpine:init", () => {
       return this.bw.source || "-";
     },
     _fmtMbps(v) {
-      return v ? Number(v).toFixed(v < 10 ? 1 : 0) : "-";
+      return v ? Number(v).toFixed(1) : "-";
     },
     _fmtMBs(mbps) {
       return mbps ? (mbps / 8).toFixed(1) : "-";
     },
-    _bwPair(measuredMbps, capMbps) {
-      if (!this.backendReachable) return "-";
-      const mB = this._fmtMBs(capMbps), mM = this._fmtMBs(measuredMbps);
-      const bB = this._fmtMbps(capMbps), bM = this._fmtMbps(measuredMbps);
-      return `${mB}/${mM} MB/s (${bB}/${bM} Mbps)`;
+    _bwOne(mbps) {
+      if (!this.backendReachable || !mbps) return "- MB/s (- Mbps)";
+      return `${this._fmtMBs(mbps)} MB/s (${this._fmtMbps(mbps)} Mbps)`;
     },
-    get bwDownPairText() {
-      return this._bwPair(this.bw.downlink_mbps, this.bw.down_cap_mbps || this.bw.cap_mbps);
+    get bwDownMeasuredText() {
+      return this._bwOne(this.bw.downlink_mbps);
     },
-    get bwUpPairText() {
-      return this._bwPair(this.bw.uplink_mbps, this.bw.up_cap_mbps);
+    get bwUpMeasuredText() {
+      return this._bwOne(this.bw.uplink_mbps);
+    },
+    get bwDownCapPairText() {
+      return this._bwOne(this.bw.down_cap_mbps || this.bw.cap_mbps);
+    },
+    get bwUpCapPairText() {
+      return this._bwOne(this.bw.up_cap_mbps);
     },
     get bwDownBadgeText() {
       return this._fmtMbps(this.bw.downlink_mbps) + " Mbps";
