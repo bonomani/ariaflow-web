@@ -467,6 +467,13 @@ details.debug summary::-webkit-details-marker { display: none; }
    0.45 opacity (the spinner gets dimmed too on dark theme, the whole
    thing reads as muddy). */
 .loading[disabled], .loading.disabled { opacity: 1; }
+
+/* Same idea for label-based in-progress buttons (e.g. Run probe with
+   x-text "Probing…"): keep the button visually bright while the action
+   is running, so the swapped label is readable on dark theme. The
+   disabled attribute still gates clicks via pointer-events; cursor
+   indicates "wait" instead of "not allowed". */
+.busy[disabled], .busy.disabled { opacity: 1; cursor: progress; }
 .loading::after {
   content: "";
   position: absolute;

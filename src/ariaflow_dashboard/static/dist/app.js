@@ -2702,7 +2702,6 @@ document.addEventListener("alpine:init", () => {
     // --- bandwidth ---
     probeLoading: false,
     async runProbe() {
-      if (this.probeLoading) return;
       this.probeLoading = true;
       this.resultText = "Probe running...";
       try {

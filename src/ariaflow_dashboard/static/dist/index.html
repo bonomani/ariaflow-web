@@ -265,7 +265,7 @@
             <div class="chip badge warn" x-show="bwProbeStale" :title="'Auto-probe interval: ' + bwProbeInterval + 's. Last probe is overdue.'">overdue</div>
             <div class="chip">Interface <strong x-text="bwInterfaceText">-</strong></div>
             <div class="chip">Source <strong x-text="bwSourceText">-</strong></div>
-            <button @click="runProbe()" x-text="probeLoading ? 'Probing…' : 'Run probe'">Run probe</button>
+            <button @click="runProbe()" :class="{ busy: probeLoading }" :disabled="probeLoading" x-text="probeLoading ? 'Probing…' : 'Run probe'">Run probe</button>
             <label class="text-muted text-sm">auto every
               <select :value="bwProbeInterval" @change="setBandwidthPref('bandwidth_probe_interval_seconds', Number($el.value), 180)">
                 <option value="60">60s</option>
@@ -281,16 +281,13 @@
           </details>
 
           <h3 class="text-sm text-muted mt-md mb-sm">Result</h3>
-          <!-- Live measured rates -->
+          <!-- Measured rates → caps → applied limit, single compact row -->
           <div class="chips">
             <div class="chip">Download <strong x-text="bwDownBadgeText">-</strong></div>
             <div class="chip">Upload <strong x-text="bwUpBadgeText">-</strong></div>
-            <div class="chip">RPM <strong x-text="bwResponsivenessText">-</strong></div>
-          </div>
-          <!-- Caps + applied limit (policy outputs) -->
-          <div class="chips mt-sm">
             <div class="chip">Down cap <strong x-text="bwDownCapText">-</strong></div>
             <div class="chip">Up cap <strong x-text="bwUpCapText">-</strong></div>
+            <div class="chip">RPM <strong x-text="bwResponsivenessText">-</strong></div>
             <div class="chip">Limit <strong x-text="bwCurrentLimitText">-</strong></div>
           </div>
           <!-- Live cap-utilization meter — answers "am I being throttled?" at a glance -->
@@ -818,7 +815,7 @@
             <div class="hint">Run the backend test suite from the dashboard</div>
           </div>
           <div class="row mb-md">
-            <button :class="{ secondary: !backendReachable }" @click="runTests()" :disabled="!backendReachable || testLoading" x-text="testLoading ? 'Running tests…' : 'Run backend tests'">Run backend tests</button>
+            <button :class="{ secondary: !backendReachable, busy: testLoading }" @click="runTests()" :disabled="!backendReachable || testLoading" x-text="testLoading ? 'Running tests…' : 'Run backend tests'">Run backend tests</button>
           </div>
           <div class="item" x-show="testSummaryVisible">
             <div class="item-top">
