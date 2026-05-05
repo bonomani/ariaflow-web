@@ -331,21 +331,6 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
 .system-actions { display: grid; gap: var(--ws-gap-sm); }
 .system-actions button { width: 100%; }
 
-/* --- queue overview --- */
-/* --- shared stat label/value/sub (used by queue-primary + metric) --- */
-.stat-label { color: var(--ws-muted); font-size: var(--ws-font-sm); text-transform: uppercase; letter-spacing: var(--ws-tracking-wide); }
-.stat-value { font-size: var(--ws-font-lg); font-weight: 700; letter-spacing: var(--ws-tracking-tight); }
-.stat-sub { color: var(--ws-muted); font-size: var(--ws-font-sm); }
-
-/* --- metric cards --- */
-.metric {
-  background: var(--ws-surface);
-  border: var(--border);
-  border-radius: var(--ws-radius-md);
-  padding: 14px;
-  min-height: var(--metric-min-h);
-}
-
 /* --- progress --- */
 .meter { height: var(--meter-h); background: var(--ws-panel-2); border-radius: var(--ws-radius-xl); overflow: hidden; border: var(--border); }
 .meter > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ws-accent-2), var(--ws-accent)); transition: width 180ms ease; }
@@ -416,13 +401,6 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
   border-bottom-color: var(--ws-accent);
   cursor: default;
 }
-
-/* --- session history --- */
-.queue-list { display: flex; flex-direction: column; gap: var(--ws-gap-sm); }
-.queue-item { padding: var(--ws-pad-sm); border-radius: var(--ws-radius-sm); background: var(--ws-surface); border: var(--border); }
-.queue-item:hover { border-color: var(--ws-accent); }
-.queue-item-header { display: flex; align-items: center; gap: var(--ws-gap-sm); }
-.queue-item-detail { font-size: var(--ws-font-sm); color: var(--ws-muted); margin-top: var(--ws-gap-sm); }
 
 /* --- truncate inline URLs / long single-line text ---
    Used in queue item meta to keep huggingface-style query strings
@@ -546,39 +524,7 @@ details.debug summary::-webkit-details-marker { display: none; }
    8. DESIGN AXES (composable utility classes)
    ======================================== */
 
-/* --- Axis 2: Emphasis (filled / outlined / ghost / text) ---
-   How much visual weight an element demands.
-   Composable with any component: <button class="filled">, <span class="badge outlined">.
-   Components keep their own size/shape; emphasis controls bg, border, color. */
-.filled   { background: linear-gradient(180deg, var(--ws-accent-2), var(--ws-accent)); color: var(--ws-accent-on); border-color: transparent; }
-.outlined { background: transparent; border: var(--border); color: var(--ws-text); }
-.ghost    { background: transparent; border-color: transparent; color: var(--ws-muted); }
-.text-emphasis { background: transparent; border: none; color: var(--ws-muted); }
-/* Hover for emphasis levels */
-.filled:hover   { filter: brightness(1.05); }
-.outlined:hover { border-color: var(--ws-accent); }
-.ghost:hover    { color: var(--ws-text); background: var(--ws-btn-inactive-bg); }
-.text-emphasis:hover { color: var(--ws-text); }
-
-/* --- Axis 3: Status (neutral / good / warn / danger) ---
-   Semantic color applied to any element.
-   Works on badges, chips, buttons, tabs, tab-badges. */
-.status-neutral { color: var(--ws-text); border-color: var(--ws-line); }
-.status-good    { color: var(--ws-good); border-color: var(--ws-good-border); }
-.status-warn    { color: var(--ws-warn); border-color: var(--ws-warn-border); }
-.status-danger  { color: var(--ws-danger); border-color: var(--ws-danger-border); }
-/* Filled + status: solid bg variants for badges/pills */
-.filled.status-good   { background: var(--ws-good); color: var(--ws-accent-on); }
-.filled.status-warn   { background: var(--ws-warn); color: var(--ws-accent-on); }
-.filled.status-danger { background: var(--ws-danger); color: var(--ws-accent-on); }
-
-/* --- Axis 4: Shape (square / rounded / pill) ---
-   Corner treatment, independent of component. */
-.shape-square  { border-radius: 0; }
-.shape-rounded { border-radius: var(--ws-radius-md); }
-.shape-pill    { border-radius: var(--ws-radius-xl); }
-
-/* --- Axis 5: State (disabled / loading) ---
+/* --- State (disabled / loading / busy) ---
    Interaction states beyond :hover/:focus (which are handled per-component). */
 .disabled, [disabled] {
   opacity: 0.45;
@@ -616,35 +562,14 @@ details.debug summary::-webkit-details-marker { display: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- Axis 6: Elevation (flat / raised / overlay) ---
-   Visual depth. Available for future use — not wired into markup yet. */
-.elevation-flat    { box-shadow: none; }
-.elevation-raised  { box-shadow: var(--ws-shadow); }
-.elevation-overlay { box-shadow: var(--ws-shadow-overlay); backdrop-filter: var(--ws-backdrop-blur); }
-
-/* --- Axis 7: Density (compact / default / relaxed) ---
-   Spacing multiplier. Apply to a container to tighten or loosen all children.
-   Available for future use — not wired into markup yet. */
-.density-compact { --ws-gap-sm: 4px; --ws-gap-md: 8px; --ws-pad-xs: 3px 6px; --ws-pad-sm: 5px 8px; --ws-pad-md: 5px 10px; font-size: var(--ws-font-sm); }
-.density-relaxed { --ws-gap-sm: 12px; --ws-gap-md: 18px; --ws-pad-xs: 8px 14px; --ws-pad-sm: 12px 18px; --ws-pad-md: 12px 20px; font-size: var(--ws-font-lg); }
-
-/* --- Axis 8: Breakpoint (visibility utilities) ---
-   Show/hide elements at named breakpoints.
-   Available for future use — not wired into markup yet. */
-.hide-mobile, .show-desktop-only { /* default: visible */ }
-.hide-desktop, .show-mobile-only { display: none; }
-
 /* ========================================
    9. SPACING UTILITIES
    ======================================== */
-.mt-0 { margin-top: 0; }
 .mb-sm { margin-bottom: var(--ws-gap-sm); }
 .mt-sm { margin-top: var(--ws-gap-sm); }
 .mt-md { margin-top: var(--ws-gap-md); }
 .mb-md { margin-bottom: var(--ws-gap-md); }
 .gap-sm { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; }
-.gap-sm-grid { display: grid; gap: var(--ws-gap-sm); }
-.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ws-gap-md); }
 .text-muted { color: var(--ws-muted); }
 .text-sm { font-size: var(--ws-font-sm); }
 .text-center { text-align: center; }
@@ -658,8 +583,6 @@ details.debug summary::-webkit-details-marker { display: none; }
 @media (max-width: 980px) {
   .summary { grid-template-columns: 1fr; }
   .span-6 { grid-column: span 12; }
-  .hide-mobile, .show-desktop-only { display: none; }
-  .hide-desktop, .show-mobile-only { display: revert; }
 }
 @media (max-width: 720px) {
   .chips { flex-wrap: wrap; }
