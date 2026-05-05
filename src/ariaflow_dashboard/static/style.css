@@ -137,15 +137,6 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
 .span-12 { grid-column: span 12; }
 .span-6 { grid-column: span 6; }
 
-.hero {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--ws-gap-sm);
-  align-items: start;
-  margin-bottom: var(--nav-mb);
-}
-.title h1 { margin: 0; font-size: clamp(1.1rem, 1.8vw, 1.45rem); letter-spacing: var(--ws-tracking-tight); }
-
 /* Hero v2 — ambitious redesign.
    Layered: faded chart in background, foreground = brand row, KPI strip,
    collapsed details. */
@@ -665,8 +656,7 @@ details.debug summary::-webkit-details-marker { display: none; }
    10. RESPONSIVE
    ======================================== */
 @media (max-width: 980px) {
-  .hero, .summary { grid-template-columns: 1fr; }
-  .hero { align-items: start; }
+  .summary { grid-template-columns: 1fr; }
   .span-6 { grid-column: span 12; }
   .hide-mobile, .show-desktop-only { display: none; }
   .hide-desktop, .show-mobile-only { display: revert; }
