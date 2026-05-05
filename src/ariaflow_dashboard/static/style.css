@@ -146,6 +146,36 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
 }
 .title h1 { margin: 0; font-size: clamp(1.1rem, 1.8vw, 1.45rem); letter-spacing: var(--ws-tracking-tight); }
 
+/* Hero Option A — single-column flow.
+   Replaces the two-column .hero / .title / .panel split. */
+.hero-flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ws-gap-sm);
+  margin-bottom: var(--nav-mb);
+  padding: var(--ws-gap-sm) var(--ws-gap-md);
+  background: var(--ws-bg-elev);
+  border-radius: var(--ws-radius-md);
+  border: 1px solid var(--ws-border);
+}
+.hero-flow h1 { margin: 0; font-size: clamp(1.1rem, 1.8vw, 1.45rem); letter-spacing: var(--ws-tracking-tight); }
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ws-gap-sm);
+  flex-wrap: wrap;
+}
+.hero-status { justify-content: flex-end; }
+.hero-transfer .stat-value {
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: var(--ws-tracking-tight);
+}
+.hero-transfer .stat-sub { color: var(--ws-muted); font-size: var(--ws-font-md); margin-top: 2px; }
+.hero-cap .meter { margin-top: 4px; }
+.hero-footer { display: flex; flex-direction: column; gap: var(--ws-gap-sm); }
+
 .row { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; }
 .row > * { flex: 1 1 var(--row-basis); }
 

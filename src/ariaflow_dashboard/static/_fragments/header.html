@@ -32,19 +32,15 @@
       </label>
       <button class="secondary" @click="toggleTheme()" x-text="themeLabel">Theme</button>
     </div>
-    <div class="hero">
-      <div class="title">
+    <!-- Hero: Option A — single column flow.
+         Top: brand left, status chips right.
+         Middle: speed + item name on one line, sparkline directly below.
+         Cap utilization bar adjacent to speed (same visual question).
+         Footer: session/disk + collapsible Local interfaces + add-backend. -->
+    <div class="hero hero-flow">
+      <div class="hero-top">
         <h1>ariaflow-dashboard</h1>
-        <div class="metric mt-sm">
-          <div class="stat-label">Transfer</div>
-          <div class="stat-value" x-text="transferSpeedText">idle</div>
-          <div class="stat-sub" x-show="currentTransfer" x-text="currentTransferName"></div>
-          <div x-html="globalSparklineSvg" class="mt-sm"></div>
-        </div>
-      </div>
-      <div class="panel">
-        <!-- L1: Scheduler state + backend status + errors -->
-        <div class="chips">
+        <div class="chips hero-status">
           <label class="chip" :title="selectedBackend">
             Backend
             <select :value="selectedBackend" @change="selectBackend($el.value)">
@@ -59,31 +55,37 @@
           </a>
           <div class="chip" :class="bonjourBadgeClass" :title="bonjourBadgeTitle" x-text="bonjourBadgeText">mDNS</div>
         </div>
-        <!-- L2: Session + cap + disk -->
-        <div class="chips mt-sm">
+      </div>
+
+      <div class="hero-transfer">
+        <div class="stat-value" x-text="transferSpeedText">idle</div>
+        <div class="stat-sub" x-show="currentTransfer" x-text="currentTransferName"></div>
+        <div x-html="globalSparklineSvg" class="mt-sm"></div>
+      </div>
+
+      <div class="hero-cap mt-sm" x-show="bw.cap_mbps">
+        <div class="meta"><span>Cap utilization <strong x-text="bwUtilizationPct + '%'"></strong> · <span x-text="bwUtilizationText"></span></span></div>
+        <div class="meter"><div :style="'width:' + bwUtilizationPct + '%'"></div></div>
+      </div>
+
+      <div class="hero-footer mt-md">
+        <div class="chips">
           <a class="chip-details" href="/lifecycle" @click.prevent="navigateTo('lifecycle')" title="Open System Health">
             <span class="chip">Session <strong x-text="sessionIdText + (sessionStartedText !== '-' ? ' · ' + sessionStartedText : '')">-</strong></span>
           </a>
           <div class="chip" :class="{ 'badge warn': !diskOk }" x-show="diskUsageText !== '-'">Disk <strong x-text="diskUsageText">-</strong></div>
+          <details class="chip-details">
+            <summary class="text-muted text-sm cursor-pointer">Local interfaces</summary>
+            <div class="chips mt-sm">
+              <template x-for="ip in localIps" :key="ip">
+                <div class="chip" :class="{ 'badge good': ip === localMainIp }">
+                  <span x-text="ip"></span>
+                  <strong x-show="ip === localMainIp" x-text="'main'"></strong>
+                </div>
+              </template>
+            </div>
+          </details>
         </div>
-        <!-- Cap utilization meter — visible from any tab -->
-        <div class="mt-sm" x-show="bw.cap_mbps">
-          <div class="meta"><span>Cap utilization <strong x-text="bwUtilizationPct + '%'"></strong> · <span x-text="bwUtilizationText"></span></span></div>
-          <div class="meter"><div :style="'width:' + bwUtilizationPct + '%'"></div></div>
-        </div>
-        <!-- L3: local interfaces (collapsible) -->
-        <details class="mt-sm">
-          <summary class="text-muted text-sm cursor-pointer">Local interfaces</summary>
-          <div class="chips mt-sm">
-            <template x-for="ip in localIps" :key="ip">
-              <div class="chip" :class="{ 'badge good': ip === localMainIp }">
-                <span x-text="ip"></span>
-                <strong x-show="ip === localMainIp" x-text="'main'"></strong>
-              </div>
-            </template>
-          </div>
-        </details>
-        <!-- Add backend + remove current (non-default) -->
         <div class="gap-sm mt-sm">
           <input type="url" x-model="backendInput" placeholder="Add backend URL" class="input-md" @keydown.enter="addBackend()">
           <button x-show="backendInput.trim()" @click="addBackend()">Add</button>
