@@ -2791,8 +2791,7 @@ document.addEventListener("alpine:init", () => {
       return record?.result?.outcome || "unknown";
     },
     lifecycleItemLines(record) {
-      const lines = lifecycleDetailLines(record);
-      return lines.length ? lines.join(" \xB7 ") : "No details";
+      return lifecycleDetailLines(record).join(" \xB7 ");
     },
     async lifecycleAction(target, action) {
       try {

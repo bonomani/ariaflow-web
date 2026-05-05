@@ -378,7 +378,7 @@
                     </div>
                   </div>
                 </template>
-                <div class="meta">
+                <div class="meta" x-show="lifecycleItemLines(row.record)">
                   <span x-text="lifecycleItemLines(row.record)"></span>
                 </div>
                 <div x-show="row.actions.length" class="action-strip mt-sm">

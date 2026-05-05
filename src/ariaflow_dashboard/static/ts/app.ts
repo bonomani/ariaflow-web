@@ -1577,8 +1577,7 @@ document.addEventListener('alpine:init', () => {
       return record?.result?.outcome || 'unknown';
     },
     lifecycleItemLines(record) {
-      const lines = lifecycleDetailLines(record);
-      return lines.length ? lines.join(' · ') : 'No details';
+      return lifecycleDetailLines(record).join(' · ');
     },
     async lifecycleAction(target, action) {
       try {
