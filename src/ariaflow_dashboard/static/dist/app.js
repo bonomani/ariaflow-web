@@ -2635,6 +2635,10 @@ document.addEventListener("alpine:init", () => {
       const pref = prefs.find((item) => item.name === name);
       return pref ? pref.value : void 0;
     },
+    hasDeclarationPreference(name) {
+      const prefs = this.lastDeclaration?.uic?.preferences || [];
+      return prefs.some((item) => item.name === name);
+    },
     _applyDeclaration(data) {
       this.lastDeclaration = data?.declaration || data;
       if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) return;
@@ -2847,7 +2851,11 @@ document.addEventListener("alpine:init", () => {
       }
       let r, data;
       try {
-        r = await postEmpty(this.backendPath(urlItemAction(itemId, action)));
+        if (action === "remove") {
+          r = await postEmpty(this.backendPath(`/api/downloads/${encodeURIComponent(itemId)}`), { method: "DELETE" });
+        } else {
+          r = await postEmpty(this.backendPath(urlItemAction(itemId, action)));
+        }
         data = await r.json();
       } catch (e) {
         this.resultText = `${action} failed: ${e.message}`;

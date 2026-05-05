@@ -1345,6 +1345,10 @@ document.addEventListener('alpine:init', () => {
       const pref = prefs.find((item) => item.name === name);
       return pref ? pref.value : undefined;
     },
+    hasDeclarationPreference(name) {
+      const prefs = this.lastDeclaration?.uic?.preferences || [];
+      return prefs.some((item) => item.name === name);
+    },
     _applyDeclaration(data) {
       // /api/declaration response shape is { ok, declaration, meta }.
       // lastDeclaration must be the *inner* declaration object — the
@@ -1566,7 +1570,13 @@ document.addEventListener('alpine:init', () => {
       }
       let r, data;
       try {
-        r = await postEmpty(this.backendPath(urlItemAction(itemId, action)));
+        // Backend uses DELETE /api/downloads/:id for remove, not
+        // POST /api/downloads/:id/remove (which 404s).
+        if (action === 'remove') {
+          r = await postEmpty(this.backendPath(`/api/downloads/${encodeURIComponent(itemId)}`), { method: 'DELETE' });
+        } else {
+          r = await postEmpty(this.backendPath(urlItemAction(itemId, action)));
+        }
         data = await r.json();
       } catch (e) {
         this.resultText = `${action} failed: ${e.message}`;
