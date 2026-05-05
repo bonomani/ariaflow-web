@@ -30,7 +30,7 @@
           <div class="gap-sm mb-md">
             <button :class="{ secondary: schedulerBtnDisabled, loading: schedulerLoading }" @click="toggleScheduler()" x-text="schedulerBtnText" :disabled="schedulerBtnDisabled || schedulerLoading">Start</button>
             <button :class="{ secondary: archiveBtnDisabled, loading: archiveLoading }" @click="cleanup()" :disabled="archiveBtnDisabled || archiveLoading">Archive</button>
-            <span class="badge" x-text="schedulerStateLabelText">idle</span>
+            <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">idle</span>
             <span class="text-muted text-sm" x-text="resultText" x-show="resultText && resultText !== 'Idle'"></span>
           </div>
           <div class="mb-md">
