@@ -5,6 +5,7 @@ import {
   describeLifecycleStatus,
   isLifecycleHealthy,
   lifecycleActionsFor,
+  lifecycleBadgeClass,
   lifecycleDetailLines,
 } from './lifecycle.js';
 
@@ -226,7 +227,7 @@ test('lifecycleActionsFor outdated → Update + Remove', () => {
   });
   assert.deepEqual(
     r.map((a) => a.label),
-    ['Update', 'Remove'],
+    ['Update', 'Uninstall'],
   );
 });
 
@@ -236,7 +237,7 @@ test('lifecycleActionsFor running·current → Remove only', () => {
   });
   assert.deepEqual(
     r.map((a) => a.label),
-    ['Remove'],
+    ['Uninstall'],
   );
 });
 
@@ -257,5 +258,58 @@ test('lifecycleActionsFor pure registration (launchd) not loaded → Load only',
   assert.deepEqual(
     r.map((a) => a.label),
     ['Load'],
+  );
+});
+
+// ---------- lifecycleBadgeClass ----------
+
+test('lifecycleBadgeClass: missing record → default badge', () => {
+  assert.equal(lifecycleBadgeClass(null), 'badge');
+  assert.equal(lifecycleBadgeClass({}), 'badge');
+});
+
+test('lifecycleBadgeClass: all-null axes → default badge (informational)', () => {
+  assert.equal(
+    lifecycleBadgeClass({ result: { installed: null, current: null, running: null } }),
+    'badge',
+  );
+});
+
+test('lifecycleBadgeClass: not installed → bad', () => {
+  assert.equal(
+    lifecycleBadgeClass({ result: { installed: false, current: null, running: null } }),
+    'badge bad',
+  );
+});
+
+test('lifecycleBadgeClass: outdated (current=false) → warn', () => {
+  assert.equal(
+    lifecycleBadgeClass({ result: { installed: true, current: false, running: true } }),
+    'badge warn',
+  );
+});
+
+test('lifecycleBadgeClass: expected_running mismatch → warn', () => {
+  assert.equal(
+    lifecycleBadgeClass({
+      result: { installed: true, current: true, running: false, expected_running: true },
+    }),
+    'badge warn',
+  );
+});
+
+test('lifecycleBadgeClass: healthy (installed · current · running) → good', () => {
+  assert.equal(
+    lifecycleBadgeClass({ result: { installed: true, current: true, running: true } }),
+    'badge good',
+  );
+});
+
+test('lifecycleBadgeClass: idle on-demand (running matches expected=false) → good', () => {
+  assert.equal(
+    lifecycleBadgeClass({
+      result: { installed: true, current: true, running: false, expected_running: false },
+    }),
+    'badge good',
   );
 });

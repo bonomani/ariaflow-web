@@ -34,6 +34,30 @@ function isLaunchdLike(name: string): boolean {
   return name.includes('launchd') || name.includes('auto-start');
 }
 
+// Lifecycle-specific badge colour. The generic badgeClass() in
+// formatters.ts maps download-item statuses (complete/error/paused/...)
+// to colours; lifecycle rows use a different vocabulary (installed ·
+// current, installed · usable, ...) that the download-status allow-
+// list doesn't cover, so healthy components used to render uncoloured.
+//
+// Maps directly from the BG-27/BG-29 axes:
+//   - bad (red):  installed === false (component absent)
+//   - warn (yellow): current === false (outdated), or expected to run
+//                    but isn't
+//   - good (green): healthy by isLifecycleHealthy()
+//   - default (no colour): all-null axes — informational rows that
+//     don't carry a healthy/unhealthy verdict
+export function lifecycleBadgeClass(record: LifecycleRecord | null | undefined): string {
+  const result = record?.result;
+  if (!result) return 'badge';
+  const { installed, current, running, expected_running } = result;
+  if (installed === null && current === null && running === null) return 'badge';
+  if (installed === false) return 'badge bad';
+  if (current === false) return 'badge warn';
+  if (expected_running != null && running !== expected_running) return 'badge warn';
+  return isLifecycleHealthy(record) ? 'badge good' : 'badge';
+}
+
 // Healthy = "everything that should be true is true". Components
 // that opt out of an axis (set it to null) are treated as healthy on
 // that axis.
@@ -140,14 +164,14 @@ export function lifecycleActionsFor(
   if (current === false) {
     return [
       { target, action: 'install', label: 'Update' },
-      { target, action: 'uninstall', label: 'Remove' },
+      { target, action: 'uninstall', label: 'Uninstall' },
     ];
   }
-  // installed && current — usually offer Remove only. Don't expose a
+  // installed && current — usually offer Uninstall only. Don't expose a
   // Start/Stop affordance here yet: the daemon-control surface for
   // aria2 / ariaflow-server is policy, not a per-row toggle, so
   // leave that to the broader scheduler controls.
-  return [{ target, action: 'uninstall', label: 'Remove' }];
+  return [{ target, action: 'uninstall', label: 'Uninstall' }];
 }
 
 // Map a component's row name to the backend's target identifier used

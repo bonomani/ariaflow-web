@@ -24,7 +24,7 @@
               <div class="item">
                 <div class="item-top">
                   <div class="item-url" x-text="row.name"></div>
-                  <span :class="badgeClass(lifecycleItemOutcome(row.record))" x-text="lifecycleStateLabel(row.name, row.record)"></span>
+                  <span :class="lifecycleBadgeClass(row.record)" x-text="lifecycleStateLabel(row.name, row.record)"></span>
                 </div>
                 <div class="meta">
                   <span x-text="lifecycleItemLines(row.record)"></span>

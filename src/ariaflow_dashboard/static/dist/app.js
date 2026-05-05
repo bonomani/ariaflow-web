@@ -1155,6 +1155,16 @@ function wireHostVisibility(router, win = typeof window !== "undefined" ? window
 function isLaunchdLike(name) {
   return name.includes("launchd") || name.includes("auto-start");
 }
+function lifecycleBadgeClass(record) {
+  const result = record?.result;
+  if (!result) return "badge";
+  const { installed, current, running, expected_running } = result;
+  if (installed === null && current === null && running === null) return "badge";
+  if (installed === false) return "badge bad";
+  if (current === false) return "badge warn";
+  if (expected_running != null && running !== expected_running) return "badge warn";
+  return isLifecycleHealthy(record) ? "badge good" : "badge";
+}
 function isLifecycleHealthy(record) {
   const result = record?.result;
   if (!result) return false;
@@ -1224,10 +1234,10 @@ function lifecycleActionsFor(name, record) {
   if (current === false) {
     return [
       { target, action: "install", label: "Update" },
-      { target, action: "uninstall", label: "Remove" }
+      { target, action: "uninstall", label: "Uninstall" }
     ];
   }
-  return [{ target, action: "uninstall", label: "Remove" }];
+  return [{ target, action: "uninstall", label: "Uninstall" }];
 }
 function backendTargetFor(name) {
   if (name === "ariaflow-server") return "ariaflow-server";
@@ -2709,6 +2719,9 @@ document.addEventListener("alpine:init", () => {
     },
     lifecycleStateLabel(name, record) {
       return describeLifecycleStatus(name, record);
+    },
+    lifecycleBadgeClass(record) {
+      return lifecycleBadgeClass(record);
     },
     lifecycleItemOutcome(record) {
       return record?.result?.outcome || "unknown";

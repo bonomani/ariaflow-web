@@ -80,6 +80,7 @@ import {
 } from './freshness-bootstrap';
 import {
   describeLifecycleStatus,
+  lifecycleBadgeClass,
   isLifecycleHealthy,
   lifecycleActionsFor,
   lifecycleDetailLines,
@@ -1514,6 +1515,9 @@ document.addEventListener('alpine:init', () => {
     },
     lifecycleStateLabel(name, record) {
       return describeLifecycleStatus(name, record);
+    },
+    lifecycleBadgeClass(record) {
+      return lifecycleBadgeClass(record);
     },
     lifecycleItemOutcome(record) {
       return record?.result?.outcome || 'unknown';
