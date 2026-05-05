@@ -367,10 +367,7 @@
                   <div class="item-url">
                     <span x-text="row.name"></span>
                     <template x-if="row.name === 'ariaflow-server'">
-                      <span>
-                        <strong class="text-muted text-sm" x-text="backendVersionText">-</strong>
-                        <span class="text-muted text-sm" x-show="backendPidText !== '-' && backendPidText !== 'unreported'" x-text="'· pid ' + backendPidText"></span>
-                      </span>
+                      <strong class="text-muted text-sm" x-text="backendVersionText">-</strong>
                     </template>
                   </div>
                   <span :class="lifecycleBadgeClass(row.record)" x-text="lifecycleStateLabel(row.name, row.record)"></span>
@@ -379,12 +376,13 @@
                   <div>
                     <h4 class="text-sm text-muted mt-md mb-sm">Process</h4>
                     <div class="chips">
+                      <div class="chip" x-show="backendPidText !== '-' && backendPidText !== 'unreported'">PID <strong x-text="backendPidText">-</strong></div>
                       <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
                       <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
                       <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
                       <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
-                      <div class="chip">↓ <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
-                      <div class="chip">↑ <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
+                      <div class="chip">Received <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
+                      <div class="chip">Sent <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
                     </div>
                     <div class="section-title mt-md">
                       <h4 class="text-sm text-muted">Scheduler</h4>
