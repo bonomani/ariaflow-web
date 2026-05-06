@@ -158,7 +158,6 @@ coverage_map:
   loadDeclaration: "manual refresh: GET /api/declaration + _applyDeclaration"
   loadPeers: "manual refresh: GET /api/peers + _applyPeers"
   setDashUpdateServerFirst: "PATCH /api/web/config {update_server_first}"
-  setDashAutoRestart: "PATCH /api/web/config {auto_restart_after_upgrade}"
   setDashAutoUpdatePreset: "preset-button wrapper: hours=0 → off, else enable+set hours in one PATCH"
   installAriaflowServer: "POST /api/web/lifecycle/ariaflow-server/install — cold-start install"
   confirmUninstallServer: "thin wrapper: window.confirm + lifecycleAction('ariaflow-server', 'uninstall')"

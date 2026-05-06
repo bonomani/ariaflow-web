@@ -226,10 +226,6 @@
                 <span x-show="dashAutoUpdateEnabled" style="text-align:right">
                   <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
                 </span>
-                <span class="settings-label" :title="'Auto-bootout+bootstrap after brew upgrade so the new bottle runs immediately. Disabling means manual Restart after every upgrade.'">Auto-restart after upgrade</span>
-                <span style="text-align:right">
-                  <input type="checkbox" :checked="dashAutoRestart" @change="setDashAutoRestart($el.checked)">
-                </span>
               </div>
               <div class="action-strip mt-sm">
                 <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :disabled="dashLifecycleLoading" :title="'Restart via ' + webManagedBy" x-text="dashLifecycleLoading === 'restart' ? 'Restarting…' : 'Restart'"></button>
