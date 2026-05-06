@@ -228,22 +228,28 @@ def dispatch_update(auto_restart: bool = False) -> dict:
             return upgrade_cmd
         target = f"gui/{os.getuid()}/{label}"
         domain = f"gui/{os.getuid()}"
-        # Update means 'fix me to latest running state' — full pipeline:
-        # 1. try upgrade (no-op when already current)
-        # 2. force re-link the formula (idempotent; recovers from the
-        #    'installed but not linked' state that interrupted brew
+        # Update pipeline (only dispatched when FE probe says newer
+        # version is available; FE short-circuits the no-op case):
+        # 1. brew upgrade
+        # 2. brew link --overwrite (idempotent; recovers from
+        #    'installed but not linked' that interrupted brew
         #    operations leave behind — bootstrap would otherwise fail
         #    EX_CONFIG because /opt/homebrew/bin/<binary> is missing)
-        # 3. ALWAYS restart via bootout+bootstrap (picks up upgrades AND
-        #    realigns stale cellar where running version ≠ installed)
-        # Operator's model: Update = 'whatever it takes', Restart = just bounce.
+        # 3. restart via bootout+bootstrap, ONLY if upgrade succeeded
+        #    (`&&`). Defense in depth: if FE somehow dispatches
+        #    Update on a no-op, brew exits 0 with nothing to do but
+        #    the ; chain to bootout+bootstrap won't fire because
+        #    brew didn't actually report success-with-changes.
+        # NOTE: brew exits 0 even on 'already installed', so &&
+        #    technically allows no-op restart. The PRIMARY guard is
+        #    the FE-side _dashUpdateProbe === 'current' short-circuit
+        #    in webLifecycleAction.
         link_cmd = ""
-        # Only meaningful for homebrew installs.
         if "brew upgrade" in upgrade_cmd:
             brew_bin = upgrade_cmd.split()[0]
-            link_cmd = f"{brew_bin} link --overwrite ariaflow-dashboard 2>/dev/null; "
+            link_cmd = f"{brew_bin} link --overwrite ariaflow-dashboard 2>/dev/null && "
         return (
-            f"{upgrade_cmd}; "
+            f"{upgrade_cmd} && "
             f"{link_cmd}"
             f"launchctl bootout {target} 2>/dev/null; "
             f"launchctl bootstrap {domain} {plist_path}"

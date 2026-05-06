@@ -2282,11 +2282,18 @@ get bonjourBadgeTitle() {
     },
     async webLifecycleAction(action) {
       if (!['restart', 'update'].includes(action)) return;
-      // Update = 'whatever it takes to get me to latest running'.
-      // Always dispatches: brew upgrade (no-op if current) ; bootout ;
-      // bootstrap. Restart-after-no-op-upgrade recovers the stale-
-      // cellar case (running ≠ installed, no newer tap) automatically.
-      // Restart = just bounce. Each button has one job.
+      // Update = smart pipeline: probe first, only dispatch the
+      // upgrade+restart chain if there's actually a newer version.
+      // No-op when already current (don't bounce a working process
+      // for nothing). Operator clicks Restart explicitly to bounce.
+      if (action === 'update') {
+        // Force a fresh probe — don't trust possibly-stale state.
+        await this.checkDashUpdate().catch(() => { /* nop */ });
+        if (this._dashUpdateProbe === 'current') {
+          this.resultText = `Already up to date (${this._dashLatestVersion || this.webVersionText}). Click Restart to bounce.`;
+          return;
+        }
+      }
       // Visual feedback: button shows 'Updating…'/'Restarting…' until
       // either the page reconnects to a fresh process (auto-restart
       // landed), or the timeout fires (90s — long enough for brew
@@ -2465,6 +2472,15 @@ get bonjourBadgeTitle() {
       return lifecycleDetailLines(record).join(' · ');
     },
     async lifecycleAction(target, action) {
+      // Smart server Update: probe first, no-op if already current.
+      // Operator clicks Restart explicitly to bounce.
+      if (target === 'ariaflow-server' && action === 'update') {
+        await this.checkBackendUpdate().catch(() => { /* nop */ });
+        if (this._serverUpdateProbe === 'current') {
+          this.resultText = `Server already up to date (${this._serverLatestVersion || this.backendVersionText}). Click Restart to bounce.`;
+          return;
+        }
+      }
       try {
         const r = await postEmpty(this.backendPath(urlLifecycleAction(target, action)));
         const data = await r.json();
