@@ -1952,6 +1952,14 @@ get bonjourBadgeTitle() {
     lifecycleStateLabel(name, record) {
       return describeLifecycleStatus(name, record);
     },
+    // Mirror describeLifecycleStatus for the dashboard's own row, which
+    // doesn't have a backend lifecycle record. Keeps the pill format
+    // identical: "running · current (managed_by · installed_via)".
+    get webStateLabel() {
+      const parts = [this.webManagedBy, this.webInstalledVia].filter(Boolean);
+      const suffix = parts.length ? ` (${parts.join(' · ')})` : '';
+      return `running · current${suffix}`;
+    },
     lifecycleBadgeClass(record) {
       return lifecycleBadgeClass(record);
     },
