@@ -2473,6 +2473,25 @@ document.addEventListener("alpine:init", () => {
     itemCanRemove(item) {
       return true;
     },
+    // Manual refresh wrappers for the Options tab Load/Refresh buttons.
+    // Data auto-loads on tab visit via TAB_SUBS; these force a fresh
+    // fetch so the operator can override the warm-cache TTL.
+    async loadDeclaration() {
+      try {
+        const r = await this._fetch(this.backendPath("/api/declaration"));
+        this._applyDeclaration(await r.json());
+      } catch (e) {
+        this.resultText = `Load declaration failed: ${e.message}`;
+      }
+    },
+    async loadPeers() {
+      try {
+        const r = await this._fetch(this.backendPath("/api/peers"));
+        this._applyPeers(await r.json());
+      } catch (e) {
+        this.resultText = `Load peers failed: ${e.message}`;
+      }
+    },
     itemToggleAction(item) {
       if (this.itemCanPause(item)) return this.itemAction(item.id, "pause");
       if (this.itemCanResume(item)) return this.itemAction(item.id, "resume");

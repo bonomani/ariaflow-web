@@ -149,6 +149,8 @@ coverage_map:
   itemConfirmRedownload: "thin wrapper: delegates to _itemDecision('confirm')"
   itemSkipRedownload: "thin wrapper: delegates to _itemDecision('skip')"
   itemRenameRedownload: "thin wrapper: delegates to _itemDecision('rename')"
+  loadDeclaration: "manual refresh: GET /api/declaration + _applyDeclaration"
+  loadPeers: "manual refresh: GET /api/peers + _applyPeers"
   renameFile: "BG-56: prompt-driven wrapper around _filesPost('/api/files/rename')"
   moveFile: "BG-56: prompt-driven wrapper around _filesPost('/api/files/move')"
   deleteFile: "BG-56: confirm-driven DELETE /api/files"
