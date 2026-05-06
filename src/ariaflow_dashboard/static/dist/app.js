@@ -2741,9 +2741,15 @@ document.addEventListener("alpine:init", () => {
     async toggleScheduler() {
       this.schedulerLoading = true;
       try {
-        if (!this.state?.running) return await this.schedulerAction("start");
-        if (this.state?.dispatch_paused) return await this.resumeDownloads();
-        return await this.pauseDownloads();
+        switch (this.schedulerBadgeText) {
+          case "paused":
+            return await this.resumeDownloads();
+          case "idle":
+          case "running":
+            return await this.pauseDownloads();
+          default:
+            return await this.schedulerAction("start");
+        }
       } finally {
         this.schedulerLoading = false;
       }

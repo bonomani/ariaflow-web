@@ -1478,11 +1478,18 @@ get bonjourBadgeTitle() {
       reader.readAsDataURL(file);
     },
     async toggleScheduler() {
+      // Drive dispatch off the same enum the button label reads
+      // (schedulerBadgeText → state.scheduler_status). Reading state.running
+      // + state.dispatch_paused was a second source of truth that could
+      // drift from the label and dispatch the wrong action on click.
       this.schedulerLoading = true;
       try {
-        if (!this.state?.running) return await this.schedulerAction('start');
-        if (this.state?.dispatch_paused) return await this.resumeDownloads();
-        return await this.pauseDownloads();
+        switch (this.schedulerBadgeText) {
+          case 'paused': return await this.resumeDownloads();
+          case 'idle':
+          case 'running': return await this.pauseDownloads();
+          default: return await this.schedulerAction('start');
+        }
       } finally { this.schedulerLoading = false; }
     },
     async schedulerAction(action) {
