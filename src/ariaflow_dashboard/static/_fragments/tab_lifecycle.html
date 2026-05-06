@@ -69,15 +69,35 @@
                 </div>
                 <template x-if="row.name === 'ariaflow-server'">
                   <div>
-                    <h4 class="text-sm text-muted mt-md mb-sm">Process</h4>
-                    <div class="chips">
-                      <div class="chip" x-show="backendPidText !== '-' && backendPidText !== 'unreported'">PID <strong x-text="backendPidText">-</strong></div>
-                      <div class="chip">Uptime <strong x-text="healthUptimeText">-</strong></div>
-                      <div class="chip">Requests <strong x-text="lastHealth?.requests_total ?? '-'">-</strong></div>
-                      <div class="chip" :class="{ 'badge warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'">-</strong></div>
-                      <div class="chip">SSE clients <strong x-text="lastHealth?.sse_clients ?? '-'">-</strong></div>
-                      <div class="chip">Received <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'">-</strong></div>
-                      <div class="chip">Sent <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'">-</strong></div>
+                    <!-- Identity + verification chips — same shape as
+                         other rows: PID+uptime, Latest, Check button. -->
+                    <div class="chips mt-sm">
+                      <span class="chip" x-show="backendPidText !== '-' && backendPidText !== 'unreported'" :title="'Process up for ' + healthUptimeText">
+                        PID <strong x-text="backendPidText">-</strong>
+                        · <strong x-text="healthUptimeText">-</strong>
+                      </span>
+                      <span :class="_serverUpdateProbe === 'available' || _serverUpdateProbe === 'failed' ? 'chip badge warn' : (_serverUpdateProbe === 'current' ? 'chip badge good' : 'chip')"
+                            :title="_serverUpdateProbe === null ? 'Click Check for update to verify' : updateCheckResult">
+                        <template x-if="_serverUpdateProbe === 'failed'">
+                          <span>Latest ⚠</span>
+                        </template>
+                        <template x-if="_serverUpdateProbe !== 'failed' && _serverLatestVersion">
+                          <span>
+                            Latest <strong x-text="'v' + _serverLatestVersion"></strong>
+                            <strong x-text="_serverUpdateProbe === 'available' ? '↑' : '✓'"></strong>
+                          </span>
+                        </template>
+                        <span x-show="_serverUpdateProbe !== 'failed' && !_serverLatestVersion" class="text-muted">Latest ?</span>
+                      </span>
+                      <button class="secondary text-sm" @click="checkBackendUpdate()" :disabled="!backendReachable || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
+                    </div>
+                    <!-- Process metrics: dense one-liner instead of subsection. -->
+                    <div class="meta mt-sm">
+                      <span>Requests <strong x-text="lastHealth?.requests_total ?? '-'"></strong></span>
+                      <span :class="{ 'text-warn': lastHealth?.errors_total }">Errors <strong x-text="lastHealth?.errors_total ?? '-'"></strong></span>
+                      <span>SSE <strong x-text="lastHealth?.sse_clients ?? '-'"></strong></span>
+                      <span>RX <strong x-text="lastHealth?.bytes_received_total != null ? formatBytes(lastHealth.bytes_received_total) : '-'"></strong></span>
+                      <span>TX <strong x-text="lastHealth?.bytes_sent_total != null ? formatBytes(lastHealth.bytes_sent_total) : '-'"></strong></span>
                     </div>
                     <details class="mt-sm" x-show="lastHealth?.errors_recent?.length">
                       <summary class="text-muted text-sm cursor-pointer" x-text="'Recent errors (' + (lastHealth?.errors_recent?.length ?? 0) + ')'">Recent errors</summary>
@@ -93,57 +113,39 @@
                         </template>
                       </div>
                     </details>
-                    <div class="section-title mt-md">
-                      <h4 class="text-sm text-muted">Scheduler</h4>
-                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')">stopped</span>
-                    </div>
-                    <div class="meta" x-show="schedulerActiveText">
-                      <span x-text="schedulerActiveText"></span>
-                    </div>
-                    <div class="chips" x-show="_lifecycleSession">
-                      <a href="#" class="chip"
+                    <!-- Scheduler: dense single line with optional action button. -->
+                    <div class="meta mt-sm">
+                      <span>Scheduler</span>
+                      <span :class="schedulerBadgeClass" x-text="schedulerBadgeText + (schedulerWaitReasonText ? ' · ' + schedulerWaitReasonText : '')"></span>
+                      <span class="text-muted" x-show="schedulerActiveText" x-text="schedulerActiveText"></span>
+                      <a href="#" class="text-muted text-sm"
                          x-show="_lifecycleSession?.session_id && _lifecycleSession?.session_started_at"
                          :title="_lifecycleSession?.session_id + ' — click to filter activity log to this run'"
-                         @click.prevent="filterLogToCurrentSession()">
-                        Run
-                        <strong x-text="_lifecycleSession?.session_id ? _lifecycleSession.session_id.slice(0, 8) : '-'">-</strong>
-                        <span class="text-muted" x-text="'· up ' + (_lifecycleSession?.session_started_at ? relativeTime(_lifecycleSession.session_started_at).replace(' ago', '') : '-')"></span>
-                      </a>
-                      <div class="chip" x-show="_lifecycleSession?.session_last_seen_at && !sessionTimestampStale(_lifecycleSession.session_last_seen_at)">Last seen <strong x-text="_lifecycleSession?.session_last_seen_at ? relativeTime(_lifecycleSession.session_last_seen_at) : '-'">-</strong></div>
-                      <div class="chip" x-show="_lifecycleSession?.session_closed_at" :class="{ 'badge warn': _lifecycleSession?.session_closed_at }">Closed <strong x-text="_lifecycleSession?.session_closed_at ? relativeTime(_lifecycleSession.session_closed_at) + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '') : '-'">-</strong></div>
+                         @click.prevent="filterLogToCurrentSession()"
+                         x-text="'Run ' + (_lifecycleSession?.session_id ? _lifecycleSession.session_id.slice(0, 8) : '-') + ' · up ' + (_lifecycleSession?.session_started_at ? relativeTime(_lifecycleSession.session_started_at).replace(' ago', '') : '-')"></a>
+                      <span class="text-muted text-sm" x-show="_lifecycleSession?.session_last_seen_at && !sessionTimestampStale(_lifecycleSession.session_last_seen_at)" x-text="'last ' + relativeTime(_lifecycleSession.session_last_seen_at)"></span>
+                      <template x-if="schedulerWaitReasonAction">
+                        <button class="secondary text-sm" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
+                      </template>
                     </div>
-                    <template x-if="schedulerWaitReasonAction">
-                      <div class="action-strip mt-sm">
-                        <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
-                      </div>
-                    </template>
-                    <div>
-                      <div class="section-title mt-md">
-                        <h4 class="text-sm text-muted">Auto-update</h4>
-                        <span :class="autoUpdateEnabled ? 'badge good' : 'badge'" x-text="autoUpdateEnabled ? 'enabled' : 'disabled'"></span>
-                      </div>
-                      <div class="meta">
-                        <label :title="'Periodic upgrade check via the detected package manager (Homebrew, pipx, npm). Runs the same dispatcher as the manual Update button. Stored in declaration.preferences.auto_update.'">
-                          <input type="checkbox" :checked="autoUpdateEnabled" @change="setAutoUpdate($el.checked)" :disabled="!backendReachable">
-                          Enable periodic upgrade check
-                        </label>
-                      </div>
-                      <div class="meta mt-sm" x-show="autoUpdateEnabled">
-                        <label>
-                          Check every
-                          <input type="number" min="1" max="720" :value="autoUpdateCheckHours" @input="setAutoUpdateCheckHours($el.value)" class="input-sm" :disabled="!backendReachable">
-                          hours
-                        </label>
-                      </div>
-                      <div class="action-strip mt-sm">
-                        <button class="secondary" @click="checkBackendUpdate()" :disabled="!backendReachable || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check for update'"></button>
-                        <span class="text-muted text-sm" x-show="updateCheckResult" x-text="updateCheckResult"></span>
-                      </div>
+                    <!-- Settings (label-left / value-right grid), same shape as dashboard self row. -->
+                    <div class="settings-grid mt-sm">
+                      <span class="settings-label">Auto-update</span>
+                      <span class="action-strip" style="justify-content:flex-end">
+                        <template x-for="preset in [{l:'off',v:0},{l:'1h',v:1},{l:'6h',v:6},{l:'24h',v:24},{l:'1w',v:168}]" :key="preset.l">
+                          <button class="text-sm"
+                                  :class="(preset.v === 0 ? !autoUpdateEnabled : (autoUpdateEnabled && Number(autoUpdateCheckHours) === preset.v)) ? '' : 'secondary'"
+                                  @click="setAutoUpdatePreset(preset.v)"
+                                  x-text="preset.l"
+                                  :disabled="!backendReachable"></button>
+                        </template>
+                      </span>
                     </div>
+                    <!-- Action strip — consistent order: Restart, Update, Install, Uninstall. -->
                     <div class="action-strip mt-sm">
-                      <button x-show="serverProbe && !serverProbe.installed && serverProbe.install_supported" @click="installAriaflowServer()" :title="'Local install via ' + (serverProbe?.installed_via || 'brew/pipx')">Install (local)</button>
+                      <button x-show="serverProbe?.installed || backendReachable" @click="lifecycleAction('ariaflow-server', 'restart')" :disabled="!backendReachable" :title="'Remote restart via backend (BG-61)'">Restart</button>
                       <button x-show="serverProbe?.installed || backendReachable" @click="lifecycleAction('ariaflow-server', 'update')" :disabled="!backendReachable" :title="backendReachable ? 'Remote upgrade via backend (BG-46) → bootout+bootstrap (BG-62)' : 'Server unreachable — start it or use Install above'">Update</button>
-                      <button class="secondary" x-show="serverProbe?.installed || backendReachable" @click="lifecycleAction('ariaflow-server', 'restart')" :disabled="!backendReachable" :title="'Remote restart via backend (BG-61)'">Restart</button>
+                      <button x-show="serverProbe && !serverProbe.installed && serverProbe.install_supported" @click="installAriaflowServer()" :title="'Local install via ' + (serverProbe?.installed_via || 'brew/pipx')">Install (local)</button>
                       <button class="secondary" x-show="serverProbe?.installed || backendReachable" @click="confirmUninstallServer()" :disabled="!backendReachable" :title="'Remote uninstall via backend'">Uninstall</button>
                     </div>
                   </div>

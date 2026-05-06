@@ -2938,6 +2938,17 @@ document.addEventListener("alpine:init", () => {
       if (!Number.isFinite(n) || n <= 0) return;
       this._queuePrefChange("auto_update_check_hours", n, [24], "default 24h check interval", 400);
     },
+    // Preset-button wrapper for the server row: hours=0 disables, any
+    // other value enables + sets the cadence in the same flush.
+    setAutoUpdatePreset(hours) {
+      const n = Number(hours);
+      if (n <= 0) {
+        this.setAutoUpdate(false);
+        return;
+      }
+      this.setAutoUpdate(true);
+      this.setAutoUpdateCheckHours(Math.max(1, Math.min(720, Math.trunc(n))));
+    },
     // Dashboard-local auto-update setters (FE-48). PATCH /api/web/config
     // — same-origin, doesn't go through the backend.
     // Manual "check for update" — runs the package-manager probe without
