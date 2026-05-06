@@ -130,6 +130,7 @@ document.addEventListener('alpine:init', () => {
     webVersionText: (() => { const v = runtimeDashboardVersion(); return v ? `v${v}` : '-'; })(),
     webPidText: runtimeDashboardPid() || '-',
     webUptimeSeconds: 0,
+    dashLifecycleLoading: null,  // 'update' | 'restart' | null
     webManagedBy: null,    // /api/web/lifecycle.result.managed_by
     webInstalledVia: null, // /api/web/lifecycle.result.installed_via
     get webRestartSupported() {
@@ -2156,16 +2157,50 @@ get bonjourBadgeTitle() {
     },
     async webLifecycleAction(action) {
       if (!['restart', 'update'].includes(action)) return;
+      // Visual feedback: button shows 'Updating…'/'Restarting…' until
+      // either the page reconnects to a fresh process (auto-restart
+      // landed), or the timeout fires (90s — long enough for brew
+      // upgrade + bootout+bootstrap on a slow connection).
+      this.dashLifecycleLoading = action;
+      const originalVersion = String(this.webVersionText || '');
       try {
         const r = await this._fetch(`/api/web/lifecycle/ariaflow-dashboard/${action}`, { method: 'POST' });
         const data = await r.json();
         if (!r.ok || data.ok === false) {
           this.resultText = data.message || `Dashboard ${action} failed: ${data.error || r.status}`;
-        } else {
-          this.resultText = `Dashboard ${action} requested — ${action === 'restart' ? 'reconnecting…' : 'update running detached'}`;
+          this.dashLifecycleLoading = null;
+          return;
         }
+        this.resultText = action === 'restart'
+          ? 'Restarting dashboard…'
+          : 'Updating dashboard…';
+        // Poll for the new process: when webVersionText changes (auto-
+        // restart landed on a new bottle) or PID flips, clear loading.
+        const startedAt = Date.now();
+        const tick = setInterval(() => {
+          const now = String(this.webVersionText || '');
+          const stillLoading = (Date.now() - startedAt) < 90_000;
+          if (now && now !== originalVersion) {
+            // Version changed — new process is up. Done.
+            clearInterval(tick);
+            this.dashLifecycleLoading = null;
+            this.resultText = `Dashboard ${action} complete (${now})`;
+            return;
+          }
+          if (!stillLoading) {
+            // Timeout: leave the loading state but stop polling.
+            clearInterval(tick);
+            this.dashLifecycleLoading = null;
+            if (action === 'update') {
+              this.resultText = 'Update dispatched but no version change detected — check action log';
+            } else {
+              this.resultText = 'Restart dispatched — check via PID change';
+            }
+          }
+        }, 2000);
       } catch (e) {
         this.resultText = `Dashboard ${action} failed: ${e.message}`;
+        this.dashLifecycleLoading = null;
       }
     },
     async loadLifecycle() {

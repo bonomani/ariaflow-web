@@ -655,10 +655,10 @@
                 </span>
               </div>
               <div class="action-strip mt-sm">
-                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
-                <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :title="'Restart via ' + webManagedBy">Restart</button>
-                <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :title="'Update via ' + webInstalledVia">Update</button>
-                <span class="text-muted text-sm" x-show="updateCheckResultDash" x-text="updateCheckResultDash"></span>
+                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading || dashLifecycleLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
+                <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :disabled="dashLifecycleLoading" :title="'Restart via ' + webManagedBy" x-text="dashLifecycleLoading === 'restart' ? 'Restarting…' : 'Restart'"></button>
+                <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :disabled="dashLifecycleLoading" :title="'Update via ' + webInstalledVia" x-text="dashLifecycleLoading === 'update' ? 'Updating…' : 'Update'"></button>
+                <span class="text-muted text-sm" x-show="updateCheckResultDash && !dashLifecycleLoading" x-text="updateCheckResultDash"></span>
               </div>
               <div class="meta mt-sm">
                 <span class="text-muted text-sm">Auto-update</span>

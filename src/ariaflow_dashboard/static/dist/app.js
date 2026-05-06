@@ -1375,6 +1375,8 @@ document.addEventListener("alpine:init", () => {
     })(),
     webPidText: dashboardPid() || "-",
     webUptimeSeconds: 0,
+    dashLifecycleLoading: null,
+    // 'update' | 'restart' | null
     webManagedBy: null,
     // /api/web/lifecycle.result.managed_by
     webInstalledVia: null,
@@ -3402,16 +3404,40 @@ document.addEventListener("alpine:init", () => {
     },
     async webLifecycleAction(action) {
       if (!["restart", "update"].includes(action)) return;
+      this.dashLifecycleLoading = action;
+      const originalVersion = String(this.webVersionText || "");
       try {
         const r = await this._fetch(`/api/web/lifecycle/ariaflow-dashboard/${action}`, { method: "POST" });
         const data = await r.json();
         if (!r.ok || data.ok === false) {
           this.resultText = data.message || `Dashboard ${action} failed: ${data.error || r.status}`;
-        } else {
-          this.resultText = `Dashboard ${action} requested \u2014 ${action === "restart" ? "reconnecting\u2026" : "update running detached"}`;
+          this.dashLifecycleLoading = null;
+          return;
         }
+        this.resultText = action === "restart" ? "Restarting dashboard\u2026" : "Updating dashboard\u2026";
+        const startedAt = Date.now();
+        const tick = setInterval(() => {
+          const now = String(this.webVersionText || "");
+          const stillLoading = Date.now() - startedAt < 9e4;
+          if (now && now !== originalVersion) {
+            clearInterval(tick);
+            this.dashLifecycleLoading = null;
+            this.resultText = `Dashboard ${action} complete (${now})`;
+            return;
+          }
+          if (!stillLoading) {
+            clearInterval(tick);
+            this.dashLifecycleLoading = null;
+            if (action === "update") {
+              this.resultText = "Update dispatched but no version change detected \u2014 check action log";
+            } else {
+              this.resultText = "Restart dispatched \u2014 check via PID change";
+            }
+          }
+        }, 2e3);
       } catch (e) {
         this.resultText = `Dashboard ${action} failed: ${e.message}`;
+        this.dashLifecycleLoading = null;
       }
     },
     async loadLifecycle() {
