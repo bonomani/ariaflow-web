@@ -301,10 +301,11 @@ document.addEventListener('alpine:init', () => {
       const ul = (this.currentUploadSpeed ?? 0) >= MIN ? this.formatRate(this.currentUploadSpeed) : null;
       if (dl && ul) return `↓ ${dl}  ↑ ${ul}`;
       if (dl) return `↓ ${dl}`;
-      // No active transfer — fall back to the BG-40 scheduler badge
-      // so the hero distinguishes stopped/paused/starting/idle and
-      // surfaces the wait_reason when known.
-      return this.schedulerBadgeText + (this.schedulerWaitReasonText ? ` · ${this.schedulerWaitReasonText}` : '');
+      // No active transfer: show "—" so the Throughput label stays
+      // honest. The scheduler badge has its own home on the Dashboard
+      // tab + Lifecycle row; surfacing it here was confusing the
+      // hero label ("Throughput: idle · queue empty" doesn't parse).
+      return '—';
     },
     get sessionStartedText() {
       if (!this.backendReachable) return '-';

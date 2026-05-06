@@ -1563,7 +1563,7 @@ document.addEventListener("alpine:init", () => {
       const ul = (this.currentUploadSpeed ?? 0) >= MIN ? this.formatRate(this.currentUploadSpeed) : null;
       if (dl && ul) return `\u2193 ${dl}  \u2191 ${ul}`;
       if (dl) return `\u2193 ${dl}`;
-      return this.schedulerBadgeText + (this.schedulerWaitReasonText ? ` \xB7 ${this.schedulerWaitReasonText}` : "");
+      return "\u2014";
     },
     get sessionStartedText() {
       if (!this.backendReachable) return "-";
