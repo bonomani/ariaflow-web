@@ -1,6 +1,27 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-54: Stale-data overlay on lifecycle pills (waiting on BG-64)
+
+**Blocked by:** BG-64
+
+The HEALTH_PILL_RULES.md "stale → yellow" branch needs a per-
+component `last_probed_at` from the backend to fire correctly.
+Without that timestamp, FE can't distinguish "probe just ran and
+returned this answer again" (data fresh, accurate) from "probe loop
+crashed, this answer is from an hour ago" (data stale, untrusted).
+
+When BG-64 lands, FE adds:
+- `lifecycleStaleOverlay(record)` getter (5 lines)
+- Pill class branch: yellow + tooltip "monitoring stale (last probed
+  Xm ago)" when `now - last_probed_at > 2 × probe_interval`
+- Graceful degradation: missing field on older backends → no overlay
+
+This closes the last hole in the spec rule mapping: rules right,
+implementation matches.
+
+---
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
