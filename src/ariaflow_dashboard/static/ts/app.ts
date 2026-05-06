@@ -163,6 +163,7 @@ document.addEventListener('alpine:init', () => {
     fileSelectionLoading: false,
     archiveItems: [],
     filesData: [],
+    filesError: null,
     cleanModalOpen: false,
     cleanForm: { recipe: 'complete_older_than', older_than_days: 30 },
     torrentList: [],
@@ -669,7 +670,7 @@ document.addEventListener('alpine:init', () => {
         // Needed for the awaiting_confirmation banner (BG-55): confirmContext
         // joins item.output_path against the live filesystem listing to show
         // size + history info. Cheap thanks to /api/files's `warm` TTL cache.
-        { method: 'GET', path: '/api/files', apply: (s, d) => s.filesData = d?.files || [] },
+        { method: 'GET', path: '/api/files', apply: (s, d) => { s.filesData = d?.files || []; s.filesError = d?.ok === false ? (d.error || 'unknown') : null; } },
       ],
       bandwidth: [
         { method: 'GET', path: '/api/bandwidth',   apply: (s, d) => s._applyBandwidth(d) },
@@ -700,7 +701,7 @@ document.addEventListener('alpine:init', () => {
         {
           method: 'GET',
           path: '/api/files',
-          apply: (self, data) => { self.filesData = data?.files || []; },
+          apply: (self, data) => { self.filesData = data?.files || []; self.filesError = data?.ok === false ? (data.error || 'unknown') : null; },
         },
       ],
     },

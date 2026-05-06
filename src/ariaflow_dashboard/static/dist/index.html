@@ -1110,8 +1110,17 @@
             </div>
           </div>
           <div class="list">
-            <template x-if="filesRows.length === 0">
-              <div class="item">No files in download folder.</div>
+            <template x-if="filesRows.length === 0 && filesError === 'download_dir_unset'">
+              <div class="item">
+                <span>Download folder not configured.</span>
+                <a href="#" @click.prevent="navigateTo('options')">Set <code>download_dir</code> in Options</a>
+              </div>
+            </template>
+            <template x-if="filesRows.length === 0 && filesError && filesError !== 'download_dir_unset'">
+              <div class="item">Couldn't read download folder (<span x-text="filesError"></span>). Check Options.</div>
+            </template>
+            <template x-if="filesRows.length === 0 && !filesError">
+              <div class="item">Download folder is empty.</div>
             </template>
             <template x-for="row in filesRows" :key="(row.file?.path || row.history?.id)">
               <div class="item compact">
