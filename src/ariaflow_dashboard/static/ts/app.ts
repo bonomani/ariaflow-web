@@ -771,10 +771,29 @@ document.addEventListener('alpine:init', () => {
     // that don't fit the subscribe model.
     TAB_MOUNT_HOOKS: {
       dev: [(self) => self.loadSpecVersion()],
+      // Lifecycle tab entry: auto-fire the check_update probes for
+      // server + dashboard so the Latest chips show real verified
+      // state at-a-glance without the operator having to click. Re-
+      // probe at most once every 6h to avoid hammering brew on
+      // every tab toggle.
+      lifecycle: [
+        (self) => self._maybeAutoCheckUpdates(),
+      ],
     },
     _tabHidden: false,
     _currentTabSubs: [],
 
+    _lastUpdateProbeAt: 0,
+    _maybeAutoCheckUpdates() {
+      // 6h dedupe — don't re-probe on every tab toggle.
+      const SIX_H = 6 * 60 * 60 * 1000;
+      if (Date.now() - this._lastUpdateProbeAt < SIX_H) return;
+      this._lastUpdateProbeAt = Date.now();
+      // Fire both probes in parallel; each updates its own state.
+      // Failures are non-fatal — the chips fall back to '?'.
+      if (this.backendReachable) this.checkBackendUpdate().catch(() => { /* nop */ });
+      if (this.webUpdateSupported) this.checkDashUpdate().catch(() => { /* nop */ });
+    },
     _runTabMountHooks(target) {
       const hooks = (this.TAB_MOUNT_HOOKS && this.TAB_MOUNT_HOOKS[target]) || [];
       for (const fn of hooks) {

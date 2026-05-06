@@ -2031,10 +2031,28 @@ document.addEventListener("alpine:init", () => {
     // handles those. Mount hooks are for things like loadSpecVersion()
     // that don't fit the subscribe model.
     TAB_MOUNT_HOOKS: {
-      dev: [(self) => self.loadSpecVersion()]
+      dev: [(self) => self.loadSpecVersion()],
+      // Lifecycle tab entry: auto-fire the check_update probes for
+      // server + dashboard so the Latest chips show real verified
+      // state at-a-glance without the operator having to click. Re-
+      // probe at most once every 6h to avoid hammering brew on
+      // every tab toggle.
+      lifecycle: [
+        (self) => self._maybeAutoCheckUpdates()
+      ]
     },
     _tabHidden: false,
     _currentTabSubs: [],
+    _lastUpdateProbeAt: 0,
+    _maybeAutoCheckUpdates() {
+      const SIX_H = 6 * 60 * 60 * 1e3;
+      if (Date.now() - this._lastUpdateProbeAt < SIX_H) return;
+      this._lastUpdateProbeAt = Date.now();
+      if (this.backendReachable) this.checkBackendUpdate().catch(() => {
+      });
+      if (this.webUpdateSupported) this.checkDashUpdate().catch(() => {
+      });
+    },
     _runTabMountHooks(target) {
       const hooks = this.TAB_MOUNT_HOOKS && this.TAB_MOUNT_HOOKS[target] || [];
       for (const fn of hooks) {
