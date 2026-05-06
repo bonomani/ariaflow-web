@@ -1570,7 +1570,9 @@ document.addEventListener("alpine:init", () => {
       void this._staleTick;
       if (!this._lastFreshAt) return false;
       const ageMs = Date.now() - this._lastFreshAt;
-      return this._consecutiveFailures > 0 && ageMs > this.refreshInterval * 2;
+      if (this._consecutiveFailures > 0 && ageMs > this.refreshInterval * 2) return true;
+      if (this.refreshInterval === 0 && !this._sseConnected && ageMs > 3e4) return true;
+      return false;
     },
     get staleAgeText() {
       void this._staleTick;

@@ -336,13 +336,19 @@ document.addEventListener('alpine:init', () => {
       return !this.backendReachable || this.schedulerBadgeText === 'starting';
     },
     get isStale() {
-      // True when polling has backed off after consecutive failures and the
-      // last successful update is older than 2× the normal interval. Touch
+      // True when the data is older than the user's tolerance window. Touch
       // _staleTick so Alpine re-evaluates this getter when the 1s tick fires.
+      // Three triggers:
+      //   - polling failures + age > 2× interval (normal backoff window)
+      //   - SSE disconnected + polling 'Off' + age > 30s (silent freeze case)
+      //   - SSE disconnected + polling enabled, falls back via failures path
       void this._staleTick;
       if (!this._lastFreshAt) return false;
       const ageMs = Date.now() - this._lastFreshAt;
-      return this._consecutiveFailures > 0 && ageMs > this.refreshInterval * 2;
+      if (this._consecutiveFailures > 0 && ageMs > this.refreshInterval * 2) return true;
+      // Polling Off + SSE dead: no failure counter to ride; trip on raw age.
+      if (this.refreshInterval === 0 && !this._sseConnected && ageMs > 30_000) return true;
+      return false;
     },
     get staleAgeText() {
       void this._staleTick;
