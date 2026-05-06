@@ -570,6 +570,8 @@ class TestApiParamCoverage:
             "saveDeclaration",
             "_filesPost",
             "_itemDecision",
+            "_patchWebConfig",
+            "loadWebConfig",
         }
 
         # Check each API method is referenced in HTML or called from init.

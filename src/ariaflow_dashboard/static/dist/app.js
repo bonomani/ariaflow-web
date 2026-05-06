@@ -1737,9 +1737,20 @@ document.addEventListener("alpine:init", () => {
       if (!cap || cap <= 0) return 0;
       return Math.round(this.bwLiveDownMbps / cap * 100);
     },
+    // CAP usage zones: under-utilized → neutral, at-target → green,
+    // significantly over → warn. The "at target" band is symmetric
+    // ±5 % around the cap — being at or just past 100 % means we're
+    // using the bandwidth we paid for, which is the desired state.
+    // Only genuine bursting past the soft cap (> 105 %) is a warning.
     get bwOverCap() {
       const cap = this.bw?.cap_mbps;
-      return !!cap && cap > 0 && this.bwLiveDownMbps > cap;
+      return !!cap && cap > 0 && this.bwLiveDownMbps > cap * 1.05;
+    },
+    get bwAtCapTarget() {
+      const cap = this.bw?.cap_mbps;
+      if (!cap || cap <= 0) return false;
+      const ratio = this.bwLiveDownMbps / cap;
+      return ratio >= 0.95 && ratio <= 1.05;
     },
     // Reserve preview: stricter of (% policy, absolute Mbps policy).
     // Mirrors the backend's "stricter wins" logic so users see exactly
@@ -1825,6 +1836,17 @@ document.addEventListener("alpine:init", () => {
       const v = Number(this.getDeclarationPreference("auto_update_check_hours"));
       return Number.isFinite(v) && v > 0 ? v : 24;
     },
+    // Dashboard-local auto-update (FE-48). Stored at ~/.ariaflow-dashboard/
+    // config.json on the box running the dashboard, NOT in the server's
+    // declaration — must work when the server is down.
+    webConfig: { auto_update: false, auto_update_check_hours: 24 },
+    get dashAutoUpdateEnabled() {
+      return !!this.webConfig?.auto_update;
+    },
+    get dashAutoUpdateCheckHours() {
+      const v = Number(this.webConfig?.auto_update_check_hours);
+      return Number.isFinite(v) && v > 0 ? v : 24;
+    },
     // lifecycle
     lifecycleRows: [],
     _lifecycleSession: null,
@@ -1895,6 +1917,7 @@ document.addEventListener("alpine:init", () => {
       this._initSSE();
       setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2e3);
       setInterval(() => this.discoverBackends().catch((e) => console.warn(e.message)), 6e4);
+      this.loadWebConfig();
     },
     // --- per-tab data routing ---
     // Each entry maps a tab to one or more endpoints; the FreshnessRouter
@@ -2819,6 +2842,37 @@ document.addEventListener("alpine:init", () => {
       const n = Number(hours);
       if (!Number.isFinite(n) || n <= 0) return;
       this._queuePrefChange("auto_update_check_hours", n, [24], "default 24h check interval", 400);
+    },
+    // Dashboard-local auto-update setters (FE-48). PATCH /api/web/config
+    // — same-origin, doesn't go through the backend.
+    async setDashAutoUpdate(enabled) {
+      await this._patchWebConfig({ auto_update: !!enabled });
+    },
+    async setDashAutoUpdateCheckHours(hours) {
+      const n = Number(hours);
+      if (!Number.isFinite(n) || n <= 0) return;
+      await this._patchWebConfig({ auto_update_check_hours: Math.max(1, Math.min(720, Math.trunc(n))) });
+    },
+    async _patchWebConfig(updates) {
+      try {
+        const r = await this._fetch("/api/web/config", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+        const data = await r.json();
+        if (data?.ok) this.webConfig = { auto_update: !!data.auto_update, auto_update_check_hours: Number(data.auto_update_check_hours) || 24 };
+      } catch (e) {
+        this.resultText = `Failed to update dashboard config: ${e.message}`;
+      }
+    },
+    async loadWebConfig() {
+      try {
+        const r = await this._fetch("/api/web/config");
+        const data = await r.json();
+        if (data?.ok) this.webConfig = { auto_update: !!data.auto_update, auto_update_check_hours: Number(data.auto_update_check_hours) || 24 };
+      } catch (e) {
+      }
     },
     // --- actions ---
     async add() {

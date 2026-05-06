@@ -9,6 +9,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 from .action_log import load_action_log, record_action
+from .auto_update import load_config as load_auto_update_config
+from .auto_update import save_config as save_auto_update_config
+from .auto_update import start_poller as start_auto_update_poller
 from .bonjour import discover_http_services, local_identity
 from .install_self import (
     detect_installed_via,
@@ -38,6 +41,8 @@ _DASHBOARD_META: list[dict] = [
     {"method": "GET", "path": "/api/_meta", "freshness": "bootstrap"},
     {"method": "GET", "path": "/api/discovery", "freshness": "warm", "ttl_s": 30},
     {"method": "GET", "path": "/api/web/log", "freshness": "warm", "ttl_s": 30},
+    {"method": "GET", "path": "/api/web/config", "freshness": "cold"},
+    {"method": "PATCH", "path": "/api/web/config", "freshness": "on-action"},
     {"method": "GET", "path": "/api/web/lifecycle", "freshness": "warm", "ttl_s": 60},
 ]
 
@@ -185,6 +190,12 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
                 }
             )
             return
+        if path == "/api/web/config":
+            cfg = load_auto_update_config()
+            self._send_json(
+                {"ok": True, **cfg, "meta": _meta_for("/api/web/config")}
+            )
+            return
         if path == "/api/web/log":
             qs = parse_qs(parsed.query)
             try:
@@ -243,6 +254,31 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
             return
         self._send_json({"ok": False, "error": "not_found"}, status=404)
 
+    def do_PATCH(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        if parsed.path != "/api/web/config":
+            self._send_json({"ok": False, "error": "not_found"}, status=404)
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(length) if length else b""
+        try:
+            payload = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            self._send_json({"ok": False, "error": "invalid_json"}, status=400)
+            return
+        if not isinstance(payload, dict):
+            self._send_json({"ok": False, "error": "expected_object"}, status=400)
+            return
+        cfg = save_auto_update_config(payload)
+        record_action(
+            action="config_patch",
+            target="ariaflow-dashboard",
+            outcome="changed",
+            reason="auto_update",
+            detail={k: cfg.get(k) for k in payload if k in cfg},
+        )
+        self._send_json({"ok": True, **cfg, "meta": _meta_for("/api/web/config")})
+
     def log_message(self, format: str, *args: object) -> None:  # noqa: A003
         return
 
@@ -265,4 +301,6 @@ def serve(
             "version": __version__,
         },
     )
+    # Daemon thread; harmless when auto_update=false (it just sleeps).
+    start_auto_update_poller()
     return ThreadingHTTPServer((host, port), AriaFlowHandler)

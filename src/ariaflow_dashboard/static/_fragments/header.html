@@ -108,7 +108,7 @@
         <div class="kpi kpi-cap" x-show="bw.cap_mbps">
           <div class="kpi-label">Cap</div>
           <div class="kpi-value">
-            <span x-show="bwLiveDownMbps > 0" :class="{ 'kpi-over': bwOverCap }" x-text="bwUtilizationPct + '%'"></span>
+            <span x-show="bwLiveDownMbps > 0" :class="{ 'kpi-over': bwOverCap, 'kpi-good': bwAtCapTarget }" x-text="bwUtilizationPct + '%'"></span>
             <span x-show="bwLiveDownMbps <= 0" class="text-muted" x-text="bw.cap_mbps.toFixed(1) + ' Mbps'"></span>
           </div>
           <div class="kpi-sub" x-show="bwLiveDownMbps > 0" x-text="bwLiveDownMbps.toFixed(1) + ' / ' + bw.cap_mbps.toFixed(1) + ' Mbps' + (bwOverCap ? ' · over' : '')"></div>

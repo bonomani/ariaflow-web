@@ -153,6 +153,23 @@
               <div class="chips mt-sm" x-show="webPidText !== '-'">
                 <div class="chip">PID <strong x-text="webPidText">-</strong></div>
               </div>
+              <div class="section-title mt-md">
+                <h4 class="text-sm text-muted">Auto-update</h4>
+                <span :class="dashAutoUpdateEnabled ? 'badge good' : 'badge'" x-text="dashAutoUpdateEnabled ? 'enabled' : 'disabled'"></span>
+              </div>
+              <div class="meta">
+                <label :title="'Periodic upgrade check via ' + (webInstalledVia || 'detected installer') + '. Same dispatcher as the manual Update button. Stored locally at ~/.ariaflow-dashboard/config.json.'">
+                  <input type="checkbox" :checked="dashAutoUpdateEnabled" @change="setDashAutoUpdate($el.checked)" :disabled="!webUpdateSupported">
+                  Keep this dashboard up to date automatically
+                </label>
+              </div>
+              <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
+                <label>
+                  Check every
+                  <input type="number" min="1" max="720" :value="dashAutoUpdateCheckHours" @input="setDashAutoUpdateCheckHours($el.value)" class="input-sm">
+                  hours
+                </label>
+              </div>
               <div class="action-strip mt-sm" x-show="webManagedBy || webInstalledVia">
                 <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :title="'Restart via ' + webManagedBy">Restart</button>
                 <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :title="'Update via ' + webInstalledVia">Update</button>
