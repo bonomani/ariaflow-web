@@ -650,6 +650,11 @@ document.addEventListener('alpine:init', () => {
 
       // Discovery is non-critical, defer it
       setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2000);
+      // Re-run discovery every 60s. The mDNS browse cache and the
+      // /api/peers fallback can both shift as peers come/go or the
+      // ariaflow-server restarts; firing once at init meant the badge
+      // got stuck on the boot-time result.
+      setInterval(() => this.discoverBackends().catch((e) => console.warn(e.message)), 60_000);
     },
 
     // --- per-tab data routing ---
@@ -1405,10 +1410,17 @@ get bonjourBadgeTitle() {
           this.recordGlobalSpeed(0, 0);
           return;
         }
+        const wasFailing = this._consecutiveFailures > 0;
         this._consecutiveFailures = 0;
         this._lastFreshAt = Date.now();
         this.lastStatus = data;
         this.syncSchedulerResultText();
+        // Backend just recovered: re-run mDNS discovery so the badge
+        // catches up to the live state. Otherwise the operator would
+        // see '✗' until the next 60s tick of the periodic discovery.
+        if (wasFailing) {
+          this.discoverBackends().catch((e) => console.warn(e.message));
+        }
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);

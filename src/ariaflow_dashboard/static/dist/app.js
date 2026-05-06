@@ -1896,6 +1896,7 @@ document.addEventListener("alpine:init", () => {
       });
       this._initSSE();
       setTimeout(() => this.discoverBackends().catch((e) => console.warn(e.message)), 2e3);
+      setInterval(() => this.discoverBackends().catch((e) => console.warn(e.message)), 6e4);
     },
     // --- per-tab data routing ---
     // Each entry maps a tab to one or more endpoints; the FreshnessRouter
@@ -2671,10 +2672,14 @@ document.addEventListener("alpine:init", () => {
           this.recordGlobalSpeed(0, 0);
           return;
         }
+        const wasFailing = this._consecutiveFailures > 0;
         this._consecutiveFailures = 0;
         this._lastFreshAt = Date.now();
         this.lastStatus = data;
         this.syncSchedulerResultText();
+        if (wasFailing) {
+          this.discoverBackends().catch((e) => console.warn(e.message));
+        }
         const items = this.itemsWithStatus;
         this.checkNotifications(items);
         this.recordGlobalSpeed(this.currentSpeed || 0, this.currentUploadSpeed || 0);
