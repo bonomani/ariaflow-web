@@ -68,13 +68,11 @@
                       <div class="chip" x-show="_lifecycleSession?.session_last_seen_at && !sessionTimestampStale(_lifecycleSession.session_last_seen_at)">Last seen <strong x-text="_lifecycleSession?.session_last_seen_at ? relativeTime(_lifecycleSession.session_last_seen_at) : '-'">-</strong></div>
                       <div class="chip" x-show="_lifecycleSession?.session_closed_at" :class="{ 'badge warn': _lifecycleSession?.session_closed_at }">Closed <strong x-text="_lifecycleSession?.session_closed_at ? relativeTime(_lifecycleSession.session_closed_at) + (_lifecycleSession.session_closed_reason ? ' · ' + _lifecycleSession.session_closed_reason : '') : '-'">-</strong></div>
                     </div>
-                    <div class="action-strip mt-sm">
-                      <button :class="{ secondary: !backendReachable }" @click="toggleScheduler()" :disabled="schedulerBtnDisabled" x-text="schedulerBtnText">Start</button>
-                      <button class="secondary" @click="schedulerAction('stop')" :disabled="!backendReachable" x-show="schedulerBadgeText !== 'stopped' && schedulerBadgeText">Stop</button>
-                      <template x-if="schedulerWaitReasonAction">
+                    <template x-if="schedulerWaitReasonAction">
+                      <div class="action-strip mt-sm">
                         <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
-                      </template>
-                    </div>
+                      </div>
+                    </template>
                     <template x-if="hasDeclarationPreference('auto_update')">
                       <div>
                         <div class="section-title mt-md">
