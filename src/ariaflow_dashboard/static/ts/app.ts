@@ -1702,6 +1702,15 @@ get bonjourBadgeTitle() {
         if (data?.ok) this.serverProbe = data;
       } catch (e) { /* keep null; UI hides CTA */ }
     },
+    async confirmUninstallServer() {
+      if (!window.confirm('Uninstall ariaflow-server? Your downloads stay on disk; aria2 + the dashboard are untouched. Run this from the terminal if you also want to remove ariaflow-dashboard.')) return;
+      // Uninstall is a backend-driven action so the running server can
+      // do its own cleanup before brew removes it. lifecycleAction
+      // already POSTs to /api/lifecycle/<target>/<action>.
+      await this.lifecycleAction('ariaflow-server', 'uninstall');
+      // Re-probe shortly to update the install state for the CTA banner.
+      setTimeout(() => this.loadServerProbe(), 5_000);
+    },
     async installAriaflowServer() {
       try {
         const r = await this._fetch('/api/web/lifecycle/ariaflow-server/install', { method: 'POST' });

@@ -127,6 +127,12 @@
                         <span class="text-muted text-sm" x-show="updateCheckResult" x-text="updateCheckResult"></span>
                       </div>
                     </div>
+                    <div class="action-strip mt-sm">
+                      <button x-show="serverProbe && !serverProbe.installed && serverProbe.install_supported" @click="installAriaflowServer()" :title="'Local install via ' + (serverProbe?.installed_via || 'brew/pipx')">Install (local)</button>
+                      <button x-show="serverProbe?.installed || backendReachable" @click="lifecycleAction('ariaflow-server', 'update')" :disabled="!backendReachable" :title="backendReachable ? 'Remote upgrade via backend (BG-46) → bootout+bootstrap (BG-62)' : 'Server unreachable — start it or use Install above'">Update</button>
+                      <button class="secondary" x-show="serverProbe?.installed || backendReachable" @click="lifecycleAction('ariaflow-server', 'restart')" :disabled="!backendReachable" :title="'Remote restart via backend (BG-61)'">Restart</button>
+                      <button class="secondary" x-show="serverProbe?.installed || backendReachable" @click="confirmUninstallServer()" :disabled="!backendReachable" :title="'Remote uninstall via backend'">Uninstall</button>
+                    </div>
                   </div>
                 </template>
                 <template x-if="row.name !== 'ariaflow-server' && row.record?.result?.expected_version && row.record.result.version && row.record.result.version !== row.record.result.expected_version">

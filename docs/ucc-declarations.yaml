@@ -162,6 +162,7 @@ coverage_map:
   setDashUpdateServerFirst: "PATCH /api/web/config {update_server_first}"
   setDashAutoRestart: "PATCH /api/web/config {auto_restart_after_upgrade}"
   installAriaflowServer: "POST /api/web/lifecycle/ariaflow-server/install — cold-start install"
+  confirmUninstallServer: "thin wrapper: window.confirm + lifecycleAction('ariaflow-server', 'uninstall')"
   useAria2DirAsDownloadDir: "FE-52: queue download_dir pref change to match aria2 runtime dir"
   useDownloadDirForAria2: "FE-52: POST /api/aria2/change_global_option {dir}"
   checkBackendUpdate: "manual probe: POST /api/lifecycle/ariaflow-server/check_update (paired with BG-59)"

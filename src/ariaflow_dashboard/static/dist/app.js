@@ -2968,6 +2968,11 @@ document.addEventListener("alpine:init", () => {
       } catch (e) {
       }
     },
+    async confirmUninstallServer() {
+      if (!window.confirm("Uninstall ariaflow-server? Your downloads stay on disk; aria2 + the dashboard are untouched. Run this from the terminal if you also want to remove ariaflow-dashboard.")) return;
+      await this.lifecycleAction("ariaflow-server", "uninstall");
+      setTimeout(() => this.loadServerProbe(), 5e3);
+    },
     async installAriaflowServer() {
       try {
         const r = await this._fetch("/api/web/lifecycle/ariaflow-server/install", { method: "POST" });
