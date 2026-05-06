@@ -1,6 +1,20 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-40: Badge stays `idle` after Pause from drained-idle (waiting on BG-50)
+
+**Blocked by:** BG-50
+
+**Status:** waiting on backend.
+
+When the scheduler is `idle` (loop drained, intent=running) and the
+operator clicks Pause, the dispatch-paused flag is persisted but
+`deriveSchedulerStatus` returns `'idle'` instead of `'paused'`, so the
+badge appears unchanged. BG-50 fixes the derivation upstream; no FE
+change once it lands.
+
+---
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
