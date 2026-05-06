@@ -1,6 +1,17 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-42: Bandwidth probe shows "overdue" forever (waiting on BG-52)
+
+**Blocked by:** BG-52
+
+The FE correctly derives `bwProbeStale` from `last_probe_at` vs the
+configured `bandwidth_probe_interval_seconds` and renders an `overdue`
+chip. The chip is right — the backend doesn't re-run the probe. No FE
+change once BG-52 closes.
+
+---
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
