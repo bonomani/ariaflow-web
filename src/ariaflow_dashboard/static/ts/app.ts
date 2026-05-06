@@ -225,16 +225,18 @@ document.addEventListener('alpine:init', () => {
       return counts;
     },
     // BG-40: state.scheduler_status is the source of truth (5-state enum).
+    // The scheduler lives inside ariaflow-server: when the server is
+    // unreachable, status is unknowable — show 'unknown' rather than the
+    // stale enum value or a misleading 'stopped' fallback.
     get schedulerBadgeText() {
+      if (!this.backendReachable) return 'unknown';
       return this.state?.scheduler_status || 'stopped';
     },
     get schedulerBadgeClass() {
       switch (this.schedulerBadgeText) {
         case 'running': return 'badge good';
         case 'paused': return 'badge warn';
-        case 'idle': return 'badge';
-        case 'starting': return 'badge';
-        case 'stopped': return 'badge';
+        case 'unknown': return 'badge warn';
         default: return 'badge';
       }
     },
