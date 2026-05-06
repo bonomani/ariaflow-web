@@ -92,6 +92,16 @@ Same rules for every row.
    GRAY   — no info yet (not lying about the state)
 ```
 
+## Implementation status (v0.1.566+)
+
+| Rule | Where applied |
+|---|---|
+| 🟢/🟡/🔴 axis-driven pill (`installed`/`current`/`running`) | all backend rows via `lifecycleBadgeClass` |
+| 🟡 30s warmup (uptime < 30s) | dashboard self ✓, server ✓ |
+| 🟡 5xx errors in last batch | server ✓ |
+| Latest chip 🟢 ✓ / 🟡 ↑ / ⚪ ? | dashboard self ✓, server ✓ (via `_serverUpdateProbe` override), aria2 ✓, networkquality ✓ (when backend reports `current` axis) |
+| 🟡 ⚠ probe-failed (vs ↑ upgrade-available) | dashboard self ✓, server ✓ |
+
 ## Implementation notes
 
 - The 30s warmup means after every Restart click the operator sees

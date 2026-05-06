@@ -137,9 +137,22 @@
                     </div>
                   </div>
                 </template>
-                <template x-if="row.name !== 'ariaflow-server' && row.record?.result?.expected_version && row.record.result.version && row.record.result.version !== row.record.result.expected_version">
+                <!-- Latest chip — uniform across non-server rows per HEALTH_PILL_RULES.md.
+                     Server uses its own FE-side override via _serverUpdateProbe. -->
+                <template x-if="row.name !== 'ariaflow-server' && row.record?.result?.version">
                   <div class="chips mt-sm">
-                    <div class="chip badge warn">Expected <strong x-text="row.record.result.expected_version"></strong></div>
+                    <span :class="row.record.result.current === false ? 'chip badge warn' : (row.record.result.current === true ? 'chip badge good' : 'chip')"
+                          :title="row.record.result.current === false ? 'Newer version available: ' + (row.record.result.expected_version || '?') : (row.record.result.current === true ? 'Backend probe verified up to date' : 'No probe yet')">
+                      <template x-if="row.record.result.current === false">
+                        <span>Latest <strong x-text="'v' + (row.record.result.expected_version || '?')"></strong> ↑</span>
+                      </template>
+                      <template x-if="row.record.result.current === true">
+                        <span>Latest <strong x-text="'v' + row.record.result.version"></strong> ✓</span>
+                      </template>
+                      <template x-if="row.record.result.current == null">
+                        <span class="text-muted">Latest ?</span>
+                      </template>
+                    </span>
                   </div>
                 </template>
                 <template x-if="row.name === 'aria2' && row.record?.result?.auto_start">
