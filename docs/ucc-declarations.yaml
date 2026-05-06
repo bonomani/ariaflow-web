@@ -160,7 +160,6 @@ coverage_map:
   setDashUpdateServerFirst: "PATCH /api/web/config {update_server_first}"
   setDashAutoUpdatePreset: "preset-button wrapper: hours=0 → off, else enable+set hours in one PATCH"
   installAriaflowServer: "POST /api/web/lifecycle/ariaflow-server/install — cold-start install"
-  _maybeAutoCheckUpdates: "lifecycle tab mount hook: dedup-fires checkBackendUpdate + checkDashUpdate every 6h"
   confirmUninstallServer: "thin wrapper: window.confirm + lifecycleAction('ariaflow-server', 'uninstall')"
   useAria2DirAsDownloadDir: "FE-52: queue download_dir pref change to match aria2 runtime dir"
   useDownloadDirForAria2: "FE-52: POST /api/aria2/change_global_option {dir}"
