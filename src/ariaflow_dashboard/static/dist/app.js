@@ -1975,7 +1975,10 @@ document.addEventListener("alpine:init", () => {
             self.filesData = data?.files || [];
             self.filesError = data?.ok === false ? data.error || "unknown" : null;
           }
-        }
+        },
+        // FE-52: needed to detect mismatch with declaration.download_dir.
+        { method: "GET", path: "/api/aria2/global_option", apply: (s, d) => s._applyAria2GlobalOption(d) },
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
       ]
     },
     // FE-31: dashboard-served endpoints (/api/web/log, /api/discovery)
@@ -3189,6 +3192,47 @@ document.addEventListener("alpine:init", () => {
     },
     get filesTotalSize() {
       return (this.filesData || []).reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+    },
+    // FE-52: mismatch detection between aria2's runtime dir and the
+    // operator's declared download_dir. Both must be set (truthy) for
+    // a real comparison; null/empty on either side means we don't
+    // know yet (data still loading) — suppress the banner.
+    get aria2RuntimeDir() {
+      return String(this.aria2Options?.dir || "").trim();
+    },
+    get declaredDownloadDir() {
+      return String(this.getDeclarationPreference("download_dir") || "").trim();
+    },
+    get dirMismatch() {
+      const a = this.aria2RuntimeDir;
+      const d = this.declaredDownloadDir;
+      return a && d && a !== d;
+    },
+    async useAria2DirAsDownloadDir() {
+      const target = this.aria2RuntimeDir;
+      if (!target) return;
+      this._queuePrefChange("download_dir", target, [""], "sync to aria2 dir", 0);
+      this._subscribeTab("archive");
+    },
+    async useDownloadDirForAria2() {
+      const target = this.declaredDownloadDir;
+      if (!target) return;
+      try {
+        const r = await this._fetch(this.backendPath("/api/aria2/change_global_option"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dir: target })
+        });
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.resultText = data?.message || "Failed to update aria2 dir";
+          return;
+        }
+        this.resultText = `aria2 dir set to ${target}`;
+        this._subscribeTab("archive");
+      } catch (e) {
+        this.resultText = `Failed to update aria2 dir: ${e.message}`;
+      }
     },
     get filesRows() {
       const files = this.filesData || [];

@@ -158,6 +158,8 @@ coverage_map:
   setDashAutoUpdate: "FE-48: PATCH /api/web/config {auto_update}"
   setDashAutoUpdateCheckHours: "FE-48: PATCH /api/web/config {auto_update_check_hours}"
   setDashUpdateServerFirst: "PATCH /api/web/config {update_server_first}"
+  useAria2DirAsDownloadDir: "FE-52: queue download_dir pref change to match aria2 runtime dir"
+  useDownloadDirForAria2: "FE-52: POST /api/aria2/change_global_option {dir}"
   checkBackendUpdate: "manual probe: POST /api/lifecycle/ariaflow-server/check_update (paired with BG-59)"
   checkDashUpdate: "manual probe: POST /api/web/lifecycle/ariaflow-dashboard/check_update"
   renameFile: "BG-56: prompt-driven wrapper around _filesPost('/api/files/rename')"

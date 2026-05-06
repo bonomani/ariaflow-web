@@ -1136,6 +1136,18 @@
               <button class="secondary" @click="openCleanModal()" :disabled="!backendReachable">Clean…</button>
             </div>
           </div>
+          <template x-if="dirMismatch">
+            <div class="banner mt-sm" role="region" aria-label="Download folder mismatch">
+              <div class="meta">
+                <span class="badge warn">paths disagree</span>
+                <span x-text="'aria2 writes to ' + aria2RuntimeDir + ', but ariaflow reads from ' + declaredDownloadDir + '. Files end up where the dashboard isn\\'t looking.'"></span>
+              </div>
+              <div class="action-strip mt-sm">
+                <button class="secondary" @click="useAria2DirAsDownloadDir()" :title="'Set declaration.download_dir = ' + aria2RuntimeDir">Use aria2's dir</button>
+                <button class="secondary" @click="useDownloadDirForAria2()" :title="'Set aria2 global dir = ' + declaredDownloadDir">Use download_dir for aria2</button>
+              </div>
+            </div>
+          </template>
           <div class="list">
             <template x-if="filesRows.length === 0 && filesError === 'download_dir_unset'">
               <div class="item">

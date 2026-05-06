@@ -1,36 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
-
-### FE-52: Detect and warn when `declaration.download_dir` ≠ aria2's `dir`
-
-**Standalone (no backend gap needed).**
-
-The dashboard tracks two independent paths today:
-
-- `declaration.download_dir` — what `/api/files` and the verify gate read
-- aria2's `dir` global option — what aria2 actually writes to
-
-If the operator changes one but not the other, files end up at one
-path while the dashboard reads from another → "Download folder is
-empty" even though downloads completed. Confirmed live by an operator.
-
-**Fix:** small banner / chip on the Downloaded tab when the two
-disagree:
-
-> aria2 writes to `/Users/bc/Downloads`, but ariaflow's `download_dir`
-> is `/Users/bc/ariaflow/`. They should match — [Use aria2's dir]
-> [Use download_dir for aria2]
-
-Two one-click reconcilers:
-- "Use aria2's dir" → PATCH declaration.preferences with download_dir
-  matching aria2's
-- "Use download_dir for aria2" → POST /api/aria2/global_option with
-  dir matching declaration
-
-Both already-supported endpoints; no new backend surface.
-
----
+## Open (1)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -45,6 +15,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-52 | Downloaded tab gains a "paths disagree" banner when `declaration.download_dir` ≠ aria2's runtime `dir`. Two one-click reconcilers: "Use aria2's dir" (PATCH declaration.preferences) and "Use download_dir for aria2" (POST /api/aria2/change_global_option). aria2_global_option + declaration subscriptions added to archive TAB_SUBS so the banner has live data | 2026-05-06 |
 | FE-50 | BG-58 shipped — `loadDownloadDir` now falls back to `$XDG_DOWNLOAD_DIR` / `~/Downloads` when the pref is empty. Fresh installs land on the standard download folder without operator action; explicit `download_dir` pref still wins as an override. No FE change required (existing `download_dir_unset` 409 UI stays as a last-resort for headless edge cases) | 2026-05-06 |
 | FE-47 | BG-57 shipped — `/api/status` summary now computed against the unfiltered queue (only `items` is filtered). Filter-bar count chips show full picture under any active filter; awaiting_confirmation count is now visible without switching filters. No FE change required | 2026-05-06 |
 | FE-46 | BG-56 shipped — Downloaded tab rebuilt around `GET /api/files` (filesystem-first). Three row variants: on-disk+history (full record + Rename/Move/Delete), on-disk+orphan ("found in folder, source unknown" + same actions), history-missing-disk ("missing from disk" derived from archiveItems whose output_path isn't in filesData). Disk-usage chip in section header (file count + total bytes). Bulk Clean modal with three recipes (complete_older_than_N_days / errors / orphaned-history). renameFile/moveFile use window.prompt; deleteFile uses window.confirm. All four ops route through _filesPost or DELETE /api/files and re-subscribe the archive tab on success. Phase 0 (Archive→Downloaded rename) folded in | 2026-05-06 |
