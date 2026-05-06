@@ -172,17 +172,27 @@
                 </div>
               </div>
             </template>
-            <!-- ariaflow-dashboard self row — Proposal E layout -->
+            <!-- ariaflow-dashboard self row — three compound chips, deduped -->
             <div class="item">
               <div class="item-top">
-                <div class="item-url">
-                  ariaflow-dashboard
-                  <strong class="text-muted text-sm" x-text="webVersionText">-</strong>
-                  <span class="text-muted text-sm" x-text="(webManagedBy || webInstalledVia ? '· ' + [webManagedBy, webInstalledVia].filter(Boolean).join(' · ') : '') + (webPidText !== '-' ? ' · PID ' + webPidText : '')"></span>
-                </div>
-                <span :class="_dashUpdateProbe === 'available' ? 'badge warn' : (_dashUpdateProbe === 'current' ? 'badge good' : 'badge')"
-                      :title="updateCheckResultDash || 'Click Check for update to verify'"
-                      x-text="_dashUpdateProbe === 'available' ? 'update available' : (_dashUpdateProbe === 'current' ? 'up to date' : 'running')"></span>
+                <div class="item-url">ariaflow-dashboard</div>
+              </div>
+              <div class="chips mt-sm">
+                <span class="chip badge good" x-show="webPidText !== '-'">
+                  <span x-text="webManagedBy || 'running'"></span> · PID <strong x-text="webPidText">-</strong>
+                </span>
+                <span class="chip" x-show="webVersionText !== '-'">
+                  installed <strong x-text="webVersionText">-</strong>
+                </span>
+                <span :class="_dashUpdateProbe === 'available' ? 'chip badge warn' : (_dashUpdateProbe === 'current' ? 'chip badge good' : 'chip')"
+                      x-show="webInstalledVia"
+                      :title="_dashUpdateProbe === null ? 'Click Check for update to verify' : updateCheckResultDash">
+                  <span x-text="webInstalledVia"></span>
+                  <template x-if="_dashLatestVersion">
+                    <strong x-text="' v' + _dashLatestVersion + (_dashUpdateProbe === 'available' ? ' ↑' : ' ✓')"></strong>
+                  </template>
+                  <strong x-show="_dashUpdateProbe === null" class="text-muted">?</strong>
+                </span>
               </div>
               <div class="action-strip mt-sm">
                 <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>

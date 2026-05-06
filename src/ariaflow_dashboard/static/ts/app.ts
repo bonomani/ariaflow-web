@@ -1650,9 +1650,11 @@ get bonjourBadgeTitle() {
         if (data?.update_available) {
           this.updateCheckResultDash = `Update available: ${data.current_version || '?'} → ${data.latest_version || '?'}`;
           this._dashUpdateProbe = 'available';
+          this._dashLatestVersion = String(data.latest_version || '') || null;
         } else {
           this.updateCheckResultDash = `Up to date (${data?.current_version || '?'})`;
           this._dashUpdateProbe = 'current';
+          this._dashLatestVersion = String(data?.current_version || '') || null;
         }
       } catch (e) {
         this.updateCheckResultDash = `Check failed: ${e.message}`;
@@ -2178,6 +2180,7 @@ get bonjourBadgeTitle() {
     // Tracked verdict from the most recent dashboard self check_update
     // probe. null = never checked; 'current' / 'available' / 'failed'.
     _dashUpdateProbe: null,
+    _dashLatestVersion: null,
     // Mirror for the server row. Overrides the BACKEND's lifecycle.
     // result.current claim when the FE-side Check probe just found
     // a newer version — operator was watching the click, the pill
