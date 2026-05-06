@@ -1691,6 +1691,20 @@ get bonjourBadgeTitle() {
     async setDashAutoRestart(enabled) {
       await this._patchWebConfig({ auto_restart_after_upgrade: !!enabled });
     },
+    // Quick-pick preset for the auto-update interval row. Hours=0 means
+    // off; any other value enables auto-update and sets the cadence in
+    // one PATCH (server merges DEFAULTS, both keys land together).
+    async setDashAutoUpdatePreset(hours) {
+      const n = Number(hours);
+      if (n <= 0) {
+        await this._patchWebConfig({ auto_update: false });
+        return;
+      }
+      await this._patchWebConfig({
+        auto_update: true,
+        auto_update_check_hours: Math.max(1, Math.min(720, Math.trunc(n))),
+      });
+    },
     async _patchWebConfig(updates) {
       try {
         const r = await this._fetch('/api/web/config', {

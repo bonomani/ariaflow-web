@@ -215,7 +215,7 @@
                   <template x-for="preset in [{l:'off',v:0},{l:'1h',v:1},{l:'6h',v:6},{l:'24h',v:24},{l:'1w',v:168}]" :key="preset.l">
                     <button class="text-sm"
                             :class="(preset.v === 0 ? !dashAutoUpdateEnabled : (dashAutoUpdateEnabled && Number(dashAutoUpdateCheckHours) === preset.v)) ? '' : 'secondary'"
-                            @click="(preset.v === 0) ? setDashAutoUpdate(false) : (setDashAutoUpdate(true), setDashAutoUpdateCheckHours(preset.v))"
+                            @click="setDashAutoUpdatePreset(preset.v)"
                             x-text="preset.l"
                             :disabled="!webUpdateSupported"></button>
                   </template>
