@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import time
 from pathlib import Path
+
+# Module-load time as a proxy for process start time. Captured at
+# import so we can report uptime without pulling in psutil.
+_PROCESS_STARTED_AT = time.time()
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -188,6 +193,7 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
                     "result": {
                         "version": __version__,
                         "pid": os.getpid(),
+                        "uptime_seconds": int(time.time() - _PROCESS_STARTED_AT),
                         "managed_by": detect_managed_by(),
                         "installed_via": detect_installed_via(),
                     },

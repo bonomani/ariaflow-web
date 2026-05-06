@@ -1374,6 +1374,7 @@ document.addEventListener("alpine:init", () => {
       return v ? `v${v}` : "-";
     })(),
     webPidText: dashboardPid() || "-",
+    webUptimeSeconds: 0,
     webManagedBy: null,
     // /api/web/lifecycle.result.managed_by
     webInstalledVia: null,
@@ -1863,6 +1864,19 @@ document.addEventListener("alpine:init", () => {
     },
     get dashAutoRestart() {
       return this.webConfig?.auto_restart_after_upgrade !== false;
+    },
+    get webUptimeText() {
+      const s = Number(this.webUptimeSeconds || 0);
+      if (s < 60) return `${s}s`;
+      if (s < 3600) return `${Math.floor(s / 60)}m`;
+      if (s < 86400) {
+        const h2 = Math.floor(s / 3600);
+        const m = Math.floor(s % 3600 / 60);
+        return m ? `${h2}h${m}m` : `${h2}h`;
+      }
+      const d = Math.floor(s / 86400);
+      const h = Math.floor(s % 86400 / 3600);
+      return h ? `${d}d${h}h` : `${d}d`;
     },
     // lifecycle
     lifecycleRows: [],
@@ -3370,6 +3384,7 @@ document.addEventListener("alpine:init", () => {
       this.webManagedBy = r.managed_by ?? null;
       this.webInstalledVia = r.installed_via ?? null;
       if (r.pid) this.webPidText = String(r.pid);
+      if (r.uptime_seconds != null) this.webUptimeSeconds = Number(r.uptime_seconds);
     },
     async webLifecycleAction(action) {
       if (!["restart", "update"].includes(action)) return;

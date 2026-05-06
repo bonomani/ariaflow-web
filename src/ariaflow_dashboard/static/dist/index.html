@@ -623,26 +623,35 @@
                 </div>
               </div>
             </template>
-            <!-- ariaflow-dashboard self row — three compound chips, deduped -->
+            <!-- ariaflow-dashboard self row — labeled chips, color = health -->
             <div class="item">
               <div class="item-top">
-                <div class="item-url">ariaflow-dashboard</div>
+                <div class="item-url">
+                  ariaflow-dashboard
+                  <strong class="text-muted text-sm" x-text="webVersionText">-</strong>
+                </div>
+                <span class="badge good" :title="'Process up for ' + webUptimeText" x-show="webPidText !== '-'">
+                  PID <strong x-text="webPidText">-</strong>
+                  · <strong x-text="webUptimeText"></strong>
+                </span>
               </div>
               <div class="chips mt-sm">
-                <span class="chip badge good" x-show="webPidText !== '-'">
-                  <span x-text="webManagedBy || 'running'"></span> · PID <strong x-text="webPidText">-</strong>
+                <span class="chip" x-show="webManagedBy">
+                  Supervisor: <strong x-text="webManagedBy"></strong>
                 </span>
-                <span class="chip" x-show="webVersionText !== '-'">
-                  installed <strong x-text="webVersionText">-</strong>
+                <span class="chip" x-show="webInstalledVia">
+                  Package: <strong x-text="webInstalledVia"></strong>
                 </span>
                 <span :class="_dashUpdateProbe === 'available' ? 'chip badge warn' : (_dashUpdateProbe === 'current' ? 'chip badge good' : 'chip')"
                       x-show="webInstalledVia"
                       :title="_dashUpdateProbe === null ? 'Click Check for update to verify' : updateCheckResultDash">
-                  <span x-text="webInstalledVia"></span>
                   <template x-if="_dashLatestVersion">
-                    <strong x-text="' v' + _dashLatestVersion + (_dashUpdateProbe === 'available' ? ' ↑' : ' ✓')"></strong>
+                    <span>
+                      Latest <strong x-text="'v' + _dashLatestVersion"></strong>
+                      <strong x-text="_dashUpdateProbe === 'available' ? '↑' : '✓'"></strong>
+                    </span>
                   </template>
-                  <strong x-show="_dashUpdateProbe === null" class="text-muted">?</strong>
+                  <span x-show="!_dashLatestVersion" class="text-muted">Latest ?</span>
                 </span>
               </div>
               <div class="action-strip mt-sm">
@@ -651,23 +660,20 @@
                 <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :title="'Update via ' + webInstalledVia">Update</button>
                 <span class="text-muted text-sm" x-show="updateCheckResultDash" x-text="updateCheckResultDash"></span>
               </div>
+              <div class="meta mt-sm">
+                <span class="text-muted text-sm">Auto-update</span>
+                <span class="action-strip">
+                  <template x-for="preset in [{l:'off',v:0},{l:'1h',v:1},{l:'6h',v:6},{l:'24h',v:24},{l:'1w',v:168}]" :key="preset.l">
+                    <button class="text-sm"
+                            :class="(preset.v === 0 ? !dashAutoUpdateEnabled : (dashAutoUpdateEnabled && Number(dashAutoUpdateCheckHours) === preset.v)) ? '' : 'secondary'"
+                            @click="(preset.v === 0) ? setDashAutoUpdate(false) : (setDashAutoUpdate(true), setDashAutoUpdateCheckHours(preset.v))"
+                            x-text="preset.l"
+                            :disabled="!webUpdateSupported"></button>
+                  </template>
+                </span>
+              </div>
               <details class="mt-sm">
-                <summary class="text-muted text-sm cursor-pointer">
-                  Auto-update <span x-text="dashAutoUpdateEnabled ? 'on, every ' + dashAutoUpdateCheckHours + 'h' : 'off'"></span>
-                </summary>
-                <div class="meta mt-sm">
-                  <label :title="'Periodic upgrade check via ' + (webInstalledVia || 'detected installer') + '. Stored locally at ~/.ariaflow-dashboard/config.json.'">
-                    <input type="checkbox" :checked="dashAutoUpdateEnabled" @change="setDashAutoUpdate($el.checked)" :disabled="!webUpdateSupported">
-                    Keep this dashboard up to date automatically
-                  </label>
-                </div>
-                <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
-                  <label>
-                    Check every
-                    <input type="number" min="1" max="720" :value="dashAutoUpdateCheckHours" @input="setDashAutoUpdateCheckHours($el.value)" class="input-sm">
-                    hours
-                  </label>
-                </div>
+                <summary class="text-muted text-sm cursor-pointer">Other settings</summary>
                 <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
                   <label :title="'Trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so versions stay aligned.'">
                     <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
