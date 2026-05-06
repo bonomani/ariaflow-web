@@ -1322,6 +1322,12 @@ get bonjourBadgeTitle() {
         const opts = {};
         if (this._statusETag) opts.headers = { 'If-None-Match': this._statusETag };
         const r = await this._fetch(this._statusUrl(), opts);
+        // Stamp the freshness router on every successful fetch, BEFORE
+        // any short-circuit returns — the Dev-tab map should reflect
+        // 'we fetched it', not 'we accepted the new data'.
+        if (this._freshnessRouter) {
+          try { this._freshnessRouter.markExternalFetch('GET', '/api/status'); } catch (e) { /* ignore */ }
+        }
         if (r.status === 304) {
           this.syncSchedulerResultText();
           return; // Not modified
@@ -1329,7 +1335,11 @@ get bonjourBadgeTitle() {
         const etag = r.headers.get('ETag');
         if (etag) this._statusETag = etag;
         const data = await r.json();
-        if (data?._rev && this.lastRev === data._rev) return;
+        // No _rev short-circuit: backend bumps state._rev only on state
+        // transitions (active_gid, paused/running, etc.), but item
+        // progress (downloadSpeed, completedLength) lives in queueStore
+        // and doesn't move _rev. Short-circuiting would freeze the
+        // queue rows and the throughput graph during an active download.
         this.lastRev = data?._rev || null;
         if (data?.ok === false || data?.['ariaflow-server']?.reachable === false) {
           this._consecutiveFailures++;
@@ -1341,9 +1351,6 @@ get bonjourBadgeTitle() {
         }
         this._consecutiveFailures = 0;
         this._lastFreshAt = Date.now();
-        if (this._freshnessRouter) {
-          try { this._freshnessRouter.markExternalFetch('GET', '/api/status'); } catch (e) { /* ignore */ }
-        }
         this.lastStatus = data;
         this.syncSchedulerResultText();
         const items = this.itemsWithStatus;
