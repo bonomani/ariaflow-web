@@ -204,6 +204,72 @@ def dispatch_update() -> dict:
     }
 
 
+def check_for_update() -> dict:
+    """Probe the package manager to see if an update is available.
+
+    Synchronous (blocks for ~1-3s on `brew outdated` etc.) and read-only
+    — does NOT dispatch the upgrade. Used by the manual "Check for
+    update" button and by the auto-update poller before deciding to
+    dispatch.
+    """
+    from . import __version__
+
+    installed_via = detect_installed_via()
+    current = __version__
+    if installed_via == "homebrew":
+        try:
+            out = subprocess.run(  # noqa: S603, S607
+                ["brew", "outdated", "--json", "--formula", "ariaflow-dashboard"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            import json as _json
+
+            data = _json.loads(out.stdout or "{}")
+            outdated = data.get("formulae") or []
+            if outdated:
+                latest = outdated[0].get("current_version") or "?"
+                return {
+                    "ok": True,
+                    "update_available": True,
+                    "installed_via": "homebrew",
+                    "current_version": current,
+                    "latest_version": latest,
+                }
+            return {
+                "ok": True,
+                "update_available": False,
+                "installed_via": "homebrew",
+                "current_version": current,
+            }
+        except (subprocess.TimeoutExpired, FileNotFoundError, ValueError) as e:
+            return {"ok": False, "error": "probe_failed", "message": str(e)}
+    if installed_via == "pipx":
+        # `pipx list --json` includes the installed version; comparing
+        # against the latest requires a separate PyPI query (heavier).
+        # Surface "manual check needed" for pipx until we wire pip index.
+        return {
+            "ok": True,
+            "update_available": None,
+            "installed_via": "pipx",
+            "current_version": current,
+            "message": "pipx update probe not implemented; run `pipx upgrade ariaflow-dashboard` manually",
+        }
+    if installed_via == "source":
+        return {
+            "ok": False,
+            "error": "source_install",
+            "message": "running from a git checkout — check via git pull",
+        }
+    return {
+        "ok": False,
+        "error": "unknown_installer",
+        "message": "could not detect an installer for this process",
+    }
+
+
 def _detached(cmd: str, args: list[str]) -> None:
     subprocess.Popen(  # noqa: S603
         [cmd, *args],

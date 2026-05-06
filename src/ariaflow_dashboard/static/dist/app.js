@@ -1839,13 +1839,16 @@ document.addEventListener("alpine:init", () => {
     // Dashboard-local auto-update (FE-48). Stored at ~/.ariaflow-dashboard/
     // config.json on the box running the dashboard, NOT in the server's
     // declaration — must work when the server is down.
-    webConfig: { auto_update: false, auto_update_check_hours: 24 },
+    webConfig: { auto_update: false, auto_update_check_hours: 24, update_server_first: false, backend_url: "" },
     get dashAutoUpdateEnabled() {
       return !!this.webConfig?.auto_update;
     },
     get dashAutoUpdateCheckHours() {
       const v = Number(this.webConfig?.auto_update_check_hours);
       return Number.isFinite(v) && v > 0 ? v : 24;
+    },
+    get dashUpdateServerFirst() {
+      return !!this.webConfig?.update_server_first;
     },
     // lifecycle
     lifecycleRows: [],
@@ -2845,6 +2848,55 @@ document.addEventListener("alpine:init", () => {
     },
     // Dashboard-local auto-update setters (FE-48). PATCH /api/web/config
     // — same-origin, doesn't go through the backend.
+    // Manual "check for update" — runs the package-manager probe without
+    // dispatching the upgrade. The auto-update poller already does this
+    // automatically every `auto_update_check_hours`; this button is for
+    // operators who want to know *now* without waiting for the cycle.
+    updateCheckLoading: false,
+    updateCheckResult: "",
+    updateCheckResultDash: "",
+    async checkBackendUpdate() {
+      this.updateCheckLoading = true;
+      this.updateCheckResult = "";
+      try {
+        const r = await this._fetch(this.backendPath("/api/lifecycle/ariaflow-server/check_update"), { method: "POST" });
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.updateCheckResult = data?.message || `Check failed (${r.status})`;
+          return;
+        }
+        if (data?.update_available) {
+          this.updateCheckResult = `Update available: ${data.current_version || "?"} \u2192 ${data.latest_version || "?"}`;
+        } else {
+          this.updateCheckResult = `Up to date (${data?.current_version || "?"})`;
+        }
+      } catch (e) {
+        this.updateCheckResult = `Check failed: ${e.message}`;
+      } finally {
+        this.updateCheckLoading = false;
+      }
+    },
+    async checkDashUpdate() {
+      this.updateCheckLoading = true;
+      this.updateCheckResultDash = "";
+      try {
+        const r = await this._fetch("/api/web/lifecycle/ariaflow-dashboard/check_update", { method: "POST" });
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.updateCheckResultDash = data?.message || `Check failed (${r.status})`;
+          return;
+        }
+        if (data?.update_available) {
+          this.updateCheckResultDash = `Update available: ${data.current_version || "?"} \u2192 ${data.latest_version || "?"}`;
+        } else {
+          this.updateCheckResultDash = `Up to date (${data?.current_version || "?"})`;
+        }
+      } catch (e) {
+        this.updateCheckResultDash = `Check failed: ${e.message}`;
+      } finally {
+        this.updateCheckLoading = false;
+      }
+    },
     async setDashAutoUpdate(enabled) {
       await this._patchWebConfig({ auto_update: !!enabled });
     },
@@ -2852,6 +2904,9 @@ document.addEventListener("alpine:init", () => {
       const n = Number(hours);
       if (!Number.isFinite(n) || n <= 0) return;
       await this._patchWebConfig({ auto_update_check_hours: Math.max(1, Math.min(720, Math.trunc(n))) });
+    },
+    async setDashUpdateServerFirst(enabled) {
+      await this._patchWebConfig({ update_server_first: !!enabled });
     },
     async _patchWebConfig(updates) {
       try {
@@ -2861,7 +2916,7 @@ document.addEventListener("alpine:init", () => {
           body: JSON.stringify(updates)
         });
         const data = await r.json();
-        if (data?.ok) this.webConfig = { auto_update: !!data.auto_update, auto_update_check_hours: Number(data.auto_update_check_hours) || 24 };
+        if (data?.ok) this.webConfig = this._normalizeWebConfig(data);
       } catch (e) {
         this.resultText = `Failed to update dashboard config: ${e.message}`;
       }
@@ -2870,9 +2925,17 @@ document.addEventListener("alpine:init", () => {
       try {
         const r = await this._fetch("/api/web/config");
         const data = await r.json();
-        if (data?.ok) this.webConfig = { auto_update: !!data.auto_update, auto_update_check_hours: Number(data.auto_update_check_hours) || 24 };
+        if (data?.ok) this.webConfig = this._normalizeWebConfig(data);
       } catch (e) {
       }
+    },
+    _normalizeWebConfig(data) {
+      return {
+        auto_update: !!data.auto_update,
+        auto_update_check_hours: Number(data.auto_update_check_hours) || 24,
+        update_server_first: !!data.update_server_first,
+        backend_url: String(data.backend_url || "")
+      };
     },
     // --- actions ---
     async add() {

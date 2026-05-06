@@ -533,27 +533,29 @@
                         <button class="secondary" @click="runWaitReasonAction()" :disabled="!backendReachable" x-text="schedulerWaitReasonAction.label"></button>
                       </div>
                     </template>
-                    <template x-if="hasDeclarationPreference('auto_update')">
-                      <div>
-                        <div class="section-title mt-md">
-                          <h4 class="text-sm text-muted">Auto-update</h4>
-                          <span :class="autoUpdateEnabled ? 'badge good' : 'badge'" x-text="autoUpdateEnabled ? 'enabled' : 'disabled'"></span>
-                        </div>
-                        <div class="meta">
-                          <label :title="'Periodic upgrade check via the detected package manager (Homebrew, pipx, npm). Runs the same dispatcher as the manual Update button.'">
-                            <input type="checkbox" :checked="autoUpdateEnabled" @change="setAutoUpdate($el.checked)">
-                            Enable periodic upgrade check
-                          </label>
-                        </div>
-                        <div class="meta mt-sm" x-show="autoUpdateEnabled && hasDeclarationPreference('auto_update_check_hours')">
-                          <label>
-                            Check every
-                            <input type="number" min="1" max="720" :value="autoUpdateCheckHours" @input="setAutoUpdateCheckHours($el.value)" class="input-sm">
-                            hours
-                          </label>
-                        </div>
+                    <div>
+                      <div class="section-title mt-md">
+                        <h4 class="text-sm text-muted">Auto-update</h4>
+                        <span :class="autoUpdateEnabled ? 'badge good' : 'badge'" x-text="autoUpdateEnabled ? 'enabled' : 'disabled'"></span>
                       </div>
-                    </template>
+                      <div class="meta">
+                        <label :title="'Periodic upgrade check via the detected package manager (Homebrew, pipx, npm). Runs the same dispatcher as the manual Update button. Stored in declaration.preferences.auto_update.'">
+                          <input type="checkbox" :checked="autoUpdateEnabled" @change="setAutoUpdate($el.checked)" :disabled="!backendReachable">
+                          Enable periodic upgrade check
+                        </label>
+                      </div>
+                      <div class="meta mt-sm" x-show="autoUpdateEnabled">
+                        <label>
+                          Check every
+                          <input type="number" min="1" max="720" :value="autoUpdateCheckHours" @input="setAutoUpdateCheckHours($el.value)" class="input-sm" :disabled="!backendReachable">
+                          hours
+                        </label>
+                      </div>
+                      <div class="action-strip mt-sm">
+                        <button class="secondary" @click="checkBackendUpdate()" :disabled="!backendReachable || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check for update'"></button>
+                        <span class="text-muted text-sm" x-show="updateCheckResult" x-text="updateCheckResult"></span>
+                      </div>
+                    </div>
                   </div>
                 </template>
                 <template x-if="row.name !== 'ariaflow-server' && row.record?.result?.expected_version && row.record.result.version && row.record.result.version !== row.record.result.expected_version">
@@ -620,6 +622,16 @@
                   <input type="number" min="1" max="720" :value="dashAutoUpdateCheckHours" @input="setDashAutoUpdateCheckHours($el.value)" class="input-sm">
                   hours
                 </label>
+              </div>
+              <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
+                <label :title="'Best-effort: trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so server + dashboard stay at compatible versions. Server unreachable / no upgrade is not a blocker.'">
+                  <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
+                  Also update ariaflow-server first
+                </label>
+              </div>
+              <div class="action-strip mt-sm">
+                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check for update'"></button>
+                <span class="text-muted text-sm" x-show="updateCheckResultDash" x-text="updateCheckResultDash"></span>
               </div>
               <div class="action-strip mt-sm" x-show="webManagedBy || webInstalledVia">
                 <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :title="'Restart via ' + webManagedBy">Restart</button>

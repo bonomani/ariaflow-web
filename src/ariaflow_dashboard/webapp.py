@@ -14,6 +14,7 @@ from .auto_update import save_config as save_auto_update_config
 from .auto_update import start_poller as start_auto_update_poller
 from .bonjour import discover_http_services, local_identity
 from .install_self import (
+    check_for_update,
     detect_installed_via,
     detect_managed_by,
     dispatch_restart,
@@ -227,6 +228,8 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
                 plan = dispatch_restart()
             elif action == "update":
                 plan = dispatch_update()
+            elif action == "check_update":
+                plan = check_for_update()
             else:
                 self._send_json(
                     {"ok": False, "error": "unsupported_action"}, status=400
