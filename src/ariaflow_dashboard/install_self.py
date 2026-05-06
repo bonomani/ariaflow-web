@@ -10,10 +10,42 @@ package manager.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Literal, Mapping, Optional
+
+# Common install paths for package managers; checked when the resolved
+# launchd / systemd PATH doesn't include the brew prefix. macOS launchd
+# in particular ships a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin)
+# which excludes /opt/homebrew/bin.
+_PKG_MANAGER_PATHS = (
+    "/opt/homebrew/bin",      # macOS Apple Silicon
+    "/usr/local/bin",         # macOS Intel + Linuxbrew
+    "/home/linuxbrew/.linuxbrew/bin",
+    str(Path.home() / ".local/bin"),
+)
+
+
+def _resolve_pkg_manager(name: str) -> str:
+    """Find the absolute path to a package manager binary.
+
+    The dashboard process may inherit a stripped PATH from its
+    supervisor (launchd, systemd) — `which brew` returns nothing even
+    though brew is installed. Search PATH first (cheap), then known
+    install locations.
+    """
+    found = shutil.which(name)
+    if found:
+        return found
+    for d in _PKG_MANAGER_PATHS:
+        candidate = Path(d) / name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    # Fall through with the bare name; subprocess will raise
+    # FileNotFoundError, the caller's try/except already handles it.
+    return name
 
 # Use typing.Optional rather than `T | None` so the module imports under
 # Python 3.9 too (the Homebrew bottle picks up the system python on
@@ -162,20 +194,22 @@ def dispatch_update() -> dict:
     """Plan + execute an update per detected installer."""
     installed_via = detect_installed_via()
     if installed_via == "homebrew":
+        brew = _resolve_pkg_manager("brew")
         return {
             "ok": True,
             "status": 202,
             "action": "update",
             "installed_via": "homebrew",
-            "after": lambda: _detached("brew", ["upgrade", "ariaflow-dashboard"]),
+            "after": lambda: _detached(brew, ["upgrade", "ariaflow-dashboard"]),
         }
     if installed_via == "pipx":
+        pipx = _resolve_pkg_manager("pipx")
         return {
             "ok": True,
             "status": 202,
             "action": "update",
             "installed_via": "pipx",
-            "after": lambda: _detached("pipx", ["upgrade", "ariaflow-dashboard"]),
+            "after": lambda: _detached(pipx, ["upgrade", "ariaflow-dashboard"]),
         }
     if installed_via == "pip":
         return {
@@ -218,8 +252,9 @@ def check_for_update() -> dict:
     current = __version__
     if installed_via == "homebrew":
         try:
-            out = subprocess.run(  # noqa: S603, S607
-                ["brew", "outdated", "--json", "--formula", "ariaflow-dashboard"],
+            brew = _resolve_pkg_manager("brew")
+            out = subprocess.run(  # noqa: S603
+                [brew, "outdated", "--json", "--formula", "ariaflow-dashboard"],
                 capture_output=True,
                 text=True,
                 timeout=15,
