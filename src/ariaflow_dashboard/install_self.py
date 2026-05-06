@@ -228,14 +228,14 @@ def dispatch_update(auto_restart: bool = False) -> dict:
             return upgrade_cmd
         target = f"gui/{os.getuid()}/{label}"
         domain = f"gui/{os.getuid()}"
-        # Restart only fires when brew upgrade actually changed bytes
-        # (`&&`). 'Update' should mean 'upgrade if newer, else do
-        # nothing' — bouncing on every click contradicts the operator
-        # intent ('Check told me I'm current — why is Update
-        # restarting me?'). Stale-cellar recovery is now the explicit
-        # Restart button's job.
+        # Update means 'fix me to latest running state' — full pipeline:
+        # try upgrade (no-op when already current), then ALWAYS restart
+        # via bootout+bootstrap. Restart-after-no-op-upgrade picks up
+        # the stale-cellar case where running version ≠ installed
+        # version but tap has nothing newer. Operator's mental model:
+        # Update = 'whatever it takes', Restart = just bounce.
         return (
-            f"{upgrade_cmd} && "
+            f"{upgrade_cmd}; "
             f"launchctl bootout {target} 2>/dev/null; "
             f"launchctl bootstrap {domain} {plist_path}"
         )

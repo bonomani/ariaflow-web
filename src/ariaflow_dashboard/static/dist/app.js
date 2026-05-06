@@ -3500,10 +3500,6 @@ document.addEventListener("alpine:init", () => {
     },
     async webLifecycleAction(action) {
       if (!["restart", "update"].includes(action)) return;
-      if (action === "update" && this._dashUpdateProbe === "current") {
-        this.resultText = `Already up to date (${this._dashLatestVersion || this.webVersionText}). Click Restart to bounce the process.`;
-        return;
-      }
       this.dashLifecycleLoading = action;
       const originalVersion = String(this.webVersionText || "");
       const originalPid = String(this.webPidText || "");
@@ -3660,10 +3656,6 @@ document.addEventListener("alpine:init", () => {
       return lifecycleDetailLines(record).join(" \xB7 ");
     },
     async lifecycleAction(target, action) {
-      if (target === "ariaflow-server" && action === "update" && this._serverUpdateProbe === "current") {
-        this.resultText = `Server already up to date (${this._serverLatestVersion || this.backendVersionText}). Click Restart to bounce.`;
-        return;
-      }
       try {
         const r = await postEmpty(this.backendPath(urlLifecycleAction(target, action)));
         const data = await r.json();
