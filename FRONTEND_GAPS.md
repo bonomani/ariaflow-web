@@ -1,6 +1,34 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (1)
+## Open (2)
+
+### FE-39: Drop scheduler optimistic state writes once BG-49 lands
+
+**Blocked by:** BG-49
+
+**Status:** waiting on backend.
+
+After BG-49 ships, every scheduler action response will carry the
+canonical post-action `state` envelope. Replace the
+optimistic-write logic in `schedulerAction()` and `_pauseResume()`
+(currently ~15 lines) with a single splat:
+
+```ts
+if (data.state) {
+  this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, ...data.state } };
+}
+```
+
+Drop the `currentTransfer ? 'running' : 'idle'` heuristic on /resume —
+backend will report the real value. Drop the
+`scheduler_status: 'starting'` guess on /start — backend will report
+'starting' or 'running' truthfully depending on whether the loop
+already had work.
+
+The `refresh()` kick after each action can also be removed: the
+response itself carries ground truth.
+
+---
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
