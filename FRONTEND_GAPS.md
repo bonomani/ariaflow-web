@@ -1,6 +1,26 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (4)
+## Open (5)
+
+### FE-45: UI for verify-then-confirm re-add flow (waiting on BG-55)
+
+**Blocked by:** BG-55 (depends on BG-54 landing first)
+
+When BG-55 ships, items re-added with a verified existing copy will
+arrive in `awaiting_confirmation` status. FE work:
+
+- Add `awaiting_confirmation` to `ITEM_STATUSES` and filter buckets
+- Render a banner row variant: "Already have <name> (<size>) at <path>.
+  [Skip] [Re-download] [Add as .1]"
+- (If `remote_changed: true`) "Server has a newer version of <name>
+  (ETag changed). [Re-download] [Skip]"
+- Wire three item actions: `/confirm`, `/skip`, `/rename`
+- Surface count in filter bar between `active` and `paused`
+
+Important for huge-file workflows: a mistaken re-add otherwise wastes
+multi-GB of bandwidth + disk.
+
+---
 
 ### FE-44: Re-add overwrites existing file silently (waiting on BG-54)
 
