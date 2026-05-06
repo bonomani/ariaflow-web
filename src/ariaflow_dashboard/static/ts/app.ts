@@ -1507,15 +1507,16 @@ get bonjourBadgeTitle() {
         if (action === 'start') {
           this.resultText = result.started ? 'Scheduler started' : 'Scheduler already running';
           if (this.lastStatus?.state && result.started) {
-            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true } };
+            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true, scheduler_status: 'starting' } };
           }
         } else {
           this.resultText = result.stopped ? 'Scheduler stopped' : 'Scheduler already idle';
           if (this.lastStatus?.state && result.stopped) {
-            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false } };
+            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false, scheduler_status: 'stopped' } };
           }
         }
         this.resultJson = JSON.stringify(data, null, 2);
+        this.refresh();
       } catch (e) {
         this.resultText = `Scheduler ${action} failed: ${e.message}`;
       }
@@ -1535,8 +1536,15 @@ get bonjourBadgeTitle() {
           : (data.message || (data.reason === 'no_active_transfer' ? `No active transfer to ${action}` : `${verb} failed`));
         this.resultJson = JSON.stringify(data, null, 2);
         if (this.lastStatus?.state) {
-          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, dispatch_paused: isPause } };
+          const next = { ...this.lastStatus.state, dispatch_paused: isPause };
+          // Optimistic enum: pause → 'paused'; resume → 'running' if there's
+          // an active transfer, else 'idle'. Real status arrives via SSE
+          // / next refresh and replaces this value.
+          if (isPause) next.scheduler_status = 'paused';
+          else next.scheduler_status = this.currentTransfer ? 'running' : 'idle';
+          this.lastStatus = { ...this.lastStatus, state: next };
         }
+        this.refresh();
       } catch (e) {
         this.resultText = `${verb} failed: ${e.message}`;
       }
