@@ -1,20 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
-
-### FE-50: download_dir defaults to ~/Downloads (waiting on BG-58)
-
-**Blocked by:** BG-58
-
-Fresh install shows "Download folder not configured" because
-`declaration.download_dir` is empty by default, even though
-`~/Downloads` is the obvious fallback. BG-58 makes the backend fall
-back to the platform's standard download folder (XDG_DOWNLOAD_DIR or
-`~/Downloads`); the explicit pref serves as an override. No FE change
-required — the existing 409 / unset UI stays as a last-resort for
-headless edge cases.
-
----
+## Open (1)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -29,6 +15,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-50 | BG-58 shipped — `loadDownloadDir` now falls back to `$XDG_DOWNLOAD_DIR` / `~/Downloads` when the pref is empty. Fresh installs land on the standard download folder without operator action; explicit `download_dir` pref still wins as an override. No FE change required (existing `download_dir_unset` 409 UI stays as a last-resort for headless edge cases) | 2026-05-06 |
 | FE-47 | BG-57 shipped — `/api/status` summary now computed against the unfiltered queue (only `items` is filtered). Filter-bar count chips show full picture under any active filter; awaiting_confirmation count is now visible without switching filters. No FE change required | 2026-05-06 |
 | FE-46 | BG-56 shipped — Downloaded tab rebuilt around `GET /api/files` (filesystem-first). Three row variants: on-disk+history (full record + Rename/Move/Delete), on-disk+orphan ("found in folder, source unknown" + same actions), history-missing-disk ("missing from disk" derived from archiveItems whose output_path isn't in filesData). Disk-usage chip in section header (file count + total bytes). Bulk Clean modal with three recipes (complete_older_than_N_days / errors / orphaned-history). renameFile/moveFile use window.prompt; deleteFile uses window.confirm. All four ops route through _filesPost or DELETE /api/files and re-subscribe the archive tab on success. Phase 0 (Archive→Downloaded rename) folded in | 2026-05-06 |
 | FE-45 | BG-55 (Tier 1 + decision endpoints) shipped — FE wires `awaiting_confirmation` queue status: added to `filterCounts` (summary + client-side count fallback), new "Confirm" filter button, `notice` badge variant for the count chip, banner row variant rendering "Already have <name> (<size>) at <path>" + last-downloaded relative time + remote_changed warn chip. Three item actions wire to `POST /api/downloads/:id/{confirm,skip,rename}`. Phase 0 'Archive → Downloaded' rename also landed (header link, tab heading, empty-state copy) | 2026-05-06 |
