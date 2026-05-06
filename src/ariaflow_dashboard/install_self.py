@@ -149,14 +149,24 @@ def dispatch_restart() -> dict:
         label = detect_launchd_label()
         if label is None:
             return {"ok": False, "status": 409, "error": "launchd_label_missing"}
+        # `launchctl kickstart -k <label>` is supposed to kill+restart
+        # but silently no-ops in some plist configurations (observed
+        # live: process kept running with stale code after click).
+        # Reliable hammer: bootout + bootstrap of the plist file.
+        # Falls back to kickstart only if the plist isn't where we
+        # expect.
+        plist_path = Path.home() / "Library/LaunchAgents" / f"{label}.plist"
+        target = f"gui/{os.getuid()}/{label}"
+        if plist_path.is_file():
+            after = lambda: _restart_via_bootstrap(target, str(plist_path), label)  # noqa: E731
+        else:
+            after = lambda: _detached("launchctl", ["kickstart", "-k", target])  # noqa: E731
         return {
             "ok": True,
             "status": 202,
             "action": "restart",
             "managed_by": "launchd",
-            "after": lambda: _detached(
-                "launchctl", ["kickstart", "-k", f"gui/{os.getuid()}/{label}"]
-            ),
+            "after": after,
         }
     if managed_by == "systemd":
         return {
@@ -314,6 +324,24 @@ def check_for_update() -> dict:
         "error": "unknown_installer",
         "message": "could not detect an installer for this process",
     }
+
+
+def _restart_via_bootstrap(target: str, plist_path: str, label: str) -> None:
+    """Reliable launchd restart: bootout the running service then
+    bootstrap from the plist. Equivalent to the legacy
+    `launchctl unload && launchctl load` sequence the operator found
+    works when `kickstart -k` doesn't.
+
+    Runs the whole sequence in one detached `sh -c` so we don't have
+    to chain Popens through the dashboard process (which is itself
+    being killed). Fire-and-forget; launchd handles the rest.
+    """
+    domain = target.rsplit("/", 1)[0]  # "gui/<uid>"
+    cmd = (
+        f"launchctl bootout {target} 2>/dev/null; "
+        f"launchctl bootstrap {domain} {plist_path}"
+    )
+    _detached("sh", ["-c", cmd])
 
 
 def _detached(cmd: str, args: list[str]) -> None:
