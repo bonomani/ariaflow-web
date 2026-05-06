@@ -157,8 +157,6 @@ coverage_map:
   itemRenameRedownload: "thin wrapper: delegates to _itemDecision('rename')"
   loadDeclaration: "manual refresh: GET /api/declaration + _applyDeclaration"
   loadPeers: "manual refresh: GET /api/peers + _applyPeers"
-  setDashAutoUpdate: "FE-48: PATCH /api/web/config {auto_update}"
-  setDashAutoUpdateCheckHours: "FE-48: PATCH /api/web/config {auto_update_check_hours}"
   setDashUpdateServerFirst: "PATCH /api/web/config {update_server_first}"
   setDashAutoRestart: "PATCH /api/web/config {auto_restart_after_upgrade}"
   setDashAutoUpdatePreset: "preset-button wrapper: hours=0 → off, else enable+set hours in one PATCH"
