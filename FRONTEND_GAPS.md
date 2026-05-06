@@ -1,6 +1,18 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
+## Open (3)
+
+### FE-43: Per-download cap drift below displayed CAP (waiting on BG-53)
+
+**Blocked by:** BG-53
+
+Dashboard CAP shows the latest probe's `cap_mbps` (e.g. 5.7), but
+in-flight aria2 downloads keep the stale `max-download-limit`
+(`625000` = 5.0 Mbps) they were dispatched with. Operator-visible:
+the active download is throttled below the displayed cap. No FE
+change once BG-53 propagates new probe values to active gids.
+
+---
 
 ### FE-42: Bandwidth probe shows "overdue" forever (waiting on BG-52)
 
