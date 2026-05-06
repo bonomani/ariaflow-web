@@ -1,13 +1,13 @@
-      <!-- ARCHIVE -->
+      <!-- DOWNLOADED -->
       <div class="span-12" x-show="page === 'archive'">
         <div class="panel">
           <div class="section-title">
-            <h2>Archive</h2>
-            <div class="hint">Recently removed items</div>
+            <h2>Downloaded</h2>
+            <div class="hint">Past downloads — completed and removed items</div>
           </div>
           <div class="list">
             <template x-if="archiveItems.length === 0">
-              <div class="item">No archived items.</div>
+              <div class="item">No past downloads.</div>
             </template>
             <template x-for="item in archiveItems" :key="item.id || item.url">
               <div class="item compact">

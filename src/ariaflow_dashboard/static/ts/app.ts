@@ -196,7 +196,7 @@ document.addEventListener('alpine:init', () => {
       // Use backend summary when available (avoids client-side recount)
       const s = this.lastStatus?.summary;
       if (s && !this.queueSearch) {
-        // BG-30 vocabulary: 6 aria2-native + 2 pre-aria2 statuses.
+        // BG-30 vocabulary: 6 aria2-native + 2 pre-aria2 + BG-55 awaiting_confirmation.
         return {
           all: s.total || 0,
           queued: s.queued || 0,
@@ -204,13 +204,14 @@ document.addEventListener('alpine:init', () => {
           discovering: s.discovering || 0,
           active: s.active || 0,
           paused: s.paused || 0,
+          awaiting_confirmation: s.awaiting_confirmation || 0,
           removed: s.removed || 0,
           complete: s.complete || 0,
           error: s.error || 0,
         };
       }
       const items = this.itemsWithStatus;
-      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, active: 0, paused: 0, removed: 0, complete: 0, error: 0 };
+      const counts = { all: items.length, queued: 0, waiting: 0, discovering: 0, active: 0, paused: 0, awaiting_confirmation: 0, removed: 0, complete: 0, error: 0 };
       items.forEach((item) => {
         const status = (item.status || 'unknown').toLowerCase();
         if (status === 'queued') counts.queued++;
@@ -218,6 +219,7 @@ document.addEventListener('alpine:init', () => {
         else if (status === 'discovering') counts.discovering++;
         else if (status === 'active') counts.active++;
         else if (status === 'paused') counts.paused++;
+        else if (status === 'awaiting_confirmation') counts.awaiting_confirmation++;
         else if (status === 'removed') counts.removed++;
         else if (status === 'complete') counts.complete++;
         else if (status === 'error') counts.error++;
@@ -1080,6 +1082,31 @@ get bonjourBadgeTitle() {
     },
     filterBtnVisible(f) {
       return isFilterButtonVisible(f, this.filterCounts, this.queueFilter);
+    },
+    filterLabel(f) {
+      // 'awaiting_confirmation' is the only multi-word status; render it
+      // as 'Confirm' to fit the filter bar. Other statuses are short
+      // enough for naive capitalization.
+      if (f === 'awaiting_confirmation') return 'Confirm';
+      return f.charAt(0).toUpperCase() + f.slice(1);
+    },
+    // BG-55: three decision actions for items in awaiting_confirmation.
+    async itemConfirmRedownload(itemId) { return this._itemDecision(itemId, 'confirm'); },
+    async itemSkipRedownload(itemId)    { return this._itemDecision(itemId, 'skip');    },
+    async itemRenameRedownload(itemId)  { return this._itemDecision(itemId, 'rename');  },
+    async _itemDecision(itemId, decision) {
+      try {
+        const r = await postEmpty(this.backendPath(`/api/downloads/${encodeURIComponent(itemId)}/${decision}`));
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.resultText = data?.message || `${decision} failed`;
+          return;
+        }
+        this.resultText = decision === 'confirm' ? 'Re-downloading' : decision === 'skip' ? 'Skipped duplicate' : 'Adding as renamed copy';
+        this.refresh();
+      } catch (e) {
+        this.resultText = `${decision} failed: ${e.message}`;
+      }
     },
     // queue item helpers for template
     itemNormalizedStatus(item) {

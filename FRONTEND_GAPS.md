@@ -2,23 +2,25 @@
 
 ## Open (2)
 
-### FE-45: UI for verify-then-confirm re-add flow (waiting on BG-55)
+### FE-46: Downloaded tab actions UI (waiting on BG-56)
 
-**Blocked by:** BG-55
+**Blocked by:** BG-56
 
-When BG-55 ships, items re-added with a verified existing copy will
-arrive in `awaiting_confirmation` status. FE work:
+**Roadmap:** `docs/POST_DOWNLOAD_LIFECYCLE.md` Phase 1.
 
-- Add `awaiting_confirmation` to `ITEM_STATUSES` and filter buckets
-- Render a banner row variant: "Already have <name> (<size>) at <path>.
-  [Skip] [Re-download] [Add as .1]"
-- (If `remote_changed: true`) "Server has a newer version of <name>
-  (ETag changed). [Re-download] [Skip]"
-- Wire three item actions: `/confirm`, `/skip`, `/rename`
-- Surface count in filter bar between `active` and `paused`
+When BG-56 ships, the Downloaded tab gains:
 
-Important for huge-file workflows: a mistaken re-add otherwise wastes
-multi-GB of bandwidth + disk.
+- Per-row actions: Rename, Move (subdir picker), Delete (with confirm)
+- Bulk action bar: Clean… modal with recipes (`older_than_days`,
+  `status=error`, `orphaned=true`)
+- Disk-usage chip in the tab header
+- Three row states from `GET /api/files`:
+  - on disk + history_match → full record
+  - on disk + no history_match → "found in folder, source unknown"
+  - not on disk + history → "missing from disk" with [Re-download] [Forget]
+
+Important for the operator's mental model: "ariaflow knows what's in
+the download folder, not just what it downloaded".
 
 ---
 
@@ -35,6 +37,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-45 | BG-55 (Tier 1 + decision endpoints) shipped — FE wires `awaiting_confirmation` queue status: added to `filterCounts` (summary + client-side count fallback), new "Confirm" filter button, `notice` badge variant for the count chip, banner row variant rendering "Already have <name> (<size>) at <path>" + last-downloaded relative time + remote_changed warn chip. Three item actions wire to `POST /api/downloads/:id/{confirm,skip,rename}`. Phase 0 'Archive → Downloaded' rename also landed (header link, tab heading, empty-state copy) | 2026-05-06 |
 | FE-44 | BG-54 shipped — backend dropped hardcoded `allow-overwrite: true` from `aria2/dispatch.ts`. Re-add of completed URL now produces `.1` rename via aria2's default `auto-file-renaming` instead of silent overwrite. No FE change required | 2026-05-06 |
 | FE-43 | BG-53 shipped — `setMaxOverallDownloadLimit` path now also walks active gids and applies fresh `max-download-limit` per-transfer. In-flight downloads track the live cap instead of sticking to the dispatch-time value. No FE change required (CAP card already renders ground truth) | 2026-05-06 |
 | FE-42 | BG-52 shipped — scheduler controller now re-runs `runBandwidthProbe` on `bandwidth_probe_interval_seconds` cadence. `overdue` chip no longer fires under steady operation. No FE change required | 2026-05-06 |

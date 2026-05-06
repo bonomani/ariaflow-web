@@ -68,10 +68,10 @@
             <input type="text" placeholder="Search queue..." x-model="queueSearch">
           </div>
           <div class="filter-bar">
-            <template x-for="f in ['all','queued','waiting','discovering','active','paused','removed','complete','error']" :key="f">
+            <template x-for="f in ['all','queued','waiting','discovering','active','paused','awaiting_confirmation','removed','complete','error']" :key="f">
               <button x-show="filterBtnVisible(f)" class="filter-btn" :class="{ active: queueFilter === f }" :aria-pressed="queueFilter === f" @click="setQueueFilter(f)">
-                <span x-text="f.charAt(0).toUpperCase() + f.slice(1)"></span>
-                <span x-show="(filterCounts[f] ?? 0) > 0" class="tab-badge" :class="{ warn: f === 'error' }" x-text="filterCounts[f]"></span>
+                <span x-text="filterLabel(f)"></span>
+                <span x-show="(filterCounts[f] ?? 0) > 0" class="tab-badge" :class="{ warn: f === 'error', notice: f === 'awaiting_confirmation' }" x-text="filterCounts[f]"></span>
               </button>
             </template>
           </div>
@@ -120,7 +120,22 @@
                     <div x-html="itemSparklineSvg(item)"></div>
                   </div>
                 </template>
-                <div x-show="item.id" class="action-strip mt-sm">
+                <template x-if="itemNormalizedStatus(item) === 'awaiting_confirmation'">
+                  <div class="banner mt-sm" role="region" :aria-label="'Re-add confirmation for ' + (shortName(item) || item.url)">
+                    <div class="meta">
+                      <span x-show="item.detail?.existing_size" x-text="'Already have ' + (shortName(item) || 'this file') + ' (' + formatBytes(item.detail?.existing_size) + ')' + (item.detail?.existing_path ? ' at ' + item.detail.existing_path : '')"></span>
+                      <span class="text-muted" x-show="item.detail?.history_match && item.detail?.last_downloaded_at" x-text="'Last downloaded ' + relativeTime(item.detail.last_downloaded_at)"></span>
+                      <span class="text-muted" x-show="item.detail && !item.detail?.history_match">Source unknown — file present in folder, never downloaded by ariaflow.</span>
+                      <span class="text-muted badge warn" x-show="item.detail?.remote_changed">Server has a different version</span>
+                    </div>
+                    <div class="action-strip mt-sm">
+                      <button @click="itemConfirmRedownload(item.id)">Re-download</button>
+                      <button class="secondary" @click="itemRenameRedownload(item.id)">Add as .1</button>
+                      <button class="secondary" @click="itemSkipRedownload(item.id)">Skip</button>
+                    </div>
+                  </div>
+                </template>
+                <div x-show="item.id && itemNormalizedStatus(item) !== 'awaiting_confirmation'" class="action-strip mt-sm">
                   <button x-show="itemCanToggle(item)" @click="itemToggleAction(item)" x-text="itemToggleLabel(item)" :title="itemToggleLabel(item)"></button>
                   <button x-show="itemModeBadge(item) === 'torrent' || itemModeBadge(item) === 'metalink'" :aria-label="'Select files for ' + (shortName(item) || item.url)" @click="openFileSelection(item.id)">Files</button>
                   <button x-show="item.gid" class="secondary" @click="loadItemOptions(item.gid)">Options</button>
