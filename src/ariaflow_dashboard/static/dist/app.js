@@ -3502,6 +3502,8 @@ document.addEventListener("alpine:init", () => {
       if (!["restart", "update"].includes(action)) return;
       this.dashLifecycleLoading = action;
       const originalVersion = String(this.webVersionText || "");
+      const originalPid = String(this.webPidText || "");
+      const originalUptime = Number(this.webUptimeSeconds || 0);
       try {
         const r = await this._fetch(`/api/web/lifecycle/ariaflow-dashboard/${action}`, { method: "POST" });
         const data = await r.json();
@@ -3512,13 +3514,26 @@ document.addEventListener("alpine:init", () => {
         }
         this.resultText = action === "restart" ? "Restarting dashboard\u2026" : "Updating dashboard\u2026";
         const startedAt = Date.now();
+        const refetchProbe = () => {
+          this._fetch("/api/web/lifecycle").then((r2) => r2.json()).then((d) => this._applyWebLifecycle(d)).catch(() => {
+          });
+        };
+        setTimeout(refetchProbe, 3e3);
+        setTimeout(refetchProbe, 8e3);
+        setTimeout(refetchProbe, 15e3);
+        setTimeout(refetchProbe, 3e4);
         const tick = setInterval(() => {
-          const now = String(this.webVersionText || "");
+          const nowVersion = String(this.webVersionText || "");
+          const nowPid = String(this.webPidText || "");
+          const nowUptime = Number(this.webUptimeSeconds || 0);
           const stillLoading = Date.now() - startedAt < 9e4;
-          if (now && now !== originalVersion) {
+          const versionChanged = nowVersion && nowVersion !== originalVersion;
+          const pidChanged = nowPid && nowPid !== "-" && nowPid !== originalPid;
+          const uptimeReset = nowUptime > 0 && originalUptime > 0 && nowUptime < originalUptime;
+          if (versionChanged || pidChanged || uptimeReset) {
             clearInterval(tick);
             this.dashLifecycleLoading = null;
-            this.resultText = `Dashboard ${action} complete (${now})`;
+            this.resultText = action === "update" ? `Dashboard update complete (${nowVersion || "restarted"})` : `Dashboard restart complete (PID ${nowPid})`;
             return;
           }
           if (!stillLoading) {
@@ -3652,17 +3667,28 @@ document.addEventListener("alpine:init", () => {
           this._serverLifecycleLoading = action;
           const startedAt = Date.now();
           const originalVersion = String(this.backendVersionText || "");
+          const originalPid = String(this.backendPidText || "");
+          const originalUptime = Number(this.lastHealth?.uptime_seconds || 0);
           const tick = setInterval(async () => {
             try {
               await this.loadLifecycle();
             } catch (e) {
             }
-            const now = String(this.backendVersionText || "");
+            try {
+              await this.refresh();
+            } catch (e) {
+            }
+            const nowVersion = String(this.backendVersionText || "");
+            const nowPid = String(this.backendPidText || "");
+            const nowUptime = Number(this.lastHealth?.uptime_seconds || 0);
             const elapsed = Date.now() - startedAt;
-            if (now && now !== "-" && now !== originalVersion) {
+            const versionChanged = nowVersion && nowVersion !== "-" && nowVersion !== originalVersion;
+            const pidChanged = nowPid && nowPid !== "-" && nowPid !== "unreported" && nowPid !== originalPid;
+            const uptimeReset = nowUptime > 0 && originalUptime > 0 && nowUptime < originalUptime;
+            if (versionChanged || pidChanged || uptimeReset) {
               clearInterval(tick);
               this._serverLifecycleLoading = null;
-              this.resultText = `Server ${action} complete (${now})`;
+              this.resultText = action === "update" ? `Server update complete (${nowVersion || "restarted"})` : `Server restart complete (PID ${nowPid})`;
               return;
             }
             if (elapsed > 9e4) {

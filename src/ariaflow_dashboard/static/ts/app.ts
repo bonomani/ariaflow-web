@@ -2279,6 +2279,8 @@ get bonjourBadgeTitle() {
       // upgrade + bootout+bootstrap on a slow connection).
       this.dashLifecycleLoading = action;
       const originalVersion = String(this.webVersionText || '');
+      const originalPid = String(this.webPidText || '');
+      const originalUptime = Number(this.webUptimeSeconds || 0);
       try {
         const r = await this._fetch(`/api/web/lifecycle/ariaflow-dashboard/${action}`, { method: 'POST' });
         const data = await r.json();
@@ -2293,14 +2295,35 @@ get bonjourBadgeTitle() {
         // Poll for the new process: when webVersionText changes (auto-
         // restart landed on a new bottle) or PID flips, clear loading.
         const startedAt = Date.now();
+        // Trigger an early /api/web/lifecycle re-fetch so we see new
+        // PID/uptime quickly (default 60s poll is too slow).
+        const refetchProbe = () => {
+          this._fetch('/api/web/lifecycle')
+            .then((r) => r.json())
+            .then((d) => this._applyWebLifecycle(d))
+            .catch(() => { /* nop */ });
+        };
+        setTimeout(refetchProbe, 3000);
+        setTimeout(refetchProbe, 8000);
+        setTimeout(refetchProbe, 15000);
+        setTimeout(refetchProbe, 30000);
         const tick = setInterval(() => {
-          const now = String(this.webVersionText || '');
+          const nowVersion = String(this.webVersionText || '');
+          const nowPid = String(this.webPidText || '');
+          const nowUptime = Number(this.webUptimeSeconds || 0);
           const stillLoading = (Date.now() - startedAt) < 90_000;
-          if (now && now !== originalVersion) {
-            // Version changed — new process is up. Done.
+          // Restart succeeded if EITHER version changed (Update with
+          // new bottle) OR PID changed (process was replaced) OR
+          // uptime dropped below the original (clock-restart).
+          const versionChanged = nowVersion && nowVersion !== originalVersion;
+          const pidChanged = nowPid && nowPid !== '-' && nowPid !== originalPid;
+          const uptimeReset = nowUptime > 0 && originalUptime > 0 && nowUptime < originalUptime;
+          if (versionChanged || pidChanged || uptimeReset) {
             clearInterval(tick);
             this.dashLifecycleLoading = null;
-            this.resultText = `Dashboard ${action} complete (${now})`;
+            this.resultText = action === 'update'
+              ? `Dashboard update complete (${nowVersion || 'restarted'})`
+              : `Dashboard restart complete (PID ${nowPid})`;
             return;
           }
           if (!stillLoading) {
@@ -2444,14 +2467,24 @@ get bonjourBadgeTitle() {
           this._serverLifecycleLoading = action;
           const startedAt = Date.now();
           const originalVersion = String(this.backendVersionText || '');
+          const originalPid = String(this.backendPidText || '');
+          const originalUptime = Number(this.lastHealth?.uptime_seconds || 0);
           const tick = setInterval(async () => {
             try { await this.loadLifecycle(); } catch (e) { /* nop */ }
-            const now = String(this.backendVersionText || '');
+            try { await this.refresh(); } catch (e) { /* nop */ }
+            const nowVersion = String(this.backendVersionText || '');
+            const nowPid = String(this.backendPidText || '');
+            const nowUptime = Number(this.lastHealth?.uptime_seconds || 0);
             const elapsed = Date.now() - startedAt;
-            if (now && now !== '-' && now !== originalVersion) {
+            const versionChanged = nowVersion && nowVersion !== '-' && nowVersion !== originalVersion;
+            const pidChanged = nowPid && nowPid !== '-' && nowPid !== 'unreported' && nowPid !== originalPid;
+            const uptimeReset = nowUptime > 0 && originalUptime > 0 && nowUptime < originalUptime;
+            if (versionChanged || pidChanged || uptimeReset) {
               clearInterval(tick);
               this._serverLifecycleLoading = null;
-              this.resultText = `Server ${action} complete (${now})`;
+              this.resultText = action === 'update'
+                ? `Server update complete (${nowVersion || 'restarted'})`
+                : `Server restart complete (PID ${nowPid})`;
               return;
             }
             if (elapsed > 90_000) {

@@ -479,7 +479,7 @@
               </div>
             </div>
           </template>
-          <template x-if="!backendReachable && serverProbe && serverProbe.installed && serverProbe.plist_present">
+          <template x-if="!backendReachable && _consecutiveFailures > 0 && serverProbe && serverProbe.installed && serverProbe.plist_present">
             <div class="banner mt-sm" role="region" aria-label="ariaflow-server installed but down">
               <div class="meta">
                 <span class="badge bad">unreachable</span>
