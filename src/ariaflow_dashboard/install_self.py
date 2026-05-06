@@ -228,8 +228,15 @@ def dispatch_update(auto_restart: bool = False) -> dict:
             return upgrade_cmd
         target = f"gui/{os.getuid()}/{label}"
         domain = f"gui/{os.getuid()}"
+        # Use `;` between upgrade and restart, NOT `&&`. The `&&`
+        # short-circuits when `brew upgrade` is a no-op (already on
+        # latest), and the running process is left pinned to whatever
+        # cellar dir it was started from — which `brew cleanup` may
+        # have already deleted. Always-restart is the safe default:
+        # worst case is a brief reconnection on an unchanged version,
+        # which beats a stale process serving deleted-cellar 404s.
         return (
-            f"{upgrade_cmd} && "
+            f"{upgrade_cmd}; "
             f"launchctl bootout {target} 2>/dev/null; "
             f"launchctl bootstrap {domain} {plist_path}"
         )
