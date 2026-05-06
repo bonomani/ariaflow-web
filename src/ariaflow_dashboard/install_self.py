@@ -241,10 +241,12 @@ def dispatch_update() -> dict:
 def check_for_update() -> dict:
     """Probe the package manager to see if an update is available.
 
-    Synchronous (blocks for ~1-3s on `brew outdated` etc.) and read-only
-    — does NOT dispatch the upgrade. Used by the manual "Check for
-    update" button and by the auto-update poller before deciding to
-    dispatch.
+    Read-only — does NOT dispatch the upgrade.
+
+    Homebrew: runs `brew update` (refreshes the tap from GitHub) THEN
+    `brew outdated`. Without the update step the tap clone is stale
+    and `brew outdated` reports the cached "latest", missing recent
+    releases. The update step is ~1-3s on a warm cache.
     """
     from . import __version__
 
@@ -253,6 +255,15 @@ def check_for_update() -> dict:
     if installed_via == "homebrew":
         try:
             brew = _resolve_pkg_manager("brew")
+            # Refresh tap metadata first — brew outdated otherwise
+            # compares against whatever `brew update` last cached.
+            subprocess.run(  # noqa: S603
+                [brew, "update", "--quiet"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
             out = subprocess.run(  # noqa: S603
                 [brew, "outdated", "--json", "--formula", "ariaflow-dashboard"],
                 capture_output=True,
@@ -282,9 +293,6 @@ def check_for_update() -> dict:
         except (subprocess.TimeoutExpired, FileNotFoundError, ValueError) as e:
             return {"ok": False, "error": "probe_failed", "message": str(e)}
     if installed_via == "pipx":
-        # `pipx list --json` includes the installed version; comparing
-        # against the latest requires a separate PyPI query (heavier).
-        # Surface "manual check needed" for pipx until we wire pip index.
         return {
             "ok": True,
             "update_available": None,
