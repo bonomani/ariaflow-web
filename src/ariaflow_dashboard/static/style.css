@@ -323,6 +323,16 @@ a.btn-link.secondary { background: var(--ws-btn-inactive-bg); color: var(--ws-te
 .meta { display: flex; gap: var(--ws-gap-sm); flex-wrap: wrap; color: var(--ws-muted); font-size: var(--ws-font-md); }
 .action-strip { display: inline-flex; gap: var(--ws-gap-sm); flex-wrap: wrap; justify-content: flex-end; }
 
+/* dashboard self-row: action buttons left, settings dropdown right */
+.dash-action-row { display: flex; justify-content: space-between; align-items: center; gap: var(--ws-gap-sm); width: 100%; flex-wrap: wrap; }
+.dash-action-buttons { display: inline-flex; gap: var(--ws-gap-sm); flex-wrap: wrap; align-items: center; }
+.dash-settings-menu { position: relative; }
+.dash-settings-summary { cursor: pointer; padding: 0.4em 0.75em; border: 1px solid var(--ws-muted); border-radius: 4px; background: transparent; list-style: none; user-select: none; }
+.dash-settings-summary::-webkit-details-marker { display: none; }
+.dash-settings-summary::after { content: ' ▾'; }
+.dash-settings-menu[open] .dash-settings-summary::after { content: ' ▴'; }
+.dash-settings-popover { position: absolute; right: 0; top: calc(100% + 4px); min-width: 320px; padding: var(--ws-gap-md); background: var(--ws-surface, #fff); border: 1px solid var(--ws-muted); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 10; }
+
 /* --- system card --- */
 .system-card {
   border: var(--border);

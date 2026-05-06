@@ -653,40 +653,46 @@
                   </template>
                   <span x-show="!_dashLatestVersion" class="text-muted">Latest ?</span>
                 </span>
+                <button class="secondary text-sm" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading || dashLifecycleLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
               </div>
-              <div class="action-strip mt-sm">
-                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading || dashLifecycleLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
-                <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :disabled="dashLifecycleLoading" :title="'Restart via ' + webManagedBy" x-text="dashLifecycleLoading === 'restart' ? 'Restarting…' : 'Restart'"></button>
-                <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :disabled="dashLifecycleLoading" :title="'Update via ' + webInstalledVia" x-text="dashLifecycleLoading === 'update' ? 'Updating…' : 'Update'"></button>
-                <span class="text-muted text-sm" x-show="updateCheckResultDash && !dashLifecycleLoading" x-text="updateCheckResultDash"></span>
-              </div>
-              <div class="meta mt-sm">
-                <span class="text-muted text-sm">Auto-update</span>
-                <span class="action-strip">
-                  <template x-for="preset in [{l:'off',v:0},{l:'1h',v:1},{l:'6h',v:6},{l:'24h',v:24},{l:'1w',v:168}]" :key="preset.l">
-                    <button class="text-sm"
-                            :class="(preset.v === 0 ? !dashAutoUpdateEnabled : (dashAutoUpdateEnabled && Number(dashAutoUpdateCheckHours) === preset.v)) ? '' : 'secondary'"
-                            @click="setDashAutoUpdatePreset(preset.v)"
-                            x-text="preset.l"
-                            :disabled="!webUpdateSupported"></button>
-                  </template>
+              <div class="action-strip mt-sm dash-action-row">
+                <span class="dash-action-buttons">
+                  <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :disabled="dashLifecycleLoading" :title="'Restart via ' + webManagedBy" x-text="dashLifecycleLoading === 'restart' ? 'Restarting…' : 'Restart'"></button>
+                  <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :disabled="dashLifecycleLoading" :title="'Update via ' + webInstalledVia" x-text="dashLifecycleLoading === 'update' ? 'Updating…' : 'Update'"></button>
+                  <span class="text-muted text-sm" x-show="updateCheckResultDash && !dashLifecycleLoading" x-text="updateCheckResultDash"></span>
                 </span>
+                <details class="dash-settings-menu">
+                  <summary class="dash-settings-summary" :title="dashAutoUpdateEnabled ? 'Auto-update on, every ' + dashAutoUpdateCheckHours + 'h' : 'Auto-update off'">
+                    Settings <span class="text-muted text-sm" x-text="dashAutoUpdateEnabled ? '· auto every ' + dashAutoUpdateCheckHours + 'h' : '· auto off'"></span>
+                  </summary>
+                  <div class="dash-settings-popover">
+                    <div class="meta">
+                      <span class="text-muted text-sm">Auto-update</span>
+                      <span class="action-strip">
+                        <template x-for="preset in [{l:'off',v:0},{l:'1h',v:1},{l:'6h',v:6},{l:'24h',v:24},{l:'1w',v:168}]" :key="preset.l">
+                          <button class="text-sm"
+                                  :class="(preset.v === 0 ? !dashAutoUpdateEnabled : (dashAutoUpdateEnabled && Number(dashAutoUpdateCheckHours) === preset.v)) ? '' : 'secondary'"
+                                  @click="setDashAutoUpdatePreset(preset.v)"
+                                  x-text="preset.l"
+                                  :disabled="!webUpdateSupported"></button>
+                        </template>
+                      </span>
+                    </div>
+                    <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
+                      <label :title="'Trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so versions stay aligned.'">
+                        <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
+                        Also update ariaflow-server first
+                      </label>
+                    </div>
+                    <div class="meta mt-sm">
+                      <label :title="'Auto-bootout+bootstrap after brew upgrade so the new bottle runs immediately. Disabling means manual Restart after every upgrade.'">
+                        <input type="checkbox" :checked="dashAutoRestart" @change="setDashAutoRestart($el.checked)">
+                        Auto-restart after upgrade (recommended)
+                      </label>
+                    </div>
+                  </div>
+                </details>
               </div>
-              <details class="mt-sm">
-                <summary class="text-muted text-sm cursor-pointer">Other settings</summary>
-                <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
-                  <label :title="'Trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so versions stay aligned.'">
-                    <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
-                    Also update ariaflow-server first
-                  </label>
-                </div>
-                <div class="meta mt-sm">
-                  <label :title="'Auto-bootout+bootstrap after brew upgrade so the new bottle runs immediately. Disabling means manual Restart after every upgrade.'">
-                    <input type="checkbox" :checked="dashAutoRestart" @change="setDashAutoRestart($el.checked)">
-                    Auto-restart after upgrade (recommended)
-                  </label>
-                </div>
-              </details>
             </div>
           </div>
         </div>
