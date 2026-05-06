@@ -3063,6 +3063,33 @@ document.addEventListener("alpine:init", () => {
       await this.lifecycleAction("ariaflow-server", "uninstall");
       setTimeout(() => this.loadServerProbe(), 5e3);
     },
+    // Recovery: server was installed (plist on disk) but isn't loaded
+    // into launchd — most often after a bootout that didn't re-bootstrap.
+    // POSTs to dashboard-local /api/web/lifecycle/ariaflow-server/bootstrap
+    // which runs `launchctl bootout … ; launchctl bootstrap … <plist>`.
+    // No terminal needed even when backend is offline.
+    async bootstrapAriaflowServer() {
+      try {
+        const r = await this._fetch("/api/web/lifecycle/ariaflow-server/bootstrap", { method: "POST" });
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.resultText = data?.message || `Server bootstrap failed (${r.status})`;
+          return;
+        }
+        this.resultText = "Bootstrapping ariaflow-server\u2026";
+        setTimeout(() => {
+          this.loadServerProbe();
+          this.discoverBackends();
+        }, 5e3);
+        setTimeout(() => {
+          this.loadServerProbe();
+          this.discoverBackends();
+          this.refresh();
+        }, 15e3);
+      } catch (e) {
+        this.resultText = `Server bootstrap failed: ${e.message}`;
+      }
+    },
     async installAriaflowServer() {
       try {
         const r = await this._fetch("/api/web/lifecycle/ariaflow-server/install", { method: "POST" });

@@ -475,18 +475,79 @@ def dispatch_server_lifecycle(action: str) -> dict:
     }
 
 
+def _server_plist_path() -> Path | None:
+    """Locate the launchd plist for ariaflow-server. None if not present."""
+    candidates = (
+        "homebrew.mxcl.ariaflow-server",
+        "com.ariaflow-server",
+    )
+    agents = Path.home() / "Library" / "LaunchAgents"
+    for label in candidates:
+        p = agents / f"{label}.plist"
+        if p.is_file():
+            return p
+    return None
+
+
 def server_lifecycle_probe() -> dict:
     """Snapshot of ariaflow-server's local install state.
 
     Used by the FE to decide which buttons to render: Install (when
-    not installed), Uninstall + Update (when installed).
+    not installed), Bootstrap (when installed but not loaded into
+    launchd), Uninstall + Update (when running).
     """
     via = detect_server_installed_via()
+    plist = _server_plist_path()
     return {
         "ok": True,
         "installed": via is not None,
         "installed_via": via,
         "install_supported": detect_installed_via() in ("homebrew", "pipx"),
+        "plist_present": plist is not None,
+        "plist_path": str(plist) if plist else None,
+    }
+
+
+def dispatch_server_bootstrap() -> dict:
+    """Re-load the server into launchd via `brew services restart` —
+    the same primitive brew itself uses. Handles: plist symlink
+    re-creation, launchctl bootstrap into the right user domain,
+    legacy launchctl/bootstrap-API fallbacks across macOS versions.
+
+    Recovery path for the case where the server's been bootout'd but
+    never bootstrap'd — process is down, plist is on disk, only a
+    proper launchctl bootstrap revives it. Operator needs no terminal
+    access.
+    """
+    plist = _server_plist_path()
+    if plist is None:
+        return {
+            "ok": False,
+            "status": 409,
+            "error": "plist_missing",
+            "message": "no ariaflow-server launchd plist found in ~/Library/LaunchAgents",
+        }
+    if detect_installed_via() != "homebrew":
+        # `brew services` is brew-only; for non-brew installs fall
+        # back to the raw launchctl chain.
+        domain = f"gui/{os.getuid()}"
+        cmd = (
+            f"launchctl bootout {domain}/{plist.stem} 2>/dev/null; "
+            f"launchctl bootstrap {domain} {plist}"
+        )
+        return {
+            "ok": True, "status": 202, "action": "bootstrap",
+            "target": "ariaflow-server", "plist_path": str(plist),
+            "after": lambda: _detached("sh", ["-c", cmd]),
+        }
+    brew = _resolve_pkg_manager("brew")
+    return {
+        "ok": True,
+        "status": 202,
+        "action": "bootstrap",
+        "target": "ariaflow-server",
+        "plist_path": str(plist),
+        "after": lambda: _detached(brew, ["services", "restart", "ariaflow-server"]),
     }
 
 

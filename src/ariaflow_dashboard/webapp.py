@@ -20,6 +20,7 @@ from .install_self import (
     detect_installed_via,
     detect_managed_by,
     dispatch_restart,
+    dispatch_server_bootstrap,
     dispatch_server_lifecycle,
     dispatch_update,
     server_lifecycle_probe,
@@ -237,7 +238,14 @@ class AriaFlowHandler(BaseHTTPRequestHandler):
         # server lifecycle calls go to the backend at port 8000.
         if path.startswith("/api/web/lifecycle/ariaflow-server/"):
             action = path[len("/api/web/lifecycle/ariaflow-server/") :]
-            plan = dispatch_server_lifecycle(action)
+            # Bootstrap = re-load plist into launchd. Recovery path
+            # when server is down but plist exists. Distinct from
+            # install (brew install — for cold-start before brew has
+            # the formula).
+            if action == "bootstrap":
+                plan = dispatch_server_bootstrap()
+            else:
+                plan = dispatch_server_lifecycle(action)
             after = plan.pop("after", None)
             status = plan.pop("status", 200)
             record_action(

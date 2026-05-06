@@ -1826,6 +1826,27 @@ get bonjourBadgeTitle() {
       // Re-probe shortly to update the install state for the CTA banner.
       setTimeout(() => this.loadServerProbe(), 5_000);
     },
+    // Recovery: server was installed (plist on disk) but isn't loaded
+    // into launchd — most often after a bootout that didn't re-bootstrap.
+    // POSTs to dashboard-local /api/web/lifecycle/ariaflow-server/bootstrap
+    // which runs `launchctl bootout … ; launchctl bootstrap … <plist>`.
+    // No terminal needed even when backend is offline.
+    async bootstrapAriaflowServer() {
+      try {
+        const r = await this._fetch('/api/web/lifecycle/ariaflow-server/bootstrap', { method: 'POST' });
+        const data = await r.json().catch(() => null);
+        if (!r.ok || data?.ok === false) {
+          this.resultText = data?.message || `Server bootstrap failed (${r.status})`;
+          return;
+        }
+        this.resultText = 'Bootstrapping ariaflow-server…';
+        // Re-probe + re-discover to surface the recovered backend.
+        setTimeout(() => { this.loadServerProbe(); this.discoverBackends(); }, 5_000);
+        setTimeout(() => { this.loadServerProbe(); this.discoverBackends(); this.refresh(); }, 15_000);
+      } catch (e) {
+        this.resultText = `Server bootstrap failed: ${e.message}`;
+      }
+    },
     async installAriaflowServer() {
       try {
         const r = await this._fetch('/api/web/lifecycle/ariaflow-server/install', { method: 'POST' });

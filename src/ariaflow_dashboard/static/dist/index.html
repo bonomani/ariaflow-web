@@ -479,6 +479,17 @@
               </div>
             </div>
           </template>
+          <template x-if="!backendReachable && serverProbe && serverProbe.installed && serverProbe.plist_present">
+            <div class="banner mt-sm" role="region" aria-label="ariaflow-server installed but down">
+              <div class="meta">
+                <span class="badge bad">unreachable</span>
+                <span>ariaflow-server is installed locally but not currently loaded into launchd. Common after a bootout that didn't re-bootstrap.</span>
+              </div>
+              <div class="action-strip mt-sm">
+                <button @click="bootstrapAriaflowServer()" :title="'launchctl bootstrap ' + (serverProbe?.plist_path || '')">Recover (bootstrap plist)</button>
+              </div>
+            </div>
+          </template>
           <template x-if="!backendReachable && serverProbe && !serverProbe.installed && !serverProbe.install_supported">
             <div class="banner mt-sm" role="region" aria-label="install not supported">
               <div class="meta text-muted">
