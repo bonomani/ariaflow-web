@@ -623,54 +623,54 @@
                 </div>
               </div>
             </template>
+            <!-- ariaflow-dashboard self row — Proposal E layout -->
             <div class="item">
               <div class="item-top">
                 <div class="item-url">
                   ariaflow-dashboard
                   <strong class="text-muted text-sm" x-text="webVersionText">-</strong>
+                  <span class="text-muted text-sm" x-text="(webManagedBy || webInstalledVia ? '· ' + [webManagedBy, webInstalledVia].filter(Boolean).join(' · ') : '') + (webPidText !== '-' ? ' · PID ' + webPidText : '')"></span>
                 </div>
-                <span class="badge good" x-text="webStateLabel">running · current</span>
-              </div>
-              <div class="chips mt-sm" x-show="webPidText !== '-'">
-                <div class="chip">PID <strong x-text="webPidText">-</strong></div>
-              </div>
-              <div class="section-title mt-md">
-                <h4 class="text-sm text-muted">Auto-update</h4>
-                <span :class="dashAutoUpdateEnabled ? 'badge good' : 'badge'" x-text="dashAutoUpdateEnabled ? 'enabled' : 'disabled'"></span>
-              </div>
-              <div class="meta">
-                <label :title="'Periodic upgrade check via ' + (webInstalledVia || 'detected installer') + '. Same dispatcher as the manual Update button. Stored locally at ~/.ariaflow-dashboard/config.json.'">
-                  <input type="checkbox" :checked="dashAutoUpdateEnabled" @change="setDashAutoUpdate($el.checked)" :disabled="!webUpdateSupported">
-                  Keep this dashboard up to date automatically
-                </label>
-              </div>
-              <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
-                <label>
-                  Check every
-                  <input type="number" min="1" max="720" :value="dashAutoUpdateCheckHours" @input="setDashAutoUpdateCheckHours($el.value)" class="input-sm">
-                  hours
-                </label>
-              </div>
-              <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
-                <label :title="'Best-effort: trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so server + dashboard stay at compatible versions. Server unreachable / no upgrade is not a blocker.'">
-                  <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
-                  Also update ariaflow-server first
-                </label>
-              </div>
-              <div class="meta mt-sm">
-                <label :title="'After brew upgrade completes, automatically bootout+bootstrap the launchd job so the new bottle starts running. Without this, every upgrade requires a manual Restart click and the running process keeps reading from the deleted Cellar dir → 404s on static assets.'">
-                  <input type="checkbox" :checked="dashAutoRestart" @change="setDashAutoRestart($el.checked)">
-                  Auto-restart after upgrade (recommended)
-                </label>
+                <span :class="_dashUpdateProbe === 'available' ? 'badge warn' : (_dashUpdateProbe === 'current' ? 'badge good' : 'badge')"
+                      :title="updateCheckResultDash || 'Click Check for update to verify'"
+                      x-text="_dashUpdateProbe === 'available' ? 'update available' : (_dashUpdateProbe === 'current' ? 'up to date' : 'running')"></span>
               </div>
               <div class="action-strip mt-sm">
-                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check for update'"></button>
-                <span class="text-muted text-sm" x-show="updateCheckResultDash" x-text="updateCheckResultDash"></span>
-              </div>
-              <div class="action-strip mt-sm" x-show="webManagedBy || webInstalledVia">
+                <button class="secondary" @click="checkDashUpdate()" :disabled="!webUpdateSupported || updateCheckLoading" x-text="updateCheckLoading ? 'Checking…' : 'Check'"></button>
                 <button x-show="webRestartSupported" @click="webLifecycleAction('restart')" :title="'Restart via ' + webManagedBy">Restart</button>
                 <button x-show="webUpdateSupported" @click="webLifecycleAction('update')" :title="'Update via ' + webInstalledVia">Update</button>
+                <span class="text-muted text-sm" x-show="updateCheckResultDash" x-text="updateCheckResultDash"></span>
               </div>
+              <details class="mt-sm">
+                <summary class="text-muted text-sm cursor-pointer">
+                  Auto-update <span x-text="dashAutoUpdateEnabled ? 'on, every ' + dashAutoUpdateCheckHours + 'h' : 'off'"></span>
+                </summary>
+                <div class="meta mt-sm">
+                  <label :title="'Periodic upgrade check via ' + (webInstalledVia || 'detected installer') + '. Stored locally at ~/.ariaflow-dashboard/config.json.'">
+                    <input type="checkbox" :checked="dashAutoUpdateEnabled" @change="setDashAutoUpdate($el.checked)" :disabled="!webUpdateSupported">
+                    Keep this dashboard up to date automatically
+                  </label>
+                </div>
+                <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
+                  <label>
+                    Check every
+                    <input type="number" min="1" max="720" :value="dashAutoUpdateCheckHours" @input="setDashAutoUpdateCheckHours($el.value)" class="input-sm">
+                    hours
+                  </label>
+                </div>
+                <div class="meta mt-sm" x-show="dashAutoUpdateEnabled">
+                  <label :title="'Trigger an ariaflow-server upgrade just before the dashboard upgrades itself, so versions stay aligned.'">
+                    <input type="checkbox" :checked="dashUpdateServerFirst" @change="setDashUpdateServerFirst($el.checked)">
+                    Also update ariaflow-server first
+                  </label>
+                </div>
+                <div class="meta mt-sm">
+                  <label :title="'Auto-bootout+bootstrap after brew upgrade so the new bottle runs immediately. Disabling means manual Restart after every upgrade.'">
+                    <input type="checkbox" :checked="dashAutoRestart" @change="setDashAutoRestart($el.checked)">
+                    Auto-restart after upgrade (recommended)
+                  </label>
+                </div>
+              </details>
             </div>
           </div>
         </div>
