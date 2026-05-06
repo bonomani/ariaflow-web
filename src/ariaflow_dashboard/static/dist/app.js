@@ -2881,15 +2881,21 @@ document.addEventListener("alpine:init", () => {
         const data = await r.json().catch(() => null);
         if (!r.ok || data?.ok === false) {
           this.updateCheckResult = data?.message || `Check failed (${r.status})`;
+          this._serverUpdateProbe = "failed";
           return;
         }
         if (data?.update_available) {
           this.updateCheckResult = `Update available: ${data.current_version || "?"} \u2192 ${data.latest_version || "?"}`;
+          this._serverUpdateProbe = "available";
+          this._serverLatestVersion = String(data.latest_version || "") || null;
         } else {
           this.updateCheckResult = `Up to date (${data?.current_version || "?"})`;
+          this._serverUpdateProbe = "current";
+          this._serverLatestVersion = String(data?.current_version || "") || null;
         }
       } catch (e) {
         this.updateCheckResult = `Check failed: ${e.message}`;
+        this._serverUpdateProbe = "failed";
       } finally {
         this.updateCheckLoading = false;
       }
@@ -3410,6 +3416,14 @@ document.addEventListener("alpine:init", () => {
     // Tracked verdict from the most recent dashboard self check_update
     // probe. null = never checked; 'current' / 'available' / 'failed'.
     _dashUpdateProbe: null,
+    // Mirror for the server row. Overrides the BACKEND's lifecycle.
+    // result.current claim when the FE-side Check probe just found
+    // a newer version — operator was watching the click, the pill
+    // should agree with what they just saw.
+    _serverUpdateProbe: null,
+    // 'current' | 'available' | 'failed' | null
+    _serverLatestVersion: null,
+    // 'X.Y.Z' when probe knows it
     lifecycleBadgeClass(record) {
       return lifecycleBadgeClass(record);
     },

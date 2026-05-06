@@ -499,8 +499,11 @@
                     <template x-if="row.name !== 'ariaflow-server' && row.record?.result?.version">
                       <strong class="text-muted text-sm" x-text="'v' + row.record.result.version"></strong>
                     </template>
+                    <template x-if="row.name === 'ariaflow-server' && _serverUpdateProbe === 'available' && _serverLatestVersion">
+                      <span class="badge warn" :title="'Latest in homebrew is v' + _serverLatestVersion + '. Click Update to upgrade.'" x-text="'→ v' + _serverLatestVersion"></span>
+                    </template>
                   </div>
-                  <span :class="lifecycleBadgeClass(row.record)" x-text="lifecycleStateLabel(row.name, row.record)"></span>
+                  <span :class="(row.name === 'ariaflow-server' && _serverUpdateProbe === 'available') ? 'badge warn' : lifecycleBadgeClass(row.record)" x-text="(row.name === 'ariaflow-server' && _serverUpdateProbe === 'available') ? ('update available' + (row.record?.result?.managed_by || row.record?.result?.installed_via ? ' (' + [row.record.result.managed_by, row.record.result.installed_via].filter(Boolean).join(' · ') + ')' : '')) : lifecycleStateLabel(row.name, row.record)"></span>
                 </div>
                 <template x-if="row.name === 'ariaflow-server'">
                   <div>
