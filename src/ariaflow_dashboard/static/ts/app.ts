@@ -1535,7 +1535,7 @@ get bonjourBadgeTitle() {
           : (data.message || (data.reason === 'no_active_transfer' ? `No active transfer to ${action}` : `${verb} failed`));
         this.resultJson = JSON.stringify(data, null, 2);
         if (this.lastStatus?.state) {
-          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, paused: isPause } };
+          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, dispatch_paused: isPause } };
         }
       } catch (e) {
         this.resultText = `${verb} failed: ${e.message}`;
