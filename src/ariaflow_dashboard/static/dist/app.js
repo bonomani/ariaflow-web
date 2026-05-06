@@ -1537,11 +1537,8 @@ document.addEventListener("alpine:init", () => {
       }
     },
     get schedulerWaitReasonText() {
-      let r = this.state?.wait_reason;
+      const r = this.state?.wait_reason;
       if (!r) return "";
-      if (r === "bandwidth_probe_pending" && (this.filterCounts?.all ?? 0) === 0) {
-        r = "queue_empty";
-      }
       const labels = {
         queue_empty: "queue empty",
         aria2_unreachable: "aria2 unreachable",
@@ -2340,7 +2337,6 @@ document.addEventListener("alpine:init", () => {
     },
     setQueueFilter(filter) {
       this.queueFilter = filter;
-      this._statusETag = null;
     },
     filterBtnVisible(f) {
       return isFilterButtonVisible(f, this.filterCounts, this.queueFilter);
@@ -2641,7 +2637,6 @@ document.addEventListener("alpine:init", () => {
     _staleTick: 0,
     _mergedActivityCache: null,
     _mergedActivitySig: "",
-    _statusETag: null,
     _statusUrl() {
       return buildStatusUrl(this.backendPath("/api/status"), {
         queueFilter: this.queueFilter,
@@ -2652,21 +2647,13 @@ document.addEventListener("alpine:init", () => {
       if (this.refreshInFlight) return;
       this.refreshInFlight = true;
       try {
-        const opts = {};
-        if (this._statusETag) opts.headers = { "If-None-Match": this._statusETag };
-        const r = await this._fetch(this._statusUrl(), opts);
+        const r = await this._fetch(this._statusUrl());
         if (this._freshnessRouter) {
           try {
             this._freshnessRouter.markExternalFetch("GET", "/api/status");
           } catch (e) {
           }
         }
-        if (r.status === 304) {
-          this.syncSchedulerResultText();
-          return;
-        }
-        const etag = r.headers.get("ETag");
-        if (etag) this._statusETag = etag;
         const data = await r.json();
         this.lastRev = data?._rev || null;
         if (data?.ok === false || data?.["ariaflow-server"]?.reachable === false) {
@@ -2844,7 +2831,7 @@ document.addEventListener("alpine:init", () => {
         this.resultJson = JSON.stringify(data, null, 2);
         return;
       }
-      const added = Array.isArray(data.items) ? data.items : Array.isArray(data.added) ? data.added : [];
+      const added = Array.isArray(data.items) ? data.items : [];
       const queued = added.length;
       this.resultText = queued > 1 ? `Queued ${queued} items` : `Queued: ${added[0]?.url || urls[0] || raw}`;
       this.resultJson = JSON.stringify(data, null, 2);

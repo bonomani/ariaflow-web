@@ -281,16 +281,8 @@ document.addEventListener('alpine:init', () => {
       }
     },
     get schedulerWaitReasonText() {
-      let r = this.state?.wait_reason;
+      const r = this.state?.wait_reason;
       if (!r) return '';
-      // Defensive override: if the queue is empty, that's the real
-      // reason the scheduler is idle — older backends (pre-BG-47)
-      // surface 'bandwidth_probe_pending' even with no queue, which
-      // misleads operators. The probe itself isn't blocking work
-      // because there's no work to block on.
-      if (r === 'bandwidth_probe_pending' && (this.filterCounts?.all ?? 0) === 0) {
-        r = 'queue_empty';
-      }
       const labels = {
         queue_empty: 'queue empty',
         aria2_unreachable: 'aria2 unreachable',
@@ -1096,7 +1088,6 @@ get bonjourBadgeTitle() {
     },
     setQueueFilter(filter) {
       this.queueFilter = filter;
-      this._statusETag = null;
     },
     filterBtnVisible(f) {
       return isFilterButtonVisible(f, this.filterCounts, this.queueFilter);
@@ -1370,7 +1361,6 @@ get bonjourBadgeTitle() {
     _staleTick: 0,
     _mergedActivityCache: null,
     _mergedActivitySig: '',
-    _statusETag: null,
     _statusUrl() {
       return buildStatusUrl(this.backendPath('/api/status'), {
         queueFilter: this.queueFilter,
@@ -1381,21 +1371,12 @@ get bonjourBadgeTitle() {
       if (this.refreshInFlight) return;
       this.refreshInFlight = true;
       try {
-        const opts = {};
-        if (this._statusETag) opts.headers = { 'If-None-Match': this._statusETag };
-        const r = await this._fetch(this._statusUrl(), opts);
-        // Stamp the freshness router on every successful fetch, BEFORE
-        // any short-circuit returns — the Dev-tab map should reflect
-        // 'we fetched it', not 'we accepted the new data'.
+        const r = await this._fetch(this._statusUrl());
+        // Stamp the freshness router on every successful fetch — the
+        // Dev-tab map should reflect 'we fetched it'.
         if (this._freshnessRouter) {
           try { this._freshnessRouter.markExternalFetch('GET', '/api/status'); } catch (e) { /* ignore */ }
         }
-        if (r.status === 304) {
-          this.syncSchedulerResultText();
-          return; // Not modified
-        }
-        const etag = r.headers.get('ETag');
-        if (etag) this._statusETag = etag;
         const data = await r.json();
         // No _rev short-circuit: backend bumps state._rev only on state
         // transitions (active_gid, paused/running, etc.), but item
@@ -1595,7 +1576,7 @@ get bonjourBadgeTitle() {
         return;
       }
       // Backend returns {ok, items: [{id, url, status, duplicate}, ...]}.
-      const added = Array.isArray(data.items) ? data.items : (Array.isArray(data.added) ? data.added : []);
+      const added = Array.isArray(data.items) ? data.items : [];
       const queued = added.length;
       this.resultText = queued > 1
         ? `Queued ${queued} items`
