@@ -1524,21 +1524,17 @@ get bonjourBadgeTitle() {
           this.resultJson = JSON.stringify(data, null, 2);
           return;
         }
-        // Backend returns flat shape: {ok, started, running, ...} for /start
-        // and {ok, stopped, ...} for /stop — not nested under data.result.
         if (action === 'start') {
           this.resultText = data.started ? 'Scheduler started' : 'Scheduler already running';
-          if (this.lastStatus?.state && data.started) {
-            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: true, scheduler_status: 'starting' } };
-          }
         } else {
           this.resultText = data.stopped ? 'Scheduler stopped' : 'Scheduler already idle';
-          if (this.lastStatus?.state && data.stopped) {
-            this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, running: false, scheduler_status: 'stopped' } };
-          }
+        }
+        // BG-49: backend returns canonical post-action state envelope.
+        // Splat it into lastStatus.state — no optimistic guess needed.
+        if (data.state && this.lastStatus) {
+          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, ...data.state } };
         }
         this.resultJson = JSON.stringify(data, null, 2);
-        this.refresh();
       } catch (e) {
         this.resultText = `Scheduler ${action} failed: ${e.message}`;
       }
@@ -1560,16 +1556,10 @@ get bonjourBadgeTitle() {
           ? (isPause ? 'Downloads paused' : 'Downloads resumed')
           : (data.message || (data.reason === 'no_active_transfer' ? `No active transfer to ${action}` : `${verb} failed`));
         this.resultJson = JSON.stringify(data, null, 2);
-        if (this.lastStatus?.state) {
-          const next = { ...this.lastStatus.state, dispatch_paused: isPause };
-          // Optimistic enum: pause → 'paused'; resume → 'running' if there's
-          // an active transfer, else 'idle'. Real status arrives via SSE
-          // / next refresh and replaces this value.
-          if (isPause) next.scheduler_status = 'paused';
-          else next.scheduler_status = this.currentTransfer ? 'running' : 'idle';
-          this.lastStatus = { ...this.lastStatus, state: next };
+        // BG-49: backend returns canonical post-action state envelope.
+        if (data.state && this.lastStatus) {
+          this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, ...data.state } };
         }
-        this.refresh();
       } catch (e) {
         this.resultText = `${verb} failed: ${e.message}`;
       }

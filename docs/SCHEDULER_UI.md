@@ -72,19 +72,19 @@ top-level fields:
 | pause | `{ok, paused: true, _rev}` | `data.paused === true` |
 | resume | `{ok, paused: false, _rev, ...}` | `data.paused === false` (no `resumed` field) |
 
-## Optimistic updates
+## Post-action state (BG-49)
 
-After a successful POST, the FE writes both `scheduler_status` *and* the
-underlying `state.running` / `state.dispatch_paused` so the UI flips
-instantly without waiting for the next poll. A `refresh()` is kicked
-immediately after; SSE may deliver ground truth even sooner.
+Every scheduler action response carries a canonical `state` envelope:
 
-| Action | `state.running` | `state.dispatch_paused` | `state.scheduler_status` |
-|---|---|---|---|
-| start | `true` | (unchanged) | `starting` |
-| stop | `false` | (unchanged) | `stopped` |
-| pause | (unchanged) | `true` | `paused` |
-| resume | (unchanged) | `false` | `running` if `currentTransfer` else `idle` |
+```json
+{ "ok": true, "started": true,
+  "state": { "scheduler_status": "starting", "running": true,
+             "dispatch_paused": false, "session_id": "...", "_rev": 42 } }
+```
+
+The FE splats `data.state` into `lastStatus.state` — no optimistic
+guessing, no separate `refresh()` kick. The badge flips to the real
+backend value the moment the POST returns.
 
 ## Single source of truth: dispatch
 

@@ -1,34 +1,6 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (2)
-
-### FE-39: Drop scheduler optimistic state writes once BG-49 lands
-
-**Blocked by:** BG-49
-
-**Status:** waiting on backend.
-
-After BG-49 ships, every scheduler action response will carry the
-canonical post-action `state` envelope. Replace the
-optimistic-write logic in `schedulerAction()` and `_pauseResume()`
-(currently ~15 lines) with a single splat:
-
-```ts
-if (data.state) {
-  this.lastStatus = { ...this.lastStatus, state: { ...this.lastStatus.state, ...data.state } };
-}
-```
-
-Drop the `currentTransfer ? 'running' : 'idle'` heuristic on /resume —
-backend will report the real value. Drop the
-`scheduler_status: 'starting'` guess on /start — backend will report
-'starting' or 'running' truthfully depending on whether the loop
-already had work.
-
-The `refresh()` kick after each action can also be removed: the
-response itself carries ground truth.
-
----
+## Open (1)
 
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
@@ -43,6 +15,7 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-39 | BG-49 shipped — `POST /api/scheduler/{start,stop,pause,resume}` now return a canonical `state` envelope (`scheduler_status`, `running`, `dispatch_paused`, `session_id`, `_rev`). FE: `schedulerAction()` and `_pauseResume()` drop the optimistic enum guess + the `currentTransfer ? 'running' : 'idle'` heuristic on /resume; both now splat `data.state` into `lastStatus.state`. Post-action `refresh()` also dropped — response itself is ground truth | 2026-05-06 |
 | FE-38 | BG-48 shipped — backend now exposes `POST /api/scheduler/contract` and the action log emits `entry.action: "contract"` for both routes (the deprecated `/ucc` alias also normalises to "contract" in logs). FE: `uccRun()` switched to `urlScheduler('contract')`, `urlScheduler` arg type updated from `'ucc'` to `'contract'`, the display-only `actionDisplay()` helper + its call sites removed. Wire and UI now share one name | 2026-05-05 |
 | FE-37 | BG-47 shipped — `deriveWaitReason()` reordered so `queue_empty` is evaluated before `bandwidth_probe_pending`. Hard blockers (`aria2_unreachable` / `preflight_blocked` / `disk_full`) still win first. Probe is a one-shot pre-loop step, not gated on queue contents — that's fine because the wait_reason now correctly defaults to `queue_empty` when there's nothing to schedule. No FE change needed: the dashboard renders whatever `state.wait_reason` reports | 2026-05-05 |
 | FE-36 | BG-46 shipped — aria2 lifecycle row now renders the `Installed via` chip (backend detects via the resolved `aria2c` path with the same heuristic as ariaflow-server) and the Upgrade button (action declared in `lifecycle.aria2.actions`, dispatches `brew upgrade aria2`; pipx/npm correctly 409 since aria2 isn't on those channels). Headline status string also includes the dual-axis suffix `(launchd · homebrew)` so the disambiguation is visible at a glance. No FE changes needed beyond the conditional markup that landed alongside the BG-46 request | 2026-05-05 |
