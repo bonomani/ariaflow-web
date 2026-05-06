@@ -2781,12 +2781,14 @@ document.addEventListener("alpine:init", () => {
       const queued = Array.isArray(data.added) ? data.added.length : 0;
       this.resultText = queued > 1 ? `Queued ${queued} items` : `Queued: ${data.added?.[0]?.url || urls[0] || raw}`;
       this.resultJson = JSON.stringify(data, null, 2);
+      this.urlInput = "";
       this.addOutput = "";
       this.addPriority = "";
       this.addMirrors = "";
       this.addTorrentData = null;
       this.addMetalinkData = null;
       this.addPostActionRule = "";
+      this.refresh();
     },
     handleFileUpload(event, type) {
       const file = event.target.files?.[0];

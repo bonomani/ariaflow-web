@@ -1518,8 +1518,16 @@ get bonjourBadgeTitle() {
         ? `Queued ${queued} items`
         : `Queued: ${data.added?.[0]?.url || urls[0] || raw}`;
       this.resultJson = JSON.stringify(data, null, 2);
+      // Clear the URL input + aux fields so the operator sees the form
+      // reset (= visible feedback that the click landed) and so the
+      // 'Add' button hides itself (gated on urlInput.trim()).
+      this.urlInput = '';
       this.addOutput = ''; this.addPriority = ''; this.addMirrors = '';
       this.addTorrentData = null; this.addMetalinkData = null; this.addPostActionRule = '';
+      // Kick a refresh so the new item shows up in the queue panel
+      // immediately, instead of waiting up to 10s for the next poll
+      // (SSE usually delivers faster, but don't rely on it).
+      this.refresh();
     },
     handleFileUpload(event, type) {
       const file = event.target.files?.[0];
