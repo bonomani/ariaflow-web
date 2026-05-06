@@ -1,10 +1,10 @@
 # ariaflow-dashboard Frontend Gaps
 
-## Open (5)
+## Open (2)
 
 ### FE-45: UI for verify-then-confirm re-add flow (waiting on BG-55)
 
-**Blocked by:** BG-55 (depends on BG-54 landing first)
+**Blocked by:** BG-55
 
 When BG-55 ships, items re-added with a verified existing copy will
 arrive in `awaiting_confirmation` status. FE work:
@@ -22,42 +22,6 @@ multi-GB of bandwidth + disk.
 
 ---
 
-### FE-44: Re-add overwrites existing file silently (waiting on BG-54)
-
-**Blocked by:** BG-54
-
-Backend dispatch hardcodes `allow-overwrite: true` for every aria2
-add. Re-adding an already-downloaded URL clobbers the existing file
-with no warning. Once BG-54 drops the hardcode, aria2's default
-`auto-file-renaming: true` produces non-destructive `.1` / `.2`
-renames. Optional FE follow-up later: a per-item "force re-download"
-action that overrides per-call.
-
----
-
-### FE-43: Per-download cap drift below displayed CAP (waiting on BG-53)
-
-**Blocked by:** BG-53
-
-Dashboard CAP shows the latest probe's `cap_mbps` (e.g. 5.7), but
-in-flight aria2 downloads keep the stale `max-download-limit`
-(`625000` = 5.0 Mbps) they were dispatched with. Operator-visible:
-the active download is throttled below the displayed cap. No FE
-change once BG-53 propagates new probe values to active gids.
-
----
-
-### FE-42: Bandwidth probe shows "overdue" forever (waiting on BG-52)
-
-**Blocked by:** BG-52
-
-The FE correctly derives `bwProbeStale` from `last_probe_at` vs the
-configured `bandwidth_probe_interval_seconds` and renders an `overdue`
-chip. The chip is right — the backend doesn't re-run the probe. No FE
-change once BG-52 closes.
-
----
-
 ### FE-18: No schema/test oracle for `/api/events` (deferred)
 
 SSE stream at `/api/events` is outside the contract layer. Add an
@@ -71,6 +35,9 @@ _End of open gaps._
 
 | ID | Summary | Date |
 |----|---------|------|
+| FE-44 | BG-54 shipped — backend dropped hardcoded `allow-overwrite: true` from `aria2/dispatch.ts`. Re-add of completed URL now produces `.1` rename via aria2's default `auto-file-renaming` instead of silent overwrite. No FE change required | 2026-05-06 |
+| FE-43 | BG-53 shipped — `setMaxOverallDownloadLimit` path now also walks active gids and applies fresh `max-download-limit` per-transfer. In-flight downloads track the live cap instead of sticking to the dispatch-time value. No FE change required (CAP card already renders ground truth) | 2026-05-06 |
+| FE-42 | BG-52 shipped — scheduler controller now re-runs `runBandwidthProbe` on `bandwidth_probe_interval_seconds` cadence. `overdue` chip no longer fires under steady operation. No FE change required | 2026-05-06 |
 | FE-40 | BG-50 shipped — `deriveSchedulerStatus` now checks `paused` before the `!running` short-circuit. Pausing from drained-idle (intent=running, running=false, session open, paused=true) now correctly returns `'paused'` instead of `'idle'`. No FE change needed; the badge picks up the new derivation via the BG-49 envelope on /api/scheduler/pause | 2026-05-06 |
 | FE-39 | BG-49 shipped — `POST /api/scheduler/{start,stop,pause,resume}` now return a canonical `state` envelope (`scheduler_status`, `running`, `dispatch_paused`, `session_id`, `_rev`). FE: `schedulerAction()` and `_pauseResume()` drop the optimistic enum guess + the `currentTransfer ? 'running' : 'idle'` heuristic on /resume; both now splat `data.state` into `lastStatus.state`. Post-action `refresh()` also dropped — response itself is ground truth | 2026-05-06 |
 | FE-38 | BG-48 shipped — backend now exposes `POST /api/scheduler/contract` and the action log emits `entry.action: "contract"` for both routes (the deprecated `/ucc` alias also normalises to "contract" in logs). FE: `uccRun()` switched to `urlScheduler('contract')`, `urlScheduler` arg type updated from `'ucc'` to `'contract'`, the display-only `actionDisplay()` helper + its call sites removed. Wire and UI now share one name | 2026-05-05 |
