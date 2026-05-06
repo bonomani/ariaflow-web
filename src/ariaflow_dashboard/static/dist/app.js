@@ -1412,6 +1412,7 @@ document.addEventListener("alpine:init", () => {
     archiveItems: [],
     filesData: [],
     filesError: null,
+    _filesLazyFetched: false,
     cleanModalOpen: false,
     cleanForm: { recipe: "complete_older_than", older_than_days: 30 },
     torrentList: [],
@@ -1961,14 +1962,14 @@ document.addEventListener("alpine:init", () => {
     // Declaration's "policies" field is surfaced via _applyDeclaration.
     TAB_SUBS: {
       dashboard: [
-        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) },
-        // Needed for the awaiting_confirmation banner (BG-55): confirmContext
-        // joins item.output_path against the live filesystem listing to show
-        // size + history info. Cheap thanks to /api/files's `warm` TTL cache.
-        { method: "GET", path: "/api/files", apply: (s, d) => {
-          s.filesData = d?.files || [];
-          s.filesError = d?.ok === false ? d.error || "unknown" : null;
-        } }
+        { method: "GET", path: "/api/declaration", apply: (s, d) => s._applyDeclaration(d) }
+        // /api/files was subscribed unconditionally to hydrate the
+        // awaiting_confirmation banner. That fetched the whole
+        // download folder every 30s even when no awaiting_confirmation
+        // item existed (the common case). Lazy-load via
+        // confirmContext() now — only fires when a banner actually
+        // needs the data, and only once per item until the queue
+        // changes.
       ],
       bandwidth: [
         { method: "GET", path: "/api/bandwidth", apply: (s, d) => s._applyBandwidth(d) },
@@ -2408,6 +2409,13 @@ document.addEventListener("alpine:init", () => {
     confirmContext(item) {
       const path = item?.output_path;
       if (!path) return null;
+      if (!(this.filesData && this.filesData.length) && !this._filesLazyFetched) {
+        this._filesLazyFetched = true;
+        this._fetch("/api/files").then((r) => r.json()).then((data) => {
+          if (data?.ok) this.filesData = data.files || [];
+        }).catch(() => {
+        });
+      }
       const file = (this.filesData || []).find((f) => f.path === path);
       if (!file) return null;
       return {

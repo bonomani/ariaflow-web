@@ -166,6 +166,7 @@ document.addEventListener('alpine:init', () => {
     archiveItems: [],
     filesData: [],
     filesError: null,
+    _filesLazyFetched: false,
     cleanModalOpen: false,
     cleanForm: { recipe: 'complete_older_than', older_than_days: 30 },
     torrentList: [],
@@ -706,10 +707,13 @@ document.addEventListener('alpine:init', () => {
     TAB_SUBS: {
       dashboard: [
         { method: 'GET', path: '/api/declaration', apply: (s, d) => s._applyDeclaration(d) },
-        // Needed for the awaiting_confirmation banner (BG-55): confirmContext
-        // joins item.output_path against the live filesystem listing to show
-        // size + history info. Cheap thanks to /api/files's `warm` TTL cache.
-        { method: 'GET', path: '/api/files', apply: (s, d) => { s.filesData = d?.files || []; s.filesError = d?.ok === false ? (d.error || 'unknown') : null; } },
+        // /api/files was subscribed unconditionally to hydrate the
+        // awaiting_confirmation banner. That fetched the whole
+        // download folder every 30s even when no awaiting_confirmation
+        // item existed (the common case). Lazy-load via
+        // confirmContext() now — only fires when a banner actually
+        // needs the data, and only once per item until the queue
+        // changes.
       ],
       bandwidth: [
         { method: 'GET', path: '/api/bandwidth',   apply: (s, d) => s._applyBandwidth(d) },
@@ -1149,6 +1153,20 @@ get bonjourBadgeTitle() {
     confirmContext(item) {
       const path = item?.output_path;
       if (!path) return null;
+      // Lazy-load filesData when first needed: avoids a 30s warm poll
+      // on every dashboard tab visit when no awaiting_confirmation
+      // exists. The first banner render triggers one fetch; subsequent
+      // renders use the cached array. _filesLazyFetched guards against
+      // re-firing on every Alpine re-render.
+      if (!(this.filesData && this.filesData.length) && !this._filesLazyFetched) {
+        this._filesLazyFetched = true;
+        this._fetch('/api/files')
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.ok) this.filesData = data.files || [];
+          })
+          .catch(() => { /* banner falls back to its no-files-data branch */ });
+      }
       const file = (this.filesData || []).find((f) => f.path === path);
       if (!file) return null;
       return {
