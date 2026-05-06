@@ -229,13 +229,22 @@ def dispatch_update(auto_restart: bool = False) -> dict:
         target = f"gui/{os.getuid()}/{label}"
         domain = f"gui/{os.getuid()}"
         # Update means 'fix me to latest running state' — full pipeline:
-        # try upgrade (no-op when already current), then ALWAYS restart
-        # via bootout+bootstrap. Restart-after-no-op-upgrade picks up
-        # the stale-cellar case where running version ≠ installed
-        # version but tap has nothing newer. Operator's mental model:
-        # Update = 'whatever it takes', Restart = just bounce.
+        # 1. try upgrade (no-op when already current)
+        # 2. force re-link the formula (idempotent; recovers from the
+        #    'installed but not linked' state that interrupted brew
+        #    operations leave behind — bootstrap would otherwise fail
+        #    EX_CONFIG because /opt/homebrew/bin/<binary> is missing)
+        # 3. ALWAYS restart via bootout+bootstrap (picks up upgrades AND
+        #    realigns stale cellar where running version ≠ installed)
+        # Operator's model: Update = 'whatever it takes', Restart = just bounce.
+        link_cmd = ""
+        # Only meaningful for homebrew installs.
+        if "brew upgrade" in upgrade_cmd:
+            brew_bin = upgrade_cmd.split()[0]
+            link_cmd = f"{brew_bin} link --overwrite ariaflow-dashboard 2>/dev/null; "
         return (
             f"{upgrade_cmd}; "
+            f"{link_cmd}"
             f"launchctl bootout {target} 2>/dev/null; "
             f"launchctl bootstrap {domain} {plist_path}"
         )

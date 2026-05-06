@@ -3497,6 +3497,7 @@ document.addEventListener("alpine:init", () => {
       this.webInstalledVia = r.installed_via ?? null;
       if (r.pid) this.webPidText = String(r.pid);
       if (r.uptime_seconds != null) this.webUptimeSeconds = Number(r.uptime_seconds);
+      if (r.version) this.webVersionText = `v${r.version}`;
     },
     async webLifecycleAction(action) {
       if (!["restart", "update"].includes(action)) return;

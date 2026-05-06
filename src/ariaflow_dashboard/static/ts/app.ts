@@ -2274,6 +2274,11 @@ get bonjourBadgeTitle() {
       this.webInstalledVia = r.installed_via ?? null;
       if (r.pid) this.webPidText = String(r.pid);
       if (r.uptime_seconds != null) this.webUptimeSeconds = Number(r.uptime_seconds);
+      // Refresh version too — without this, after auto-restart the
+      // page header stays pinned to the page-load version while the
+      // Latest chip (live probe) shows the new one, leaving the
+      // operator with two disagreeing version readouts.
+      if (r.version) this.webVersionText = `v${r.version}`;
     },
     async webLifecycleAction(action) {
       if (!['restart', 'update'].includes(action)) return;
