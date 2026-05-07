@@ -1,6 +1,6 @@
 __all__ = ["__version__", "__install_mode__"]
 
-__version__ = "0.1.595"
+__version__ = "0.1.596"
 
 
 def _detect_install_mode() -> str:
