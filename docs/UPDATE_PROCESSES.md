@@ -2591,7 +2591,85 @@ To stay honest about scope:
 - ❌ **Custom signing infrastructure (HSM, key vault)** — Sigstore +
   provenance are good enough without managing a private key.
 
-### 18.10 Open questions for these gaps
+### 18.10 Cross-platform installation paths and signature coverage
+
+A summary of what's signed and how operators verify across operating
+systems and install methods.
+
+#### Coverage matrix
+
+| OS | Install method | Signature published | Verification command |
+|---|---|---|---|
+| macOS | `brew install bonomani/ariaflow/ariaflow-dashboard` | ✅ Sigstore + GH provenance | `cosign verify-blob` / `gh attestation verify` |
+| Linux | Linuxbrew (same formula) | ✅ Sigstore + GH provenance | same as macOS |
+| Linux | `pip install ariaflow-dashboard` (PyPI direct) | ❌ no PyPI attestation | n/a — see workaround below |
+| Linux | `pipx install ariaflow-dashboard` | ❌ no PyPI attestation | n/a — see workaround below |
+| Linux/Windows | `pip install <local file>` from GitHub release `.tar.gz` | ✅ Sigstore + GH provenance | `cosign verify-blob` (verify before install) |
+| Windows native | brew n/a | n/a | use WSL or pip workaround |
+| Windows WSL | Linuxbrew | ✅ same as Linux | same |
+
+#### Workaround for pip/pipx users wanting cryptographic verification
+
+Instead of installing from PyPI directly, install from the signed
+GitHub release `.tar.gz`:
+
+```bash
+VERSION=0.1.591  # or whatever's current
+BASE=https://github.com/bonomani/ariaflow-dashboard/releases/download/v${VERSION}
+
+# Download the tarball + signature + cert
+curl -L -O ${BASE}/ariaflow-dashboard-v${VERSION}.tar.gz
+curl -L -O ${BASE}/ariaflow-dashboard-v${VERSION}.tar.gz.sig
+curl -L -O ${BASE}/ariaflow-dashboard-v${VERSION}.tar.gz.pem
+
+# Verify the Sigstore signature
+cosign verify-blob \
+  --certificate ariaflow-dashboard-v${VERSION}.tar.gz.pem \
+  --signature ariaflow-dashboard-v${VERSION}.tar.gz.sig \
+  --certificate-identity-regexp 'https://github.com/bonomani/ariaflow-dashboard/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ariaflow-dashboard-v${VERSION}.tar.gz
+
+# Or verify the GitHub provenance attestation
+gh attestation verify ariaflow-dashboard-v${VERSION}.tar.gz \
+  --owner bonomani
+
+# If verification passes, install the local file
+pip install ./ariaflow-dashboard-v${VERSION}.tar.gz
+```
+
+Equivalent for Windows PowerShell or WSL. The sdist on PyPI and the
+`.tar.gz` on GitHub release are byte-identical (both produced by the
+same `python -m build --sdist` run in the release workflow), so
+installing either yields the same package.
+
+#### Why no native PyPI attestations yet
+
+PyPI added attestation support in late 2024 via Trusted Publishing
+(OIDC-based publishing without API tokens) + `pypa/gh-action-pypi-publish@release/v1`
+with `attestations: true`. Adopting it requires:
+
+1. PyPI account setup: configure Trusted Publishers for the project on
+   https://pypi.org/manage/account/publishing/
+2. Workflow change: replace twine with the `pypa/gh-action-pypi-publish`
+   action, drop `PYPI_TOKEN` secret usage
+3. Validate: next release shows the green "Verified" badge on PyPI
+
+**Effort:** ~15 min in CI + a few clicks in PyPI's UI.
+
+**Why deferred:** requires user-side action on the PyPI website — not
+purely a code change. Filed as a follow-up; the GitHub-release
+workaround above covers the verification need in the meantime.
+
+#### Backend npm packages — see BG-70 in the paired repo
+
+`@ariaflow/{core,api,cli}` published via `release-npm.yml` are not yet
+published with `--provenance`. Same situation: the .tar.gz on GitHub
+release is signed; the npm package isn't directly verifiable.
+BG-70 in `../ariaflow-server/docs/BACKEND_GAPS_REQUESTED_BY_FRONTEND.md`
+tracks the fix.
+
+### 18.11 Open questions for these gaps
 
 Before implementing:
 
