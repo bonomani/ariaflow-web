@@ -1,7 +1,14 @@
 """Bonjour/mDNS discovery for ariaflow backends.
 
-Browse _ariaflow-server._tcp and register _ariaflow-dashboard._tcp on the local network.
-Uses dns-sd (macOS/Windows) or avahi-browse (Linux).
+Browses `_ariaflow-server._tcp` on the local network using dns-sd
+(macOS/Windows) or avahi-browse (Linux), and exposes the discovered
+services to the dashboard via `discover_http_services()`.
+
+Note: this module does NOT currently advertise `_ariaflow-dashboard._tcp`
+itself. An earlier docstring claimed registration but no code path
+implemented it. If/when peer-discovery between dashboards becomes a
+requirement (multi-device pairing future work), advertise will be
+added; until then this is browse-only.
 """
 
 from __future__ import annotations
@@ -14,7 +21,6 @@ import subprocess
 
 
 _BROWSE_SERVICE_TYPE = "_ariaflow-server._tcp"
-_REGISTER_SERVICE_TYPE = "_ariaflow-dashboard._tcp"
 _DOMAIN = "local"
 
 # dns-sd -B output columns: Timestamp A/R Flags if Domain ServiceType InstanceName
