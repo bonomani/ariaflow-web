@@ -120,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write    # Sigstore OIDC keyless signing
+      attestations: write # GitHub provenance attestation
 
     steps:
       - name: Checkout
@@ -225,6 +227,32 @@ jobs:
           artifact=$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)
           cp "$artifact" "release/ariaflow-dashboard-${{ steps.release_meta.outputs.tag }}.tar.gz"
 
+      # Sigstore signing — adds {.sig, .pem} alongside each release
+      # artifact, signed with the GitHub Actions OIDC identity. Verifiable
+      # by anyone with `cosign verify-blob`. No private key to manage.
+      # See docs/UPDATE_PROCESSES.md §18.4.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign release artifacts (Sigstore)
+        run: |
+          cd release
+          for f in *.tar.gz; do
+            cosign sign-blob --yes \
+              --output-signature="${f}.sig" \
+              --output-certificate="${f}.pem" \
+              "${f}"
+          done
+          ls -la
+
+      # GitHub provenance attestation — cryptographically attests
+      # "this artifact was produced by THIS workflow on THIS commit."
+      # Verifiable with `gh attestation verify`.
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'release/*.tar.gz'
+
       - name: Assert tap token is configured
         env:
           TAP_TOKEN: ${{ secrets.ARIAFLOW_TAP_TOKEN }}
@@ -304,6 +332,16 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          # release/* picks up *.tar.gz, *.sig, *.pem produced above.
+          # Sigstore verification:
+          #   cosign verify-blob \
+          #     --certificate <file>.pem \
+          #     --signature <file>.sig \
+          #     --certificate-identity-regexp 'https://github.com/bonomani/ariaflow-dashboard/.*' \
+          #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          #     <file>.tar.gz
+          # Provenance verification:
+          #   gh attestation verify <file>.tar.gz --owner bonomani
           files: release/*
           generate_release_notes: true
           prerelease: false
